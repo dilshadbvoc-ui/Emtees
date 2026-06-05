@@ -1,0 +1,36 @@
+{
+  "name": "server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/boot.ts",
+    "build": "esbuild src/boot.ts --platform=node --bundle --format=esm --outdir=dist --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
+    "start": "NODE_ENV=production node dist/boot.js",
+    "db:seed": "tsx db/seed.ts",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@types/pg": "^8.20.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.1",
+    "express": "^4.21.2",
+    "jose": "^6.2.2",
+    "mysql2": "^3.14.1",
+    "pg": "^8.20.0",
+    "superjson": "^2.2.6",
+    "zod": "^4.3.5",
+    "@trpc/server": "^11.8.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.10.1",
+    "drizzle-kit": "^0.31.8",
+    "esbuild": "^0.27.2",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.3"
+  }
+}
