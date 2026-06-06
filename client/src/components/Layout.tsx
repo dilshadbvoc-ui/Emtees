@@ -88,9 +88,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = () => (
     <>
-      <div className="p-5 border-b">
-        <h1 className="text-lg font-bold text-emerald-700">EMTEES Academy</h1>
-        <p className="text-xs text-gray-500 mt-0.5">LMS & Communication</p>
+      <div className="p-4 border-b flex items-center gap-3">
+        <img src="/logo.png" alt="EMTEES Academy" className="h-10 w-10 object-contain" />
+        <div>
+          <h1 className="text-base font-bold text-emerald-700 leading-none">EMTEES</h1>
+          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mt-1">Academy</p>
+        </div>
       </div>
       <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
         {items.map(item => {

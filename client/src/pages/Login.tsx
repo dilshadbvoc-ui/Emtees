@@ -80,9 +80,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-emerald-600">
+        <CardHeader className="text-center flex flex-col items-center pt-8">
+          <img src="/logo.png" alt="EMTEES Academy Logo" className="h-24 w-24 object-contain mb-4" />
           <CardTitle className="text-2xl font-bold text-emerald-700">
             EMTEES Academy
           </CardTitle>

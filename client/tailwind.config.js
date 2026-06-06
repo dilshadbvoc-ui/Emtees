@@ -48,6 +48,32 @@ module.exports = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        emerald: {
+          50: "#fff5f5",
+          100: "#ffe3e3",
+          200: "#ffc9c9",
+          300: "#ffa8a8",
+          400: "#ff8787",
+          500: "#c21e2e", // Logo Red
+          600: "#b01524",
+          700: "#9c101d", // Darker Red for text headers
+          800: "#850c16",
+          900: "#6e0810",
+          950: "#400004",
+        },
+        brandBlue: {
+          50: "#f0f2fa",
+          100: "#dee3f3",
+          200: "#c1cbeb",
+          300: "#97a8de",
+          400: "#677ecd",
+          500: "#455cb9",
+          600: "#34459f",
+          700: "#262e7a", // Logo Navy Blue
+          800: "#222765",
+          900: "#1d2054",
+          950: "#111233",
+        },
       },
       borderRadius: {
         xl: "calc(var(--radius) + 4px)",
