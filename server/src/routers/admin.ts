@@ -818,7 +818,7 @@ export const adminRouter = createRouter({
       const cls = await db.query.classes.findFirst({
         where: eq(classes.id, input.classId),
       });
-      if (!cls) return [];
+      if (!cls || !cls.batchId) return [];
 
       const filters = [eq(messages.batchId, cls.batchId)];
       if (cls.startedAt)
@@ -854,6 +854,7 @@ export const adminRouter = createRouter({
 
       const result = [];
       for (const cls of teacherClasses) {
+        if (!cls.batchId) continue;
         const filters = [
           eq(messages.batchId, cls.batchId),
           eq(messages.senderId, input.teacherId),
