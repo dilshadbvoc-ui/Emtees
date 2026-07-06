@@ -1,25 +1,23 @@
-import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
+import * as trpcExpress from "@trpc/server/adapters/express";
 import { jwtVerify } from "jose";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.APP_SECRET || "emtees-academy-secret-key-2024"
-);
+import { jwtSecret } from "./lib/env";
 
 export type TrpcContext = {
-  req: any;
-  res: any;
+  req: trpcExpress.CreateExpressContextOptions["req"];
+  res: trpcExpress.CreateExpressContextOptions["res"];
   user: { id: number; role: string; name: string; sessionToken: string } | null;
 };
 
-export async function createContext(
-  opts: CreateExpressContextOptions
-): Promise<TrpcContext> {
-  const token = opts.req.headers.authorization?.replace("Bearer ", "");
+export async function createContext({
+  req,
+  res,
+}: trpcExpress.CreateExpressContextOptions): Promise<TrpcContext> {
+  const token = req.headers.authorization?.replace("Bearer ", "");
   let user = null;
 
   if (token) {
     try {
-      const { payload } = await jwtVerify(token, JWT_SECRET, {
+      const { payload } = await jwtVerify(token, jwtSecret, {
         clockTolerance: 60,
       });
       user = {
@@ -28,10 +26,11 @@ export async function createContext(
         name: (payload.name as string) || "",
         sessionToken: (payload.sessionToken as string) || "",
       };
-    } catch {
+    } catch (err: any) {
+      console.error("[tRPC Context] Token verification failed:", err?.message || err);
       user = null;
     }
   }
-
-  return { req: opts.req, res: opts.res, user };
+  return { req, res, user };
 }
+

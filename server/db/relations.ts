@@ -16,9 +16,51 @@ import {
   violations,
   learningMaterials,
   oneToOneSessions,
+  batchFeeAuditLogs,
+  privateMessages,
+  announcements,
+  announcementDismissals,
+  classBatches,
+  classJoinRequests,
+  batchAuditLogs,
+  privateMessageAuditLogs,
+  attendanceAlerts,
+  teacherSalaryConfigs,
+  teacherSalaryConfigAuditLogs,
+  sessionAllocationLogs,
+  oneToOneRescheduleRequests,
+  learningNotes,
+  learningVideos,
+  assignments,
+  assignmentSubmissions,
+  communityLessons,
+  communityPosts,
+  communityComments,
+  communityPostReactions,
+  communityCareers,
+  communitySavedCareers,
+  communitySuccessStories,
+  communityLessonViews,
+  communityActiveUsers,
+  salesExecutives,
+  studentCourseAuditLogs,
+  studentClassAllocations,
+  performanceConfigs,
+  performanceReports,
+  qualifications,
+  studentFeeConfigurations,
 } from "./schema";
 
+export const qualificationsRelations = relations(qualifications, ({ many }) => ({
+  users: many(users),
+  profiles: many(profiles),
+}));
+
 export const usersRelations = relations(users, ({ one, many }) => ({
+  qualification: one(qualifications, {
+    fields: [users.qualificationId],
+    references: [qualifications.id],
+  }),
   profile: one(profiles, {
     fields: [users.id],
     references: [profiles.userId],
@@ -32,6 +74,35 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   violations: many(violations),
   salaries: many(teacherSalaries),
   payments: many(payments),
+  feeAuditLogs: many(batchFeeAuditLogs),
+  sentPrivateMessages: many(privateMessages, { relationName: "sentPrivateMessages" }),
+  receivedPrivateMessages: many(privateMessages, { relationName: "receivedPrivateMessages" }),
+  joinRequests: many(classJoinRequests),
+  auditLogs: many(batchAuditLogs),
+  pmAuditLogs: many(privateMessageAuditLogs),
+  attendanceAlerts: many(attendanceAlerts),
+  salaryConfig: one(teacherSalaryConfigs, {
+    fields: [users.id],
+    references: [teacherSalaryConfigs.teacherId],
+  }),
+  salaryConfigAuditLogs: many(teacherSalaryConfigAuditLogs),
+  createdOneToOneSessions: many(oneToOneSessions, { relationName: "oneToOneCreator" }),
+  sessionAllocationLogs: many(sessionAllocationLogs, { relationName: "studentAllocationLogs" }),
+  changedSessionAllocationLogs: many(sessionAllocationLogs, { relationName: "adminAllocationLogs" }),
+  salesProfile: one(salesExecutives, {
+    fields: [users.id],
+    references: [salesExecutives.userId],
+    relationName: "salesExecutiveUser",
+  }),
+  assignedSalesExecutive: one(salesExecutives, {
+    fields: [users.salesExecutiveId],
+    references: [salesExecutives.id],
+    relationName: "referredStudents",
+  }),
+  feeConfig: one(studentFeeConfigurations, {
+    fields: [users.id],
+    references: [studentFeeConfigurations.studentId],
+  }),
 }));
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
@@ -39,11 +110,18 @@ export const profilesRelations = relations(profiles, ({ one }) => ({
     fields: [profiles.userId],
     references: [users.id],
   }),
+  qualification: one(qualifications, {
+    fields: [profiles.qualificationId],
+    references: [qualifications.id],
+  }),
 }));
 
-export const modulesRelations = relations(modules, ({ many }) => ({
+export const modulesRelations = relations(modules, ({ one, many }) => ({
   batches: many(batches),
-  payments: many(payments),
+  teacher: one(users, {
+    fields: [modules.teacherId],
+    references: [users.id],
+  }),
 }));
 
 export const batchesRelations = relations(batches, ({ one, many }) => ({
@@ -59,21 +137,32 @@ export const batchesRelations = relations(batches, ({ one, many }) => ({
   messages: many(messages),
   classes: many(classes),
   materials: many(learningMaterials),
+  payments: many(payments),
+  feeAuditLogs: many(batchFeeAuditLogs),
+  classBatches: many(classBatches),
+  auditLogs: many(batchAuditLogs),
+  attendanceAlerts: many(attendanceAlerts),
+  feedback: many(feedback),
 }));
 
-export const batchEnrollmentsRelations = relations(
-  batchEnrollments,
-  ({ one }) => ({
-    batch: one(batches, {
-      fields: [batchEnrollments.batchId],
-      references: [batches.id],
-    }),
-    student: one(users, {
-      fields: [batchEnrollments.studentId],
-      references: [users.id],
-    }),
-  })
-);
+export const batchEnrollmentsRelations = relations(batchEnrollments, ({ one }) => ({
+  batch: one(batches, {
+    fields: [batchEnrollments.batchId],
+    references: [batches.id],
+  }),
+  student: one(users, {
+    fields: [batchEnrollments.studentId],
+    references: [users.id],
+  }),
+  module: one(modules, {
+    fields: [batchEnrollments.moduleId],
+    references: [modules.id],
+  }),
+  feeConfig: one(studentFeeConfigurations, {
+    fields: [batchEnrollments.studentFeeConfigId],
+    references: [studentFeeConfigurations.id],
+  }),
+}));
 
 export const messagesRelations = relations(messages, ({ one }) => ({
   batch: one(batches, {
@@ -91,35 +180,36 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
     fields: [classes.batchId],
     references: [batches.id],
   }),
-  module: one(modules, {
-    fields: [classes.moduleId],
-    references: [modules.id],
-  }),
   teacher: one(users, {
     fields: [classes.teacherId],
     references: [users.id],
   }),
   attendance: many(attendance),
   oneToOneSessions: many(oneToOneSessions),
+  classBatches: many(classBatches),
+  joinRequests: many(classJoinRequests),
 }));
 
-export const oneToOneSessionsRelations = relations(
-  oneToOneSessions,
-  ({ one }) => ({
-    class: one(classes, {
-      fields: [oneToOneSessions.classId],
-      references: [classes.id],
-    }),
-    teacher: one(users, {
-      fields: [oneToOneSessions.teacherId],
-      references: [users.id],
-    }),
-    student: one(users, {
-      fields: [oneToOneSessions.studentId],
-      references: [users.id],
-    }),
-  })
-);
+export const oneToOneSessionsRelations = relations(oneToOneSessions, ({ one, many }) => ({
+  class: one(classes, {
+    fields: [oneToOneSessions.classId],
+    references: [classes.id],
+  }),
+  teacher: one(users, {
+    fields: [oneToOneSessions.teacherId],
+    references: [users.id],
+  }),
+  student: one(users, {
+    fields: [oneToOneSessions.studentId],
+    references: [users.id],
+  }),
+  creator: one(users, {
+    fields: [oneToOneSessions.createdBy],
+    references: [users.id],
+    relationName: "oneToOneCreator",
+  }),
+  rescheduleRequests: many(oneToOneRescheduleRequests),
+}));
 
 export const attendanceRelations = relations(attendance, ({ one }) => ({
   class: one(classes, {
@@ -130,50 +220,91 @@ export const attendanceRelations = relations(attendance, ({ one }) => ({
     fields: [attendance.studentId],
     references: [users.id],
   }),
+  teacher: one(users, {
+    fields: [attendance.teacherId],
+    references: [users.id],
+  }),
+  batch: one(batches, {
+    fields: [attendance.batchId],
+    references: [batches.id],
+  }),
+  module: one(modules, {
+    fields: [attendance.moduleId],
+    references: [modules.id],
+  }),
+  oneToOneSession: one(oneToOneSessions, {
+    fields: [attendance.oneToOneSessionId],
+    references: [oneToOneSessions.id],
+  }),
 }));
 
-export const flexibilityRequestsRelations = relations(
-  flexibilityRequests,
-  ({ one }) => ({
-    student: one(users, {
-      fields: [flexibilityRequests.studentId],
-      references: [users.id],
-    }),
-    fromBatch: one(batches, {
-      fields: [flexibilityRequests.fromBatchId],
-      references: [batches.id],
-    }),
-    toBatch: one(batches, {
-      fields: [flexibilityRequests.toBatchId],
-      references: [batches.id],
-    }),
-    resolver: one(users, {
-      fields: [flexibilityRequests.resolvedBy],
-      references: [users.id],
-    }),
-  })
-);
+export const flexibilityRequestsRelations = relations(flexibilityRequests, ({ one }) => ({
+  student: one(users, {
+    fields: [flexibilityRequests.studentId],
+    references: [users.id],
+  }),
+  fromBatch: one(batches, {
+    fields: [flexibilityRequests.fromBatchId],
+    references: [batches.id],
+  }),
+  toBatch: one(batches, {
+    fields: [flexibilityRequests.toBatchId],
+    references: [batches.id],
+  }),
+  resolver: one(users, {
+    fields: [flexibilityRequests.resolvedBy],
+    references: [users.id],
+  }),
+}));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
   student: one(users, {
     fields: [payments.studentId],
     references: [users.id],
   }),
-  course: one(modules, {
-    fields: [payments.courseId],
-    references: [modules.id],
+  batch: one(batches, {
+    fields: [payments.batchId],
+    references: [batches.id],
+  }),
+  feeConfig: one(studentFeeConfigurations, {
+    fields: [payments.studentFeeConfigId],
+    references: [studentFeeConfigurations.id],
   }),
 }));
 
-export const teacherSalariesRelations = relations(
-  teacherSalaries,
-  ({ one }) => ({
-    teacher: one(users, {
-      fields: [teacherSalaries.teacherId],
-      references: [users.id],
-    }),
-  })
-);
+export const studentFeeConfigurationsRelations = relations(studentFeeConfigurations, ({ one, many }) => ({
+  student: one(users, {
+    fields: [studentFeeConfigurations.studentId],
+    references: [users.id],
+  }),
+  enrollments: many(batchEnrollments),
+  payments: many(payments),
+}));
+
+export const teacherSalariesRelations = relations(teacherSalaries, ({ one }) => ({
+  teacher: one(users, {
+    fields: [teacherSalaries.teacherId],
+    references: [users.id],
+  }),
+}));
+
+export const teacherSalaryConfigsRelations = relations(teacherSalaryConfigs, ({ one }) => ({
+  teacher: one(users, {
+    fields: [teacherSalaryConfigs.teacherId],
+    references: [users.id],
+  }),
+}));
+
+export const teacherSalaryConfigAuditLogsRelations = relations(teacherSalaryConfigAuditLogs, ({ one }) => ({
+  teacher: one(users, {
+    fields: [teacherSalaryConfigAuditLogs.teacherId],
+    references: [users.id],
+  }),
+  changedByUser: one(users, {
+    fields: [teacherSalaryConfigAuditLogs.changedBy],
+    references: [users.id],
+  }),
+}));
 
 export const feedbackRelations = relations(feedback, ({ one }) => ({
   student: one(users, {
@@ -187,6 +318,10 @@ export const feedbackRelations = relations(feedback, ({ one }) => ({
   class: one(classes, {
     fields: [feedback.classId],
     references: [classes.id],
+  }),
+  batch: one(batches, {
+    fields: [feedback.batchId],
+    references: [batches.id],
   }),
 }));
 
@@ -208,16 +343,341 @@ export const violationsRelations = relations(violations, ({ one }) => ({
   }),
 }));
 
-export const learningMaterialsRelations = relations(
-  learningMaterials,
-  ({ one }) => ({
-    batch: one(batches, {
-      fields: [learningMaterials.batchId],
-      references: [batches.id],
-    }),
-    creator: one(users, {
-      fields: [learningMaterials.createdBy],
-      references: [users.id],
-    }),
-  })
-);
+export const learningMaterialsRelations = relations(learningMaterials, ({ one }) => ({
+  batch: one(batches, {
+    fields: [learningMaterials.batchId],
+    references: [batches.id],
+  }),
+  creator: one(users, {
+    fields: [learningMaterials.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const batchFeeAuditLogsRelations = relations(batchFeeAuditLogs, ({ one }) => ({
+  batch: one(batches, {
+    fields: [batchFeeAuditLogs.batchId],
+    references: [batches.id],
+  }),
+  admin: one(users, {
+    fields: [batchFeeAuditLogs.adminId],
+    references: [users.id],
+  }),
+}));
+
+export const batchAuditLogsRelations = relations(batchAuditLogs, ({ one }) => ({
+  batch: one(batches, {
+    fields: [batchAuditLogs.batchId],
+    references: [batches.id],
+  }),
+  changedByUser: one(users, {
+    fields: [batchAuditLogs.changedBy],
+    references: [users.id],
+  }),
+}));
+export const privateMessagesRelations = relations(privateMessages, ({ one }) => ({
+  sender: one(users, {
+    fields: [privateMessages.senderId],
+    references: [users.id],
+    relationName: "sentPrivateMessages",
+  }),
+  receiver: one(users, {
+    fields: [privateMessages.receiverId],
+    references: [users.id],
+    relationName: "receivedPrivateMessages",
+  }),
+}));
+
+export const announcementsRelations = relations(announcements, ({ many }) => ({
+  dismissals: many(announcementDismissals),
+}));
+
+export const announcementDismissalsRelations = relations(announcementDismissals, ({ one }) => ({
+  announcement: one(announcements, {
+    fields: [announcementDismissals.announcementId],
+    references: [announcements.id],
+  }),
+  user: one(users, {
+    fields: [announcementDismissals.userId],
+    references: [users.id],
+  }),
+}));
+
+export const classBatchesRelations = relations(classBatches, ({ one }) => ({
+  class: one(classes, {
+    fields: [classBatches.classId],
+    references: [classes.id],
+  }),
+  batch: one(batches, {
+    fields: [classBatches.batchId],
+    references: [batches.id],
+  }),
+}));
+
+export const classJoinRequestsRelations = relations(classJoinRequests, ({ one }) => ({
+  class: one(classes, {
+    fields: [classJoinRequests.classId],
+    references: [classes.id],
+  }),
+  student: one(users, {
+    fields: [classJoinRequests.studentId],
+    references: [users.id],
+  }),
+}));
+
+export const privateMessageAuditLogsRelations = relations(privateMessageAuditLogs, ({ one }) => ({
+  admin: one(users, {
+    fields: [privateMessageAuditLogs.adminId],
+    references: [users.id],
+  }),
+}));
+
+export const attendanceAlertsRelations = relations(attendanceAlerts, ({ one }) => ({
+  student: one(users, {
+    fields: [attendanceAlerts.studentId],
+    references: [users.id],
+  }),
+  batch: one(batches, {
+    fields: [attendanceAlerts.batchId],
+    references: [batches.id],
+  }),
+}));
+
+export const sessionAllocationLogsRelations = relations(sessionAllocationLogs, ({ one }) => ({
+  student: one(users, {
+    fields: [sessionAllocationLogs.studentId],
+    references: [users.id],
+    relationName: "studentAllocationLogs",
+  }),
+  changedByUser: one(users, {
+    fields: [sessionAllocationLogs.changedBy],
+    references: [users.id],
+    relationName: "adminAllocationLogs",
+  }),
+}));
+
+export const oneToOneRescheduleRequestsRelations = relations(oneToOneRescheduleRequests, ({ one }) => ({
+  session: one(oneToOneSessions, {
+    fields: [oneToOneRescheduleRequests.sessionId],
+    references: [oneToOneSessions.id],
+  }),
+  requestedByUser: one(users, {
+    fields: [oneToOneRescheduleRequests.requestedBy],
+    references: [users.id],
+  }),
+  resolvedByUser: one(users, {
+    fields: [oneToOneRescheduleRequests.resolvedBy],
+    references: [users.id],
+  }),
+}));
+
+export const learningNotesRelations = relations(learningNotes, ({ one }) => ({
+  module: one(modules, {
+    fields: [learningNotes.moduleId],
+    references: [modules.id],
+  }),
+  batch: one(batches, {
+    fields: [learningNotes.batchId],
+    references: [batches.id],
+  }),
+  uploader: one(users, {
+    fields: [learningNotes.uploadedBy],
+    references: [users.id],
+  }),
+}));
+
+export const learningVideosRelations = relations(learningVideos, ({ one }) => ({
+  student: one(users, {
+    fields: [learningVideos.studentId],
+    references: [users.id],
+  }),
+  batch: one(batches, {
+    fields: [learningVideos.batchId],
+    references: [batches.id],
+  }),
+  teacher: one(users, {
+    fields: [learningVideos.teacherId],
+    references: [users.id],
+  }),
+  module: one(modules, {
+    fields: [learningVideos.moduleId],
+    references: [modules.id],
+  }),
+  uploader: one(users, {
+    fields: [learningVideos.uploadedBy],
+    references: [users.id],
+  }),
+}));
+
+export const assignmentsRelations = relations(assignments, ({ one, many }) => ({
+  module: one(modules, {
+    fields: [assignments.moduleId],
+    references: [modules.id],
+  }),
+  batch: one(batches, {
+    fields: [assignments.batchId],
+    references: [batches.id],
+  }),
+  creator: one(users, {
+    fields: [assignments.createdBy],
+    references: [users.id],
+  }),
+  submissions: many(assignmentSubmissions),
+}));
+
+export const assignmentSubmissionsRelations = relations(assignmentSubmissions, ({ one }) => ({
+  student: one(users, {
+    fields: [assignmentSubmissions.studentId],
+    references: [users.id],
+  }),
+  assignment: one(assignments, {
+    fields: [assignmentSubmissions.assignmentId],
+    references: [assignments.id],
+  }),
+}));
+
+export const communityLessonsRelations = relations(communityLessons, ({ one, many }) => ({
+  publisher: one(users, {
+    fields: [communityLessons.publishedBy],
+    references: [users.id],
+  }),
+  views: many(communityLessonViews),
+}));
+
+export const communityPostsRelations = relations(communityPosts, ({ one, many }) => ({
+  author: one(users, {
+    fields: [communityPosts.authorId],
+    references: [users.id],
+  }),
+  comments: many(communityComments),
+  reactions: many(communityPostReactions),
+}));
+
+export const communityCommentsRelations = relations(communityComments, ({ one }) => ({
+  post: one(communityPosts, {
+    fields: [communityComments.postId],
+    references: [communityPosts.id],
+  }),
+  author: one(users, {
+    fields: [communityComments.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const communityPostReactionsRelations = relations(communityPostReactions, ({ one }) => ({
+  post: one(communityPosts, {
+    fields: [communityPostReactions.postId],
+    references: [communityPosts.id],
+  }),
+  user: one(users, {
+    fields: [communityPostReactions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const communityCareersRelations = relations(communityCareers, ({ one, many }) => ({
+  publisher: one(users, {
+    fields: [communityCareers.publishedBy],
+    references: [users.id],
+  }),
+  savedBy: many(communitySavedCareers),
+}));
+
+export const communitySavedCareersRelations = relations(communitySavedCareers, ({ one }) => ({
+  user: one(users, {
+    fields: [communitySavedCareers.userId],
+    references: [users.id],
+  }),
+  career: one(communityCareers, {
+    fields: [communitySavedCareers.careerId],
+    references: [communityCareers.id],
+  }),
+}));
+
+export const communitySuccessStoriesRelations = relations(communitySuccessStories, ({ one }) => ({
+  publisher: one(users, {
+    fields: [communitySuccessStories.publishedBy],
+    references: [users.id],
+  }),
+}));
+
+export const communityLessonViewsRelations = relations(communityLessonViews, ({ one }) => ({
+  lesson: one(communityLessons, {
+    fields: [communityLessonViews.lessonId],
+    references: [communityLessons.id],
+  }),
+  user: one(users, {
+    fields: [communityLessonViews.userId],
+    references: [users.id],
+  }),
+}));
+
+export const communityActiveUsersRelations = relations(communityActiveUsers, ({ one }) => ({
+  user: one(users, {
+    fields: [communityActiveUsers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const salesExecutivesRelations = relations(salesExecutives, ({ one, many }) => ({
+  user: one(users, {
+    fields: [salesExecutives.userId],
+    references: [users.id],
+    relationName: "salesExecutiveUser",
+  }),
+  referredStudents: many(users, {
+    relationName: "referredStudents",
+  }),
+}));
+
+
+export const studentCourseAuditLogsRelations = relations(studentCourseAuditLogs, ({ one }) => ({
+  student: one(users, {
+    fields: [studentCourseAuditLogs.studentId],
+    references: [users.id],
+  }),
+  changedByUser: one(users, {
+    fields: [studentCourseAuditLogs.changedBy],
+    references: [users.id],
+  }),
+}));
+
+export const studentClassAllocationsRelations = relations(studentClassAllocations, ({ one }) => ({
+  student: one(users, {
+    fields: [studentClassAllocations.studentId],
+    references: [users.id],
+  }),
+}));
+
+export const performanceConfigsRelations = relations(performanceConfigs, ({ one }) => ({
+  createdBy: one(users, {
+    fields: [performanceConfigs.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const performanceReportsRelations = relations(performanceReports, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [performanceReports.createdBy],
+    references: [users.id],
+  }),
+  targetUser: one(users, {
+    fields: [performanceReports.targetUserId],
+    references: [users.id],
+  }),
+  config: one(performanceConfigs, {
+    fields: [performanceReports.configId],
+    references: [performanceConfigs.id],
+  }),
+  parentReport: one(performanceReports, {
+    fields: [performanceReports.parentReportId],
+    references: [performanceReports.id],
+    relationName: "performanceReportVersions",
+  }),
+  childReports: many(performanceReports, {
+    relationName: "performanceReportVersions",
+  }),
+}));
+
+
+

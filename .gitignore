@@ -7,8 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
+**/node_modules/
+**/dist/
+node_modules/
+dist/
 dist-ssr
 *.local
 
@@ -39,3 +41,5 @@ build/
 # Test coverage
 coverage/
 .nyc_output/
+emtees-deploy.tar.gz
+server/global-bundle.pem

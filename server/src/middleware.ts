@@ -20,14 +20,9 @@ export const authedQuery = t.procedure.use(async ({ ctx, next }) => {
   // Validate session token matches stored device token
   if (ctx.user.sessionToken) {
     const db = getDb();
-    const dbUser = await db.query.users.findFirst({
-      where: eq(users.id, ctx.user.id),
-    });
+    const dbUser = await db.query.users.findFirst({ where: eq(users.id, ctx.user.id) });
     if (!dbUser || dbUser.deviceToken !== ctx.user.sessionToken) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Session expired, please login again",
-      });
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Your account has been logged in from another device. You have been signed out." });
     }
   }
 
@@ -37,10 +32,7 @@ export const authedQuery = t.procedure.use(async ({ ctx, next }) => {
 export const adminQuery = authedQuery.use(async ({ ctx, next }) => {
   const allowedRoles = ["super_admin", "admin", "academic_head"];
   if (!allowedRoles.includes(ctx.user.role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
+    throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
   }
   return next({ ctx });
 });
@@ -48,10 +40,7 @@ export const adminQuery = authedQuery.use(async ({ ctx, next }) => {
 export const teacherQuery = authedQuery.use(async ({ ctx, next }) => {
   const allowedRoles = ["super_admin", "admin", "academic_head", "teacher"];
   if (!allowedRoles.includes(ctx.user.role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Teacher access required",
-    });
+    throw new TRPCError({ code: "FORBIDDEN", message: "Teacher access required" });
   }
   return next({ ctx });
 });

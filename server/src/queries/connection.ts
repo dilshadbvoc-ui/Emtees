@@ -10,18 +10,13 @@ let instance: ReturnType<typeof drizzle<typeof fullSchema>>;
 
 export function getDb() {
   if (!instance) {
+    const isLocal = env.databaseUrl.includes("localhost") || env.databaseUrl.includes("127.0.0.1");
     const pool = new pg.Pool({
       connectionString: env.databaseUrl,
-      max: 10,
-      idleTimeoutMillis: 10000, // Close idle connections after 10 seconds to avoid Neon sleep disconnects
-      connectionTimeoutMillis: 15000, // Give Neon up to 15 seconds to wake up from cold start
+      connectionTimeoutMillis: 5000, // 5 seconds connection timeout
+      query_timeout: 5000,           // 5 seconds query timeout
+      ssl: isLocal ? false : { rejectUnauthorized: false },
     });
-
-    // Catch pool errors so connection timeouts or drops do not crash the Node process
-    pool.on("error", (err) => {
-      console.error("Unexpected error on idle database client:", err);
-    });
-
     instance = drizzle(pool, { schema: fullSchema });
   }
   return instance;

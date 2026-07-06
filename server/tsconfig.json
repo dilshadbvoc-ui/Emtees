@@ -1,24 +1,20 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo",
-    "target": "ES2022",
-    "lib": ["ES2022"],
-    "module": "ESNext",
-    "types": ["node"],
-    "skipLibCheck": true,
+    "target": "es2022",
+    "module": "esnext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-    "strict": true,
     "esModuleInterop": true,
-    "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "outDir": "./dist",
     "paths": {
-      "@/*": ["./src/*"],
-      "@contracts/*": ["./contracts/*"],
-      "@db/*": ["./db/*"]
+      "zod": ["./node_modules/zod"],
+      "libphonenumber-js": ["./node_modules/libphonenumber-js"],
+      "@db/*": ["./db/*"],
+      "db/*": ["./db/*"],
+      "@contracts/*": ["../contracts/*"]
     }
   },
-  "include": ["src", "contracts", "db"]
+  "include": ["src/**/*.ts", "db/**/*.ts"]
 }

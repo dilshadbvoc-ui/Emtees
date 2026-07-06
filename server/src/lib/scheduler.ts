@@ -1,49 +1,37 @@
-import { eq, and, isNull, isNotNull, lte, gte, lt, ne } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, lte, gte, lt, ne, gt, inArray, or, desc } from "drizzle-orm";
 import { getDb } from "../queries/connection";
-import {
-  classes,
-  batchEnrollments,
-  payments,
-  oneToOneSessions,
-  profiles,
-} from "@db/schema";
-import {
-  sendBulkNotification,
-  sendNotification,
-  getAdminUserIds,
-} from "./notificationEngine";
+import { classes, batchEnrollments, payments, oneToOneSessions, profiles, users, batches, modules, classBatches, attendanceAlerts, attendance } from "@db/schema";
+import { sendBulkNotification, sendNotification, getAdminUserIds } from "./notificationEngine";
+import { notifications } from "@db/schema";
 
-const RECORDING_RETENTION_DAYS = Number(
-  process.env.RECORDING_RETENTION_DAYS ?? 90
-);
+const RECORDING_RETENTION_DAYS = Number(process.env.RECORDING_RETENTION_DAYS ?? 60);
 
-// Task 9.1 — mark overdue payments and notify student + admins
-async function checkOverduePayments(): Promise<void> {
+export async function processFeesAndRestrictions(): Promise<void> {
   const db = getDb();
   const now = new Date();
 
-  const overduePayments = await db.query.payments.findMany({
+  // 1. Mark overdue profiles (balance > 0 and due date in the past)
+  const overdueProfiles = await db.query.profiles.findMany({
     where: and(
-      lt(payments.dueDate, now),
-      ne(payments.status, "paid"),
-      ne(payments.status, "overdue")
+      gt(profiles.feesBalance, "0"),
+      lt(profiles.paymentDueDate, now),
+      ne(profiles.paymentStatus, "overdue")
     ),
   });
 
-  if (overduePayments.length === 0) return;
-
   const adminIds = await getAdminUserIds();
 
-  for (const payment of overduePayments) {
-    await db
-      .update(payments)
-      .set({ status: "overdue" })
-      .where(eq(payments.id, payment.id));
+  for (const profile of overdueProfiles) {
+    await db.update(profiles)
+      .set({ paymentStatus: "overdue" })
+      .where(eq(profiles.id, profile.id));
+
+    const message = `Your payment is overdue. Outstanding balance: ₹${profile.feesBalance}. Please pay as soon as possible.`;
 
     await sendNotification(
-      payment.studentId,
+      profile.userId,
       "Payment Overdue",
-      `Your payment of ${payment.amount} is overdue. Please pay as soon as possible.`,
+      message,
       "fee_overdue"
     );
 
@@ -51,62 +39,128 @@ async function checkOverduePayments(): Promise<void> {
       await sendBulkNotification(
         adminIds,
         "Student Payment Overdue",
-        `A student's payment of ${payment.amount} is overdue.`,
+        `A student's payment is overdue. Balance: ₹${profile.feesBalance}.`,
         "fee_overdue"
       );
     }
   }
-}
 
-// Task 9.2 — send 3-day fee-due reminders
-async function checkFeeReminders(): Promise<void> {
-  const db = getDb();
-  const now = new Date();
-  const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-
-  const upcomingPayments = await db.query.payments.findMany({
-    where: and(
-      lte(payments.dueDate, threeDaysLater),
-      gte(payments.dueDate, now),
-      ne(payments.status, "paid")
-    ),
+  // 2. Deactivate enrollments past grace period
+  const activeUnpaidProfiles = await db.query.profiles.findMany({
+    where: gt(profiles.feesBalance, "0"),
   });
 
-  for (const payment of upcomingPayments) {
-    await sendNotification(
-      payment.studentId,
-      "Fee Reminder",
-      `Your payment of ${payment.amount} is due soon. Please pay before the due date.`,
-      "fee_reminder"
-    );
+  for (const profile of activeUnpaidProfiles) {
+    if (!profile.paymentDueDate) continue;
+
+    const dueDate = new Date(profile.paymentDueDate);
+    const gracePeriodDays = profile.gracePeriodDays ?? 7;
+    const restrictionDate = new Date(dueDate.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000);
+
+    if (now > restrictionDate) {
+      // Grace period expired!
+      const activeEnrollments = await db.query.batchEnrollments.findMany({
+        where: and(
+          eq(batchEnrollments.studentId, profile.userId),
+          eq(batchEnrollments.status, "active")
+        ),
+      });
+
+      if (activeEnrollments.length > 0) {
+        for (const enrollment of activeEnrollments) {
+          await db.update(batchEnrollments)
+            .set({ status: "restricted" })
+            .where(eq(batchEnrollments.id, enrollment.id));
+        }
+
+        // Log access restriction to timeline
+        const timeline = Array.isArray(profile.activityTimeline) ? profile.activityTimeline : [];
+        timeline.push({
+          type: "access_restricted",
+          reason: "Grace period expired on unpaid fees",
+          timestamp: now.toISOString(),
+        });
+        await db.update(profiles)
+          .set({ activityTimeline: timeline })
+          .where(eq(profiles.id, profile.id));
+
+        // Send LMS warning notification
+        await sendNotification(
+          profile.userId,
+          "Access Restricted",
+          "Your fee payment is overdue. Please clear the outstanding balance to regain access to batch activities.",
+          "fee_restricted"
+        );
+      }
+
+      // Send daily post-grace overdue alerts
+      const type = "fee_overdue_daily";
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const alreadySent = await db.query.notifications.findFirst({
+        where: and(
+          eq(notifications.userId, profile.userId),
+          eq(notifications.type, type),
+          gte(notifications.createdAt, oneDayAgo)
+        ),
+      });
+
+      if (!alreadySent) {
+        await sendNotification(
+          profile.userId,
+          "Access Restricted Due to Outstanding Fees",
+          "Your fee payment is overdue. Please clear the outstanding balance to regain access to batch activities.",
+          type
+        );
+      }
+    }
   }
 }
 
-// Task 9.3 — deactivate enrollments after 7-day grace period
-async function deactivateUnpaidEnrollments(): Promise<void> {
+export async function sendDueDateReminders(): Promise<void> {
   const db = getDb();
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const now = new Date();
 
-  const overduePayments = await db.query.payments.findMany({
-    where: and(
-      eq(payments.status, "overdue"),
-      lt(payments.dueDate, sevenDaysAgo)
-    ),
+  const unpaidProfiles = await db.query.profiles.findMany({
+    where: gt(profiles.feesBalance, "0"),
   });
 
-  for (const payment of overduePayments) {
-    const activeEnrollments = await db.query.batchEnrollments.findMany({
-      where: and(
-        eq(batchEnrollments.studentId, payment.studentId),
-        eq(batchEnrollments.status, "active")
-      ),
-    });
+  for (const profile of unpaidProfiles) {
+    if (!profile.paymentDueDate) continue;
 
-    for (const enrollment of activeEnrollments) {
-      await db
-        .update(batchEnrollments)
-        .set({ status: "inactive" })
-        .where(eq(batchEnrollments.id, enrollment.id));
+    const dueDate = new Date(profile.paymentDueDate);
+    const timeDiff = dueDate.getTime() - now.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+    if ([7, 3, 1].includes(daysDiff)) {
+      const type = `fee_due_${daysDiff}_days`;
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const alreadySent = await db.query.notifications.findFirst({
+        where: and(
+          eq(notifications.userId, profile.userId),
+          eq(notifications.type, type),
+          gte(notifications.createdAt, oneDayAgo)
+        ),
+      });
+
+      if (!alreadySent) {
+        const formattedDueDate = dueDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+        const message = `Your batch fee balance of ₹${profile.feesBalance} is due on ${formattedDueDate}.`;
+
+        await sendNotification(
+          profile.userId,
+          "Fee Payment Reminder",
+          message,
+          type
+        );
+
+        // Simulated email notification
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, profile.userId),
+        });
+        if (user?.email) {
+          console.log(`[Email Sent] to ${user.email}: ${message}`);
+        }
+      }
     }
   }
 }
@@ -119,13 +173,12 @@ async function expireOneToOneSessions(): Promise<void> {
   const expiredSessions = await db.query.oneToOneSessions.findMany({
     where: and(
       lt(oneToOneSessions.validUntil, now),
-      ne(oneToOneSessions.status, "completed")
+      ne(oneToOneSessions.status, "completed"),
     ),
   });
 
   for (const session of expiredSessions) {
-    await db
-      .update(oneToOneSessions)
+    await db.update(oneToOneSessions)
       .set({ status: "completed", completedAt: now })
       .where(eq(oneToOneSessions.id, session.id));
   }
@@ -134,75 +187,410 @@ async function expireOneToOneSessions(): Promise<void> {
 // Task 11.4 — clean up expired recording URLs
 async function cleanupExpiredRecordings(): Promise<void> {
   const db = getDb();
-  const cutoff = new Date(
-    Date.now() - RECORDING_RETENTION_DAYS * 24 * 60 * 60 * 1000
-  );
+  const cutoff = new Date(Date.now() - RECORDING_RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
   const expiredSessions = await db.query.oneToOneSessions.findMany({
     where: and(
       isNotNull(oneToOneSessions.recordingUrl),
-      lt(oneToOneSessions.createdAt, cutoff)
+      lt(oneToOneSessions.createdAt, cutoff),
     ),
   });
 
   const now = new Date();
   for (const session of expiredSessions) {
-    await db
-      .update(oneToOneSessions)
+    await db.update(oneToOneSessions)
       .set({ recordingUrl: null, recordingDeletedAt: now })
       .where(eq(oneToOneSessions.id, session.id));
   }
 }
 
-async function sendClassReminders(): Promise<void> {
+export async function sendClassReminders(): Promise<void> {
   const db = getDb();
   const now = new Date();
-  const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
 
-  // Find scheduled classes starting within the next 10 minutes that haven't been reminded yet
-  const upcoming = await db.query.classes.findMany({
+  // Helper to send reminders
+  const notifyParticipants = async (cls: typeof classes.$inferSelect, intervalText: string) => {
+    // Fetch all batchIds for this class
+    const cbList = await db.select({ batchId: classBatches.batchId }).from(classBatches).where(eq(classBatches.classId, cls.id));
+    const classBatchIds = Array.from(new Set([cls.batchId, ...cbList.map(x => x.batchId)]));
+
+    // Fetch batch and module details for all targeted batches
+    const dbBatches = await db.query.batches.findMany({
+      where: inArray(batches.id, classBatchIds),
+      with: {
+        module: true,
+      },
+    });
+
+    const batchName = dbBatches.map(b => b.name).join(", ") || "Unknown Batch";
+    const courseName = Array.from(new Set(dbBatches.map(b => b.module?.name).filter(Boolean))).join(", ") || "Unknown Course";
+    const scheduledTimeStr = cls.scheduledAt ? new Date(cls.scheduledAt).toLocaleString() : "scheduled time";
+
+    // Fetch enrolled active students across all linked batches
+    const enrollments = await db.query.batchEnrollments.findMany({
+      where: and(
+        inArray(batchEnrollments.batchId, classBatchIds),
+        eq(batchEnrollments.status, "active"),
+      ),
+    });
+    const studentIds = Array.from(new Set(enrollments.map((e) => e.studentId)));
+
+    const studentTitle = `Class Reminder: ${cls.title}`;
+    const studentMessage = `Your class "${cls.title}" for batch(es) "${batchName}" (Course(s): "${courseName}") starts in ${intervalText} (at ${scheduledTimeStr}).`;
+    
+    const notificationData = {
+      classId: cls.id,
+      batchId: cls.batchId,
+      scheduledAt: cls.scheduledAt,
+      meetingUrl: cls.meetingUrl,
+      type: "class_reminder",
+    };
+
+    if (studentIds.length > 0) {
+      // Send LMS notifications to students
+      await sendBulkNotification(
+        studentIds,
+        studentTitle,
+        studentMessage,
+        "class_reminder",
+        notificationData
+      );
+
+      // Send Email (simulated via console log if email is configured)
+      const studentUsers = await db.query.users.findMany({
+        where: (u, { inArray }) => inArray(u.id, studentIds),
+        columns: { id: true, email: true },
+      });
+      for (const student of studentUsers) {
+        if (student.email) {
+          console.log(`[Email Reminder Sent] to ${student.email} for class "${cls.title}" (${intervalText} reminder)`);
+        }
+      }
+    }
+
+    // Notify the assigned teacher
+    if (cls.teacherId) {
+      const teacherTitle = `Class Reminder (Teacher): ${cls.title}`;
+      const teacherMessage = `Your class "${cls.title}" for batch "${batchName}" (Course: "${courseName}") starts in ${intervalText} (at ${scheduledTimeStr}).`;
+
+      await sendNotification(
+        cls.teacherId,
+        teacherTitle,
+        teacherMessage,
+        "class_reminder",
+        notificationData
+      );
+
+      // Send Email to teacher (simulated)
+      const teacherUser = await db.query.users.findFirst({
+        where: eq(users.id, cls.teacherId),
+        columns: { email: true },
+      });
+      if (teacherUser?.email) {
+        console.log(`[Email Reminder Sent] to teacher ${teacherUser.email} for class "${cls.title}" (${intervalText} reminder)`);
+      }
+    }
+  };
+
+  // 1. 1-Day Reminders (starting within 24 hours, but more than 1 hour away)
+  const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+  const oneDayUpcoming = await db.query.classes.findMany({
+    where: and(
+      eq(classes.status, "scheduled"),
+      lte(classes.scheduledAt, oneDayLater),
+      gt(classes.scheduledAt, oneHourLater),
+      isNull(classes.reminder1DaySentAt),
+    ),
+  });
+  for (const cls of oneDayUpcoming) {
+    await notifyParticipants(cls, "24 hours");
+    await db.update(classes)
+      .set({ reminder1DaySentAt: new Date() })
+      .where(eq(classes.id, cls.id));
+  }
+
+  // 2. 1-Hour Reminders (starting within 1 hour, but more than 10 minutes away)
+  const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
+  const oneHourUpcoming = await db.query.classes.findMany({
+    where: and(
+      eq(classes.status, "scheduled"),
+      lte(classes.scheduledAt, oneHourLater),
+      gt(classes.scheduledAt, tenMinutesLater),
+      isNull(classes.reminder1HourSentAt),
+    ),
+  });
+  for (const cls of oneHourUpcoming) {
+    await notifyParticipants(cls, "1 hour");
+    await db.update(classes)
+      .set({ reminder1HourSentAt: new Date() })
+      .where(eq(classes.id, cls.id));
+  }
+
+  // 3. 10-Minute Reminders (starting within 10 minutes)
+  const tenMinUpcoming = await db.query.classes.findMany({
     where: and(
       eq(classes.status, "scheduled"),
       lte(classes.scheduledAt, tenMinutesLater),
       gte(classes.scheduledAt, now),
-      isNull(classes.reminderSentAt)
+      isNull(classes.reminder10MinSentAt),
     ),
   });
-
-  for (const cls of upcoming) {
-    const enrollments = await db.query.batchEnrollments.findMany({
-      where: and(
-        eq(batchEnrollments.batchId, cls.batchId),
-        eq(batchEnrollments.status, "active")
-      ),
-    });
-    const studentIds = enrollments.map(e => e.studentId);
-    if (studentIds.length > 0) {
-      await sendBulkNotification(
-        studentIds,
-        "Class Reminder",
-        `${cls.title} starts in 10 minutes`,
-        "class_reminder"
-      );
-    }
-    await db
-      .update(classes)
-      .set({ reminderSentAt: new Date() })
+  for (const cls of tenMinUpcoming) {
+    await notifyParticipants(cls, "10 minutes");
+    await db.update(classes)
+      .set({ reminder10MinSentAt: new Date(), reminderSentAt: new Date() })
       .where(eq(classes.id, cls.id));
   }
+}
+
+export async function checkStudentConsecutiveAbsences(): Promise<void> {
+  const db = getDb();
+  const now = new Date();
+
+  // Fetch active enrollments
+  const activeEnrollments = await db.query.batchEnrollments.findMany({
+    where: eq(batchEnrollments.status, "active"),
+    with: {
+      student: true,
+      batch: {
+        with: {
+          teacher: true,
+        },
+      },
+    },
+  });
+
+  for (const enrollment of activeEnrollments) {
+    // Fetch completed classes for this batch
+    const completedClasses = await db.query.classes.findMany({
+      where: and(
+        eq(classes.batchId, enrollment.batchId),
+        eq(classes.status, "completed")
+      ),
+      orderBy: desc(classes.scheduledAt),
+    });
+
+    const classIds = completedClasses.map((c) => c.id);
+    let streak = 0;
+    let lastAttendanceDate: Date | null = null;
+
+    if (classIds.length > 0) {
+      const studentAttendance = await db.query.attendance.findMany({
+        where: and(
+          eq(attendance.studentId, enrollment.studentId),
+          inArray(attendance.classId, classIds)
+        ),
+      });
+
+      const attendanceMap = new Map(studentAttendance.map(a => [a.classId, a.status]));
+
+      for (const cls of completedClasses) {
+        const status = attendanceMap.get(cls.id);
+        if (status === "present" || status === "late") {
+          lastAttendanceDate = cls.scheduledAt;
+          break;
+        } else {
+          // status is "absent" or no record exists (treated as absent)
+          streak++;
+        }
+      }
+    }
+
+    if (streak >= 7) {
+      // Check if an active alert already exists
+      const existingAlert = await db.query.attendanceAlerts.findFirst({
+        where: and(
+          eq(attendanceAlerts.studentId, enrollment.studentId),
+          eq(attendanceAlerts.batchId, enrollment.batchId),
+          eq(attendanceAlerts.status, "active")
+        ),
+      });
+
+      if (!existingAlert) {
+        // Create new active alert
+        await db.insert(attendanceAlerts).values({
+          studentId: enrollment.studentId,
+          batchId: enrollment.batchId,
+          consecutiveAbsences: streak,
+          lastAttendanceDate,
+          status: "active",
+        });
+
+        // Student Notification
+        await sendNotification(
+          enrollment.studentId,
+          "Attendance Warning",
+          "You have been absent for 7 consecutive days. We encourage you to resume your classes.",
+          "absence_alert"
+        );
+
+        // Teacher Notification
+        if (enrollment.batch.teacherId) {
+          await sendNotification(
+            enrollment.batch.teacherId,
+            "Student Absence Alert",
+            `Student ${enrollment.student.name} in batch ${enrollment.batch.name} has been absent for ${streak} consecutive classes.`,
+            "absence_alert"
+          );
+        }
+
+        // Admin & Super Admin Notification
+        const adminIds = await getAdminUserIds();
+        if (adminIds.length > 0) {
+          await sendBulkNotification(
+            adminIds,
+            "Student Absence Alert",
+            `Student ${enrollment.student.name} (${enrollment.student.unionId}) in batch ${enrollment.batch.name} (Teacher: ${enrollment.batch.teacher?.name || "None"}) has been absent for ${streak} consecutive classes.`,
+            "absence_alert"
+          );
+        }
+      } else {
+        // Update alert consecutive absences count if changed
+        const hasDateChanged = lastAttendanceDate
+          ? existingAlert.lastAttendanceDate?.getTime() !== lastAttendanceDate.getTime()
+          : existingAlert.lastAttendanceDate !== null;
+
+        if (existingAlert.consecutiveAbsences !== streak || hasDateChanged) {
+          await db.update(attendanceAlerts)
+            .set({ consecutiveAbsences: streak, lastAttendanceDate })
+            .where(eq(attendanceAlerts.id, existingAlert.id));
+        }
+      }
+    } else {
+      // Streak is less than 7, resolve any active alert
+      await db.update(attendanceAlerts)
+        .set({ status: "resolved", resolvedAt: now })
+        .where(and(
+          eq(attendanceAlerts.studentId, enrollment.studentId),
+          eq(attendanceAlerts.batchId, enrollment.batchId),
+          eq(attendanceAlerts.status, "active")
+        ));
+    }
+  }
+}
+
+export async function sendOneToOneReminders(): Promise<void> {
+  const db = getDb();
+  const now = new Date();
+
+  // Helper to send reminders
+  const notifyParticipants = async (session: typeof oneToOneSessions.$inferSelect, intervalText: string) => {
+    const scheduledTimeStr = session.scheduledAt ? new Date(session.scheduledAt).toLocaleString() : "scheduled time";
+
+    const studentTitle = `1-to-1 Session Reminder: ${session.title}`;
+    const studentMessage = `Your 1-to-1 session "${session.title}" starts in ${intervalText} (at ${scheduledTimeStr}).`;
+
+    const notificationData = {
+      sessionId: session.id,
+      scheduledAt: session.scheduledAt,
+      meetingUrl: session.meetingUrl,
+      type: "class_reminder",
+    };
+
+    // Notify student
+    await sendNotification(
+      session.studentId,
+      studentTitle,
+      studentMessage,
+      "class_reminder",
+      notificationData
+    );
+
+    // Notify teacher
+    const teacherTitle = `1-to-1 Session Reminder (Teacher): ${session.title}`;
+    const teacherMessage = `Your 1-to-1 session "${session.title}" starts in ${intervalText} (at ${scheduledTimeStr}).`;
+
+    await sendNotification(
+      session.teacherId,
+      teacherTitle,
+      teacherMessage,
+      "class_reminder",
+      notificationData
+    );
+
+    // Simulated email logs
+    const usersToNotify = await db.query.users.findMany({
+      where: inArray(users.id, [session.studentId, session.teacherId]),
+      columns: { id: true, email: true },
+    });
+    for (const u of usersToNotify) {
+      if (u.email) {
+        console.log(`[Email Reminder Sent] to ${u.email} for 1-to-1 session "${session.title}" (${intervalText} reminder)`);
+      }
+    }
+  };
+
+  const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+  const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
+
+  // 1. 24-Hour Reminders
+  const oneDayUpcoming = await db.query.oneToOneSessions.findMany({
+    where: and(
+      inArray(oneToOneSessions.status, ["scheduled", "rescheduled", "reschedule_request_pending"]),
+      lte(oneToOneSessions.scheduledAt, oneDayLater),
+      gt(oneToOneSessions.scheduledAt, oneHourLater),
+      isNull(oneToOneSessions.reminder1DaySentAt),
+    ),
+  });
+  for (const session of oneDayUpcoming) {
+    await notifyParticipants(session, "24 hours");
+    await db.update(oneToOneSessions)
+      .set({ reminder1DaySentAt: new Date() })
+      .where(eq(oneToOneSessions.id, session.id));
+  }
+
+  // 2. 1-Hour Reminders
+  const oneHourUpcoming = await db.query.oneToOneSessions.findMany({
+    where: and(
+      inArray(oneToOneSessions.status, ["scheduled", "rescheduled", "reschedule_request_pending"]),
+      lte(oneToOneSessions.scheduledAt, oneHourLater),
+      gt(oneToOneSessions.scheduledAt, tenMinutesLater),
+      isNull(oneToOneSessions.reminder1HourSentAt),
+    ),
+  });
+  for (const session of oneHourUpcoming) {
+    await notifyParticipants(session, "1 hour");
+    await db.update(oneToOneSessions)
+      .set({ reminder1HourSentAt: new Date() })
+      .where(eq(oneToOneSessions.id, session.id));
+  }
+
+  // 3. 10-Minute Reminders
+  const tenMinUpcoming = await db.query.oneToOneSessions.findMany({
+    where: and(
+      inArray(oneToOneSessions.status, ["scheduled", "rescheduled", "reschedule_request_pending"]),
+      lte(oneToOneSessions.scheduledAt, tenMinutesLater),
+      gte(oneToOneSessions.scheduledAt, now),
+      isNull(oneToOneSessions.reminder10MinSentAt),
+    ),
+  });
+  for (const session of tenMinUpcoming) {
+    await notifyParticipants(session, "10 minutes");
+    await db.update(oneToOneSessions)
+      .set({ reminder10MinSentAt: new Date() })
+      .where(eq(oneToOneSessions.id, session.id));
+  }
+}
+
+export async function runSchedulerTasks(): Promise<void> {
+  await sendClassReminders();
+  await sendOneToOneReminders();
+  await processFeesAndRestrictions();
+  await sendDueDateReminders();
+  await expireOneToOneSessions();
+  await cleanupExpiredRecordings();
+  await checkStudentConsecutiveAbsences();
 }
 
 export function startScheduler(): void {
   setInterval(async () => {
     try {
-      await sendClassReminders();
-      await checkOverduePayments();
-      await checkFeeReminders();
-      await deactivateUnpaidEnrollments();
-      await expireOneToOneSessions();
-      await cleanupExpiredRecordings();
+      await runSchedulerTasks();
     } catch (err) {
       console.error("[scheduler] error:", err);
     }
   }, 60 * 1000);
 }
+

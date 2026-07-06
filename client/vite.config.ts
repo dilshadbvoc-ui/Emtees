@@ -1,29 +1,44 @@
-import path from "path";
-const __dirname = import.meta.dirname;
-import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import { inspectAttr } from "kimi-plugin-inspect-react";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// https://vite.dev/config/
+import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const zodPath = fs.existsSync(path.resolve(__dirname, "./node_modules/zod"))
+  ? path.resolve(__dirname, "./node_modules/zod")
+  : path.resolve(__dirname, "../node_modules/zod");
+
+const libphonePath = fs.existsSync(path.resolve(__dirname, "./node_modules/libphonenumber-js"))
+  ? path.resolve(__dirname, "./node_modules/libphonenumber-js")
+  : path.resolve(__dirname, "../node_modules/libphonenumber-js");
+
 export default defineConfig({
-  plugins: [inspectAttr(), react()],
-  server: {
-    port: 4678,
-    proxy: {
-      "/api": "http://localhost:3001",
-    },
-  },
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@contracts": path.resolve(__dirname, "../server/contracts"),
-      "@db": path.resolve(__dirname, "../server/db"),
-      db: path.resolve(__dirname, "../server/db"),
+      "@/pages": path.resolve(__dirname, "./src/lms-pages"),
+      "@contracts": path.resolve(__dirname, "../contracts"),
+      "zod": zodPath,
+      "libphonenumber-js": libphonePath,
     },
   },
-  envDir: path.resolve(__dirname),
-  build: {
-    outDir: path.resolve(__dirname, "../server/dist/public"),
-    emptyOutDir: true,
+  server: {
+    port: 5173,
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:3000",
+        changeOrigin: true,
+      },
+      "/socket.io": {
+        target: "http://127.0.0.1:3000",
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
 });
