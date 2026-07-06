@@ -18,6 +18,8 @@ interface JitsiMeetProps {
     teacherName?: string;
   };
   isOneToOne?: boolean;
+  roomName?: string;
+  jwt?: string | null;
 }
 
 export default function JitsiMeet({
@@ -27,6 +29,8 @@ export default function JitsiMeet({
   onLeave,
   classInfo,
   isOneToOne = false,
+  roomName: propRoomName,
+  jwt: propJwt,
 }: JitsiMeetProps) {
   const { user } = useAuth();
   const apiRef = useRef<any>(null);
@@ -232,8 +236,8 @@ export default function JitsiMeet({
     );
   }
 
-  const roomName = isOneToOne ? `emtees-1on1-${classId}` : detailsQuery.data?.roomName || "";
-  const jwt = isOneToOne ? null : detailsQuery.data?.jwt;
+  const roomName = propRoomName || (isOneToOne ? `emtees-1on1-${classId}` : detailsQuery.data?.roomName || "");
+  const jwt = propJwt !== undefined ? propJwt : (isOneToOne ? null : detailsQuery.data?.jwt);
   const cleanRoomName = roomName.replace(/\s+/g, "-").toLowerCase();
   const displayName = user?.name || "Anonymous";
   const email = user?.email || "";

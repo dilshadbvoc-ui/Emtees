@@ -1350,7 +1350,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
             activeMeeting = oneToOneQuery.data?.find((s: any) => 
               s.studentId === item.studentId && 
               s.sessionLength === dur && 
-              (s.status === "scheduled" || s.status === "live" || s.status === "rescheduled" || s.status === "reschedule_request_pending")
+              (s.status === "scheduled" || s.status === "ongoing" || s.status === "live" || s.status === "rescheduled" || s.status === "reschedule_request_pending")
             );
           } else {
             activeMeeting = data?.find((cls: any) => 
@@ -1652,14 +1652,16 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
       {jitsiRoom && user && (
         <JitsiMeet
           classId={selectedClassForMeeting.classId || selectedClassForMeeting.id}
-          isOneToOne={selectedClassForMeeting.roomName?.includes("1on1") || selectedClassForMeeting.title?.startsWith("1-on-1") || !!selectedClassForMeeting.isOneToOne}
+          isOneToOne={selectedClassForMeeting.roomName?.includes("1on1") || selectedClassForMeeting.roomName?.includes("1to1") || selectedClassForMeeting.title?.startsWith("1-on-1") || !!selectedClassForMeeting.isOneToOne}
+          roomName={selectedClassForMeeting.roomName}
+          jwt={selectedClassForMeeting.jwt}
           onJoin={() => {
-            if (selectedClassForMeeting && user.role === "student" && !selectedClassForMeeting.roomName?.includes("1on1") && !selectedClassForMeeting.title?.startsWith("1-on-1")) {
+            if (selectedClassForMeeting && user.role === "student" && !selectedClassForMeeting.roomName?.includes("1on1") && !selectedClassForMeeting.roomName?.includes("1to1") && !selectedClassForMeeting.title?.startsWith("1-on-1") && !selectedClassForMeeting.isOneToOne) {
               recordJoinTime.mutate({ classId: selectedClassForMeeting.classId || selectedClassForMeeting.id });
             }
           }}
           onLeave={() => {
-            if (selectedClassForMeeting && user.role === "student" && !selectedClassForMeeting.roomName?.includes("1on1") && !selectedClassForMeeting.title?.startsWith("1-on-1")) {
+            if (selectedClassForMeeting && user.role === "student" && !selectedClassForMeeting.roomName?.includes("1on1") && !selectedClassForMeeting.roomName?.includes("1to1") && !selectedClassForMeeting.title?.startsWith("1-on-1") && !selectedClassForMeeting.isOneToOne) {
               recordLeaveTime.mutate({ classId: selectedClassForMeeting.classId || selectedClassForMeeting.id });
             }
           }}
@@ -2108,7 +2110,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                   
                   <TabsContent value="active" className="space-y-4">
                     {(() => {
-                      const activeList = data?.filter((cls) => cls.status === "scheduled" || cls.status === "live") || [];
+                      const activeList = data?.filter((cls) => cls.status === "scheduled" || cls.status === "ongoing" || cls.status === "live") || [];
                       return renderClassesList(activeList);
                     })()}
                   </TabsContent>
@@ -2166,7 +2168,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                 
                 <TabsContent value="active" className="space-y-4">
                   {(() => {
-                    const activeList = data?.filter((cls) => cls.status === "scheduled" || cls.status === "live") || [];
+                    const activeList = data?.filter((cls) => cls.status === "scheduled" || cls.status === "ongoing" || cls.status === "live") || [];
                     return renderClassesList(activeList);
                   })()}
                 </TabsContent>
