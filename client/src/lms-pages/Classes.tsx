@@ -1020,7 +1020,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                     <div>{s.title || "1-to-1 Session"}</div>
                     {s.status === "completed" && (
                       <div className="text-[11px] text-gray-500 mt-2 space-y-1 border-t pt-2 max-w-xs leading-relaxed font-normal">
-                        <div>⏱️ <b>Actual:</b> {s.startedAt ? new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"} - {s.endedAt ? new Date(s.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}</div>
+                        <div>⏱️ <b>Actual:</b> {s.startedAt ? `${new Date(s.startedAt).toLocaleDateString()}, ${new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "-"} - {s.endedAt ? new Date(s.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}</div>
                         <div>⏳ <b>Conducted:</b> {s.actualDuration !== null ? `${s.actualDuration} min` : "-"}</div>
                         <div className="flex flex-col gap-1 mt-1.5 text-[10px]">
                           <span className="flex items-center gap-1.5">
