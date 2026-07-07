@@ -34,7 +34,7 @@ import { ClassBalanceAdjustment } from "@/components/ClassBalanceAdjustment";
 
 export default function StudentsPage() {
   const { user } = useAuth();
-  const isAdmin = ["super_admin", "admin"].includes(user?.role || "");
+  const isAdmin = ["super_admin", "admin", "academic_head"].includes(user?.role || "");
   const isAcademicHead = user?.role === "academic_head";
   const isTeacher = user?.role === "teacher";
   const isStaff = isAdmin || isAcademicHead || isTeacher;

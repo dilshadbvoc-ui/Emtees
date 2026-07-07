@@ -53,7 +53,7 @@ export default function UsersPage() {
 
   const [detailsTeacherId, setDetailsTeacherId] = useState<number | null>(null);
 
-  const canManageUsers = ["super_admin", "admin"].includes(user?.role || "");
+  const canManageUsers = ["super_admin", "admin", "academic_head"].includes(user?.role || "");
   const canViewUsers = ["super_admin", "admin", "academic_head"].includes(user?.role || "");
 
   const usersQuery = trpc.user.list.useQuery({
@@ -378,8 +378,12 @@ export default function UsersPage() {
                         onChange={(e) => setForm({ ...form, role: e.target.value })}
                       >
                         <option value="teacher">Teacher</option>
-                        <option value="admin">Admin</option>
-                        <option value="academic_head">Academic Head</option>
+                        {user?.role !== "academic_head" && (
+                          <>
+                            <option value="admin">Admin</option>
+                            <option value="academic_head">Academic Head</option>
+                          </>
+                        )}
                       </select>
                     </div>
 
