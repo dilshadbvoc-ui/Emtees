@@ -2477,7 +2477,9 @@ export const adminRouter = createRouter({
     const totalStudents = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, "student"));
     const totalTeachers = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, "teacher"));
     const totalBatches = await db.select({ count: sql<number>`count(*)` }).from(batches);
-    const totalClasses = await db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.status, "completed"));
+    const totalGroupClasses = await db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.status, "completed"));
+    const totalOneToOnes = await db.select({ count: sql<number>`count(*)` }).from(oneToOneSessions).where(eq(oneToOneSessions.status, "completed"));
+    const totalClassesCount = Number(totalGroupClasses[0]?.count || 0) + Number(totalOneToOnes[0]?.count || 0);
     const pendingFees = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(payments).where(eq(payments.status, "unpaid"));
 
     const startOfToday = new Date();
@@ -2510,7 +2512,7 @@ export const adminRouter = createRouter({
       totalStudents: Number(totalStudents[0]?.count || 0),
       totalTeachers: Number(totalTeachers[0]?.count || 0),
       totalBatches: Number(totalBatches[0]?.count || 0),
-      totalClasses: Number(totalClasses[0]?.count || 0),
+      totalClasses: totalClassesCount,
       pendingFees: Number(pendingFees[0]?.total || 0),
       todayTotalAttendance,
       todayPresentCount,

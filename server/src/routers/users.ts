@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, desc, and, sql, count, inArray, ne, gte, lte } from "drizzle-orm";
 import { createRouter, authedQuery, adminQuery, teacherQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { users, profiles, batchEnrollments, batches, classes, modules, teacherSalaries, payments, studentClassAllocations, attendance } from "@db/schema";
+import { users, profiles, batchEnrollments, batches, classes, modules, teacherSalaries, payments, studentClassAllocations, attendance, oneToOneSessions } from "@db/schema";
 import { sendNotification, sendBulkNotification, getAdminUserIds } from "../lib/notificationEngine";
 import { getNextUniqueId } from "../lib/idGenerator";
 import { env } from "../lib/env";
@@ -924,11 +924,16 @@ export const userRouter = createRouter({
       studentCount = uniqueStudents.length;
     }
     
-    // 2. Count classes held/scheduled by this teacher
-    const [{ value: classesCount }] = await db
+    // 2. Count classes held/scheduled by this teacher (both Group and 1-to-1)
+    const [{ value: groupClassesCount }] = await db
       .select({ value: count() })
       .from(classes)
       .where(eq(classes.teacherId, ctx.user.id));
+    const [{ value: oneToOnesCount }] = await db
+      .select({ value: count() })
+      .from(oneToOneSessions)
+      .where(eq(oneToOneSessions.teacherId, ctx.user.id));
+    const classesCount = Number(groupClassesCount || 0) + Number(oneToOnesCount || 0);
 
     // 3. Current month's earnings
     const currentMonth = new Date().toISOString().substring(0, 7);
@@ -956,7 +961,17 @@ export const userRouter = createRouter({
           lte(classes.scheduledAt, endOfToday)
         )
       );
-    const todayClassesCount = todayClasses.length;
+    const todayOneToOnes = await db
+      .select({ id: oneToOneSessions.id })
+      .from(oneToOneSessions)
+      .where(
+        and(
+          eq(oneToOneSessions.teacherId, ctx.user.id),
+          gte(oneToOneSessions.scheduledAt, startOfToday),
+          lte(oneToOneSessions.scheduledAt, endOfToday)
+        )
+      );
+    const todayClassesCount = todayClasses.length + todayOneToOnes.length;
 
     // 5. Today's attendance present/absent counts for this teacher
     const todayAttendanceList = await db
