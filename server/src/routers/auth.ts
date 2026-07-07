@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { SignJWT } from "jose";
 import bcrypt from "bcryptjs";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, sql } from "drizzle-orm";
 import { createRouter, publicQuery, adminQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import { users, salesExecutives } from "@db/schema";
@@ -116,7 +116,7 @@ export const authRouter = createRouter({
     .mutation(async ({ input }) => {
       const db = getDb();
       const user = await db.query.users.findFirst({
-        where: eq(users.username, input.username),
+        where: eq(sql`lower(${users.username})`, input.username.toLowerCase().trim()),
       });
       if (!user || !user.password) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
