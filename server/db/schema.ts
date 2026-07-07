@@ -366,6 +366,8 @@ export const oneToOneSessions = pgTable("one_to_one_sessions", {
   startedAt: timestamp("started_at"),
   endedAt: timestamp("ended_at"),
   actualDuration: integer("actual_duration"),
+  teacherDuration: integer("teacher_duration").default(0),
+  studentDuration: integer("student_duration").default(0),
   teacherAttendance: varchar("teacher_attendance", { length: 50 }),
   studentAttendance: varchar("student_attendance", { length: 50 }),
   meetingRoomId: varchar("meeting_room_id", { length: 255 }),

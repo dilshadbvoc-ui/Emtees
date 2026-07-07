@@ -1022,9 +1022,15 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                       <div className="text-[11px] text-gray-500 mt-2 space-y-1 border-t pt-2 max-w-xs leading-relaxed font-normal">
                         <div>⏱️ <b>Actual:</b> {s.startedAt ? new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"} - {s.endedAt ? new Date(s.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}</div>
                         <div>⏳ <b>Conducted:</b> {s.actualDuration !== null ? `${s.actualDuration} min` : "-"}</div>
-                        <div className="flex gap-2.5 mt-1">
-                          <span>👩‍🏫 Teacher: <Badge variant={s.teacherAttendance === "present" ? "default" : "destructive"} className="text-[9px] px-1 py-0 font-normal uppercase">{s.teacherAttendance || "absent"}</Badge></span>
-                          <span>🎓 Student: <Badge variant={s.studentAttendance === "present" ? "default" : "destructive"} className="text-[9px] px-1 py-0 font-normal uppercase">{s.studentAttendance || "absent"}</Badge></span>
+                        <div className="flex flex-col gap-1 mt-1.5 text-[10px]">
+                          <span className="flex items-center gap-1.5">
+                            👩‍🏫 Teacher: <Badge variant={s.teacherAttendance === "present" ? "default" : "destructive"} className="text-[9px] px-1 py-0 font-normal uppercase">{s.teacherAttendance || "absent"}</Badge>
+                            {s.teacherAttendance === "present" && <span className="text-gray-400 font-mono">({s.teacherDuration || 0}m active)</span>}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            🎓 Student: <Badge variant={s.studentAttendance === "present" ? "default" : "destructive"} className="text-[9px] px-1 py-0 font-normal uppercase">{s.studentAttendance || "absent"}</Badge>
+                            {s.studentAttendance === "present" && <span className="text-gray-400 font-mono">({s.studentDuration || 0}m active)</span>}
+                          </span>
                         </div>
                         {s.remarks && <div className="text-gray-400 italic text-[10px] mt-1 font-serif">"{s.remarks}"</div>}
                       </div>

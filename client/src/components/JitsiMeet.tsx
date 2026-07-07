@@ -125,19 +125,21 @@ export default function JitsiMeet({
       if (!apiRef.current) return;
       try {
         const count = apiRef.current.getNumberOfParticipants();
-        if (count >= 2) {
+        const isBothPresent = count >= 2;
+
+        if (isBothPresent) {
           setBothJoined(true);
           setElapsedSeconds((prev) => prev + 1);
-
-          heartbeatCountRef.current += 1;
-          if (heartbeatCountRef.current >= 60) {
-            trackHeartbeat.mutate({ sessionId: classId });
-            heartbeatCountRef.current = 0;
-          }
         } else {
           setBothJoined(false);
-          // Reset heartbeat accumulation if one participant leaves
-          heartbeatCountRef.current = 0;
+        }
+
+        if (count >= 1) {
+          heartbeatCountRef.current += 1;
+          if (heartbeatCountRef.current >= 60) {
+            trackHeartbeat.mutate({ sessionId: classId, bothPresent: isBothPresent });
+            heartbeatCountRef.current = 0;
+          }
         }
       } catch (err) {
         console.error("Error reading Jitsi participants:", err);

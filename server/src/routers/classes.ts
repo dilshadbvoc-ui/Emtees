@@ -1492,6 +1492,7 @@ export const classRouter = createRouter({
   trackOneToOneHeartbeat: authedQuery
     .input(z.object({
       sessionId: z.number(),
+      bothPresent: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -1500,14 +1501,18 @@ export const classRouter = createRouter({
       });
       if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
 
-      const updateData: any = {
-        actualDuration: sql`COALESCE(${oneToOneSessions.actualDuration}, 0) + 1`,
-      };
+      const updateData: any = {};
+
+      if (input.bothPresent) {
+        updateData.actualDuration = sql`COALESCE(${oneToOneSessions.actualDuration}, 0) + 1`;
+      }
 
       if (ctx.user.role === "teacher") {
         updateData.teacherAttendance = "present";
+        updateData.teacherDuration = sql`COALESCE(${oneToOneSessions.teacherDuration}, 0) + 1`;
       } else if (ctx.user.role === "student") {
         updateData.studentAttendance = "present";
+        updateData.studentDuration = sql`COALESCE(${oneToOneSessions.studentDuration}, 0) + 1`;
       }
 
       await db.update(oneToOneSessions)
