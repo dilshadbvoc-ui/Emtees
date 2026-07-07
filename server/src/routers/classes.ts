@@ -1489,6 +1489,34 @@ export const classRouter = createRouter({
       };
     }),
 
+  trackOneToOneHeartbeat: authedQuery
+    .input(z.object({
+      sessionId: z.number(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const session = await db.query.oneToOneSessions.findFirst({
+        where: eq(oneToOneSessions.id, input.sessionId),
+      });
+      if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+
+      const updateData: any = {
+        actualDuration: sql`COALESCE(${oneToOneSessions.actualDuration}, 0) + 1`,
+      };
+
+      if (ctx.user.role === "teacher") {
+        updateData.teacherAttendance = "present";
+      } else if (ctx.user.role === "student") {
+        updateData.studentAttendance = "present";
+      }
+
+      await db.update(oneToOneSessions)
+        .set(updateData)
+        .where(eq(oneToOneSessions.id, input.sessionId));
+
+      return { success: true };
+    }),
+
   endOneToOne: authedQuery
     .input(z.object({
       sessionId: z.number(),
@@ -1517,7 +1545,7 @@ export const classRouter = createRouter({
       await db.update(oneToOneSessions).set({
         status: "completed",
         endedAt,
-        actualDuration: actualDuration > 0 ? actualDuration : 0,
+        actualDuration: sql`CASE WHEN ${oneToOneSessions.actualDuration} > 0 THEN ${oneToOneSessions.actualDuration} ELSE ${actualDuration > 0 ? actualDuration : 0} END`,
         teacherAttendance,
         studentAttendance,
         completedAt: endedAt,

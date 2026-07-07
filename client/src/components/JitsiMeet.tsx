@@ -35,6 +35,10 @@ export default function JitsiMeet({
   const { user } = useAuth();
   const apiRef = useRef<any>(null);
   const [showLobbyPanel, setShowLobbyPanel] = useState(true);
+  const [apiReady, setApiReady] = useState(false);
+  const heartbeatCountRef = useRef(0);
+
+  const trackHeartbeat = trpc.class.trackOneToOneHeartbeat.useMutation();
 
   const isModerator = user?.role === "super_admin" || user?.role === "teacher";
 
@@ -110,6 +114,32 @@ export default function JitsiMeet({
       setPendingRequests(listRequestsQuery.data);
     }
   }, [listRequestsQuery.data]);
+
+  // Heartbeat tracking for one-to-one sessions (ticks only when both are present)
+  useEffect(() => {
+    if (!isOneToOne || !apiReady || !apiRef.current) return;
+
+    const interval = setInterval(() => {
+      if (!apiRef.current) return;
+      try {
+        const count = apiRef.current.getNumberOfParticipants();
+        if (count >= 2) {
+          heartbeatCountRef.current += 1;
+          if (heartbeatCountRef.current >= 6) {
+            trackHeartbeat.mutate({ sessionId: classId });
+            heartbeatCountRef.current = 0;
+          }
+        } else {
+          // Pause/reset counting if both are not present together
+          heartbeatCountRef.current = 0;
+        }
+      } catch (err) {
+        console.error("Error reading Jitsi participants:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [apiReady, isOneToOne, classId]);
 
   // Socket connection and listeners
   useEffect(() => {
@@ -327,6 +357,7 @@ export default function JitsiMeet({
             }}
             onApiReady={(externalApi) => {
               apiRef.current = externalApi;
+              setApiReady(true);
 
               externalApi.addEventListener("readyToClose", () => {
                 if (onLeave) onLeave();
