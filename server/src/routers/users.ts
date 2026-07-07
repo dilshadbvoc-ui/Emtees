@@ -914,15 +914,30 @@ export const userRouter = createRouter({
     const teacherBatches = await db.select({ id: batches.id }).from(batches).where(eq(batches.teacherId, ctx.user.id));
     const batchIds = teacherBatches.map(b => b.id);
     
-    let studentCount = 0;
+    let groupStudentIds: number[] = [];
     if (batchIds.length > 0) {
       const uniqueStudents = await db
         .select({ studentId: batchEnrollments.studentId })
         .from(batchEnrollments)
         .where(and(inArray(batchEnrollments.batchId, batchIds), eq(batchEnrollments.status, "active")))
         .groupBy(batchEnrollments.studentId);
-      studentCount = uniqueStudents.length;
+      groupStudentIds = uniqueStudents.map(s => s.studentId);
     }
+
+    // Fetch one-to-one student allocations
+    const o2oAllocations = await db
+      .select({ studentId: studentClassAllocations.studentId, allocation: studentClassAllocations.allocation })
+      .from(studentClassAllocations);
+
+    const o2oStudentIds = o2oAllocations
+      .filter((row: any) => {
+        const alloc = typeof row.allocation === "string" ? JSON.parse(row.allocation) : row.allocation;
+        return Number(alloc?.oneToOne?.teacherId) === ctx.user.id;
+      })
+      .map(row => row.studentId);
+
+    const allStudentIds = Array.from(new Set([...groupStudentIds, ...o2oStudentIds]));
+    const studentCount = allStudentIds.length;
     
     // 2. Count classes held/scheduled by this teacher (both Group and 1-to-1)
     const [{ value: groupClassesCount }] = await db

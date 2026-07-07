@@ -48,23 +48,36 @@ export const studentsRouter = createRouter({
           .where(eq(batches.teacherId, ctx.user.id));
         const batchIds = teacherBatches.map((b) => b.id);
 
-        if (batchIds.length === 0) {
+        let groupStudentIds: number[] = [];
+        if (batchIds.length > 0) {
+          const enrolledStudents = await db.selectDistinct({ studentId: batchEnrollments.studentId })
+            .from(batchEnrollments)
+            .where(and(
+              inArray(batchEnrollments.batchId, batchIds),
+              eq(batchEnrollments.status, "active")
+            ));
+          groupStudentIds = enrolledStudents.map((e) => e.studentId);
+        }
+
+        // Fetch 1-to-1 assigned students
+        const o2oAllocations = await db
+          .select({ studentId: studentClassAllocations.studentId, allocation: studentClassAllocations.allocation })
+          .from(studentClassAllocations);
+
+        const o2oStudentIds = o2oAllocations
+          .filter((row: any) => {
+            const alloc = typeof row.allocation === "string" ? JSON.parse(row.allocation) : row.allocation;
+            return Number(alloc?.oneToOne?.teacherId) === ctx.user.id;
+          })
+          .map(row => row.studentId);
+
+        const allStudentIds = Array.from(new Set([...groupStudentIds, ...o2oStudentIds]));
+
+        if (allStudentIds.length === 0) {
           return { items: [], total: 0 };
         }
 
-        const enrolledStudents = await db.selectDistinct({ studentId: batchEnrollments.studentId })
-          .from(batchEnrollments)
-          .where(and(
-            inArray(batchEnrollments.batchId, batchIds),
-            eq(batchEnrollments.status, "active")
-          ));
-        const studentIds = enrolledStudents.map((e) => e.studentId);
-
-        if (studentIds.length === 0) {
-          return { items: [], total: 0 };
-        }
-
-        filters.push(inArray(users.id, studentIds));
+        filters.push(inArray(users.id, allStudentIds));
       }
 
       // Search filters

@@ -322,52 +322,56 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {isAdmin && stats && (
           <>
-            <StatCard icon={Users} label="Total Students" value={stats.totalStudents} color="bg-blue-50 text-blue-600" />
-            <StatCard icon={GraduationCap} label="Teachers" value={stats.totalTeachers} color="bg-emerald-50 text-emerald-600" />
-            <StatCard icon={BookOpen} label="Batches" value={stats.totalBatches} color="bg-purple-50 text-purple-600" />
-            <StatCard icon={Calendar} label="Classes Held" value={stats.totalClasses} color="bg-orange-50 text-orange-600" />
-            <StatCard icon={Check} label="Attendance Today" value={stats.todayTotalAttendance ?? 0} color="bg-teal-50 text-teal-600" />
-            <StatCard icon={Check} label="Present Today" value={stats.todayPresentCount ?? 0} color="bg-green-50 text-green-600" />
-            <StatCard icon={X} label="Absent Today" value={stats.todayAbsentCount ?? 0} color="bg-red-50 text-red-600" />
-            <StatCard icon={BarChart3} label="Attendance % Today" value={`${stats.todayAttendancePercentage ?? 100}%`} color="bg-indigo-50 text-indigo-600" />
+            <StatCard icon={Users} label="Total Students" value={stats.totalStudents} color="bg-blue-50 text-blue-600" to="/students" />
+            <StatCard icon={GraduationCap} label="Teachers" value={stats.totalTeachers} color="bg-emerald-50 text-emerald-600" to="/users" />
+            <StatCard icon={BookOpen} label="Batches" value={stats.totalBatches} color="bg-purple-50 text-purple-600" to="/batches" />
+            <StatCard icon={Calendar} label="Classes Held" value={stats.totalClasses} color="bg-orange-50 text-orange-600" to="/classes/group" />
+            <StatCard icon={Check} label="Attendance Today" value={stats.todayTotalAttendance ?? 0} color="bg-teal-50 text-teal-600" to="/reports" />
+            <StatCard icon={Check} label="Present Today" value={stats.todayPresentCount ?? 0} color="bg-green-50 text-green-600" to="/reports" />
+            <StatCard icon={X} label="Absent Today" value={stats.todayAbsentCount ?? 0} color="bg-red-50 text-red-600" to="/reports" />
+            <StatCard icon={BarChart3} label="Attendance % Today" value={`${stats.todayAttendancePercentage ?? 100}%`} color="bg-indigo-50 text-indigo-600" to="/reports" />
           </>
         )}
         {isTeacher && teacherStatsQuery.data && (
           <>
-            <StatCard icon={Calendar} label="My Classes" value={teacherStatsQuery.data.classesCount ?? 0} color="bg-blue-50 text-blue-600" />
-            <StatCard icon={Users} label="My Students" value={teacherStatsQuery.data.studentCount ?? 0} color="bg-emerald-50 text-emerald-600" />
-            <StatCard icon={Calendar} label="Today's Classes" value={teacherStatsQuery.data.todayClassesCount ?? 0} color="bg-teal-50 text-teal-600" />
-            <StatCard icon={Check} label="Present Today" value={teacherStatsQuery.data.todayPresentCount ?? 0} color="bg-green-50 text-green-600" />
-            <StatCard icon={X} label="Absent Today" value={teacherStatsQuery.data.todayAbsentCount ?? 0} color="bg-red-50 text-red-600" />
-            <StatCard icon={CreditCard} label="Current Month Earnings" value={`₹${(teacherStatsQuery.data.currentMonthEarnings ?? 0).toLocaleString("en-IN")}`} color="bg-amber-50 text-amber-600" />
+            <StatCard icon={Calendar} label="My Classes" value={teacherStatsQuery.data.classesCount ?? 0} color="bg-blue-50 text-blue-600" to="/classes/group" />
+            <StatCard icon={Users} label="My Students" value={teacherStatsQuery.data.studentCount ?? 0} color="bg-emerald-50 text-emerald-600" to="/students" />
+            <StatCard icon={Calendar} label="Today's Classes" value={teacherStatsQuery.data.todayClassesCount ?? 0} color="bg-teal-50 text-teal-600" to="/classes/one-to-one" />
+            <StatCard icon={Check} label="Present Today" value={teacherStatsQuery.data.todayPresentCount ?? 0} color="bg-green-50 text-green-600" to="/reports" />
+            <StatCard icon={X} label="Absent Today" value={teacherStatsQuery.data.todayAbsentCount ?? 0} color="bg-red-50 text-red-600" to="/reports" />
+            <StatCard icon={CreditCard} label="Current Month Earnings" value={`₹${(teacherStatsQuery.data.currentMonthEarnings ?? 0).toLocaleString("en-IN")}`} color="bg-amber-50 text-amber-600" to="/salaries" />
           </>
         )}
         {user.role === "student" && (
           <>
-            <StatCard icon={BookOpen} label="My Batches" value={myBatches.data?.length || 0} color="bg-blue-50 text-blue-600" />
+            <StatCard icon={BookOpen} label="My Batches" value={myBatches.data?.length || 0} color="bg-blue-50 text-blue-600" to="/batches" />
             <StatCard
               icon={BarChart3}
               label="Attendance Percentage"
               value={myAttendance.data ? (myAttendance.data.length > 0 ? `${Math.round((myAttendance.data.filter((a) => a.status === "present" || a.status === "late").length / myAttendance.data.length) * 100)}%` : "100%") : "-"}
               color="bg-emerald-50 text-emerald-600"
+              to="/reports"
             />
             <StatCard
               icon={Check}
               label="Present Classes"
               value={myAttendance.data?.filter((a) => a.status === "present" || a.status === "late").length ?? 0}
               color="bg-green-50 text-green-600"
+              to="/reports"
             />
             <StatCard
               icon={X}
               label="Absent Classes"
               value={myAttendance.data?.filter((a) => a.status === "absent").length ?? 0}
               color="bg-red-50 text-red-600"
+              to="/reports"
             />
             <StatCard
               icon={Calendar}
               label="Remaining Classes"
               value={myProfile.data?.profile ? (Number(myProfile.data.profile.remainingOneToOneSessions ?? 0) + Number(myProfile.data.profile.remainingGroupSessions ?? 0)) : 0}
               color="bg-purple-50 text-purple-600"
+              to="/classes/group"
             />
           </>
         )}
@@ -1102,20 +1106,34 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
+function StatCard({ icon: Icon, label, value, color, to }: { icon: any; label: string; value: string | number; color: string; to?: string }) {
+  const content = (
+    <CardContent className="p-4">
+      <div className="flex items-center justify-between">
+        <div className="min-w-0">
+          <p className="text-xs text-gray-500 truncate">{label}</p>
+          <p className="text-xl md:text-2xl font-bold mt-0.5">{value}</p>
+        </div>
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ml-2 ${color}`}>
+          <Icon className="w-4 h-4" />
+        </div>
+      </div>
+    </CardContent>
+  );
+
+  if (to) {
+    return (
+      <Card className="hover:shadow-md hover:border-slate-300 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer">
+        <Link to={to} className="block w-full h-full">
+          {content}
+        </Link>
+      </Card>
+    );
+  }
+
   return (
     <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="min-w-0">
-            <p className="text-xs text-gray-500 truncate">{label}</p>
-            <p className="text-xl md:text-2xl font-bold mt-0.5">{value}</p>
-          </div>
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ml-2 ${color}`}>
-            <Icon className="w-4 h-4" />
-          </div>
-        </div>
-      </CardContent>
+      {content}
     </Card>
   );
 }
