@@ -735,14 +735,14 @@ export default function Dashboard() {
                             )}
                             Enroll & Join
                           </Button>
-                        ) : cls.statusLabel === "LIVE NOW" ? (
+                        ) : (cls.statusLabel === "LIVE NOW" || cls.classType === "one_to_one") ? (
                           <Button
                             size="sm"
                             onClick={() => handleJoinClass(cls)}
                             disabled={!!myProfile.data?.isRestricted}
                             className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 font-semibold shadow-md shadow-red-500/10"
                           >
-                            <Video className="w-4 h-4" /> Join Live Class
+                            <Video className="w-4 h-4" /> Join Session
                           </Button>
                         ) : (
                           <div className="flex flex-col gap-2 w-full">
@@ -820,7 +820,7 @@ export default function Dashboard() {
                                   size="sm"
                                   className="bg-green-600 hover:bg-green-700 text-white text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                   onClick={() => handleStartClass(cls)}
-                                  disabled={nowTime < cls.startTime.getTime() || startClass.isPending || startOneToOne.isPending}
+                                  disabled={((cls.classType !== "one_to_one" && nowTime < cls.startTime.getTime()) || startClass.isPending || startOneToOne.isPending)}
                                 >
                                   {((startClass.isPending && startClass.variables?.id === cls.id) || (startOneToOne.isPending && startOneToOne.variables?.sessionId === cls.id)) ? (
                                     <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -1049,16 +1049,47 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="flex items-center gap-3 pt-4 border-t border-gray-50 dark:border-gray-900/50">
+            <div className="flex flex-col gap-3 pt-4 border-t border-gray-50 dark:border-gray-900/50">
+              <div className="flex items-center gap-3 w-full">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl h-10 text-xs font-semibold"
+                  onClick={() => handleToggleReminder(selectedClassForDetails.id)}
+                >
+                  {reminders[selectedClassForDetails.id] ? "Remove Reminder" : "Add Reminder"}
+                </Button>
+                
+                {user.role === "student" ? (
+                  selectedClassForDetails.isEnrolled && (
+                    <Button
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 text-xs font-semibold"
+                      disabled={!!myProfile.data?.isRestricted}
+                      onClick={() => {
+                        setOpenDetailsModal(false);
+                        handleJoinClass(selectedClassForDetails);
+                      }}
+                    >
+                      Join Session
+                    </Button>
+                  )
+                ) : (
+                  ((isTeacher && selectedClassForDetails.teacherId === user.id) || user.role === "super_admin") && (
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl h-10 text-xs font-semibold disabled:opacity-50"
+                      disabled={(selectedClassForDetails.classType !== "one_to_one" && now.getTime() < selectedClassForDetails.startTime.getTime()) || startClass.isPending || startOneToOne.isPending}
+                      onClick={() => {
+                        setOpenDetailsModal(false);
+                        handleStartClass(selectedClassForDetails);
+                      }}
+                    >
+                      Start Session
+                    </Button>
+                  )
+                )}
+              </div>
+
               <Button
-                variant="outline"
-                className="flex-1 rounded-xl h-10 text-xs font-semibold"
-                onClick={() => handleToggleReminder(selectedClassForDetails.id)}
-              >
-                {reminders[selectedClassForDetails.id] ? "Remove Reminder" : "Add Reminder"}
-              </Button>
-              <Button
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 text-xs font-semibold"
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 dark:text-gray-300 rounded-xl h-10 text-xs font-semibold"
                 onClick={() => setOpenDetailsModal(false)}
               >
                 Close

@@ -590,6 +590,19 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
     }
 
     // Status is scheduled
+    if (cls.classType === "one_to_one") {
+      return (
+        <Button
+          size="sm"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-xl h-8"
+          onClick={() => handleJoinOneToOne(cls)}
+          disabled={isRestricted}
+        >
+          <Video className="w-3.5 h-3.5 mr-1" /> Join Session
+        </Button>
+      );
+    }
+
     const now = nowTime;
     const scheduledTime = new Date(cls.scheduledAt);
     if (now < scheduledTime) {
