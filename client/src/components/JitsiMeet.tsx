@@ -36,6 +36,8 @@ export default function JitsiMeet({
   const apiRef = useRef<any>(null);
   const [showLobbyPanel, setShowLobbyPanel] = useState(true);
   const [apiReady, setApiReady] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [bothJoined, setBothJoined] = useState(false);
   const heartbeatCountRef = useRef(0);
 
   const trackHeartbeat = trpc.class.trackOneToOneHeartbeat.useMutation();
@@ -124,19 +126,23 @@ export default function JitsiMeet({
       try {
         const count = apiRef.current.getNumberOfParticipants();
         if (count >= 2) {
+          setBothJoined(true);
+          setElapsedSeconds((prev) => prev + 1);
+
           heartbeatCountRef.current += 1;
-          if (heartbeatCountRef.current >= 6) {
+          if (heartbeatCountRef.current >= 60) {
             trackHeartbeat.mutate({ sessionId: classId });
             heartbeatCountRef.current = 0;
           }
         } else {
-          // Pause/reset counting if both are not present together
+          setBothJoined(false);
+          // Reset heartbeat accumulation if one participant leaves
           heartbeatCountRef.current = 0;
         }
       } catch (err) {
         console.error("Error reading Jitsi participants:", err);
       }
-    }, 10000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [apiReady, isOneToOne, classId]);
@@ -272,16 +278,40 @@ export default function JitsiMeet({
   const displayName = user?.name || "Anonymous";
   const email = user?.email || "";
 
+  const formatTime = (totalSeconds: number) => {
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    return [
+      hrs > 0 ? String(hrs).padStart(2, "0") : null,
+      String(mins).padStart(2, "0"),
+      String(secs).padStart(2, "0"),
+    ].filter(Boolean).join(":");
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-gray-900 text-white border-b border-gray-800 shrink-0">
-        <div className="flex flex-col">
-          <span className="font-semibold text-sm">📹 {classInfo?.title || roomName}</span>
-          {classInfo && (
-            <span className="text-gray-400 text-xs mt-0.5 font-light">
-              Host: {classInfo.teacherName || "Not assigned"} | Scheduled: {new Date(classInfo.scheduledAt).toLocaleString()}
-            </span>
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col">
+            <span className="font-semibold text-sm">📹 {classInfo?.title || roomName}</span>
+            {classInfo && (
+              <span className="text-gray-400 text-xs mt-0.5 font-light">
+                Host: {classInfo.teacherName || "Not assigned"} | Scheduled: {new Date(classInfo.scheduledAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+          {isOneToOne && (
+            <div className="flex items-center gap-2 ml-4 bg-white/5 border border-white/10 px-3 py-1 rounded-xl">
+              <span className={`h-2 w-2 rounded-full ${bothJoined ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+              <span className="text-xs font-mono font-bold text-white">
+                {formatTime(elapsedSeconds)}
+              </span>
+              <span className="text-[9px] uppercase font-bold tracking-wider text-gray-400">
+                {bothJoined ? "Active" : "Paused"}
+              </span>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -333,6 +363,8 @@ export default function JitsiMeet({
               startWithVideoMuted: false,
               disableDeepLinking: true,
               prejoinPageEnabled: false,
+              hideConferenceTimer: true,
+              conferenceTimer: false,
               toolbarButtons: [
                 "microphone",
                 "camera",
