@@ -1156,7 +1156,7 @@ export default function ReportsPage() {
         
         {/* Attendance Details Dialog */}
         <Dialog open={!!selectedCellDetails} onOpenChange={(open) => !open && setSelectedCellDetails(null)}>
-          <DialogContent className="max-w-md rounded-2xl">
+          <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-base font-bold flex items-center gap-2 border-b pb-2">
                 <Clock className="w-5 h-5 text-emerald-600" />
@@ -3020,7 +3020,7 @@ export default function ReportsPage() {
 
       {/* Attendance Details Dialog */}
       <Dialog open={!!selectedCellDetails} onOpenChange={(open) => !open && setSelectedCellDetails(null)}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2 border-b pb-2">
               <Clock className="w-5 h-5 text-emerald-600" />
@@ -3089,7 +3089,7 @@ export default function ReportsPage() {
 
       {/* Manage Holiday Dialog */}
       <Dialog open={showHolidayDialog} onOpenChange={setShowHolidayDialog}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <Plus className="w-5 h-5 text-blue-600" />

@@ -263,7 +263,7 @@ export default function SalariesPage() {
                 <CardTitle className="text-lg">Salary Payout Logs</CardTitle>
                 <CardDescription>Track all automatically calculated salaries and their current settlement status.</CardDescription>
               </CardHeader>
-              <CardContent className="p-0 sm:p-6">
+              <CardContent className="p-0 sm:p-6 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50 hover:bg-gray-50 border-b">
@@ -432,7 +432,7 @@ export default function SalariesPage() {
                 <CardTitle className="text-lg">Teacher Salary Configurations</CardTitle>
                 <CardDescription>Configure fixed monthly basic salary and variable per-class completion rates.</CardDescription>
               </CardHeader>
-              <CardContent className="p-0 sm:p-6">
+              <CardContent className="p-0 sm:p-6 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50 border-b">
@@ -487,7 +487,7 @@ export default function SalariesPage() {
           }
           setConfigDialogOpen(open);
         }}>
-          <DialogContent className="max-w-lg bg-white rounded-xl shadow-xl border p-6">
+          <DialogContent className="w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border p-6">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-gray-900">Configure Salary Rates</DialogTitle>
               <DialogDescription>
@@ -637,7 +637,7 @@ export default function SalariesPage() {
 
         {/* Dialog: Mark Salary Paid */}
         <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
-          <DialogContent className="max-w-md bg-white rounded-xl shadow-xl p-6 border">
+          <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl p-6 border">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-gray-900">Confirm Settlement Payment</DialogTitle>
               <DialogDescription>Choose the date when this salary payout was disbursed to the teacher.</DialogDescription>
@@ -666,7 +666,7 @@ export default function SalariesPage() {
         {/* Print Preview Dialog */}
         {activeStatement && (
           <Dialog open={statementDialogOpen} onOpenChange={setStatementDialogOpen}>
-            <DialogContent className="max-w-2xl bg-white rounded-xl shadow-xl border p-0 overflow-hidden">
+            <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border p-0 overflow-hidden">
               <DialogTitle className="sr-only">Salary Statement - {activeStatement.month}</DialogTitle>
               <DialogDescription className="sr-only">Detailed breakdown of monthly earnings and sessions.</DialogDescription>
               <div className="p-6 md:p-8 space-y-6" id="printable-statement">
@@ -840,7 +840,7 @@ export default function SalariesPage() {
             <CardTitle className="text-lg">Monthly Statements</CardTitle>
             <CardDescription>Review all settlement reports calculated and issued by the Super Admin.</CardDescription>
           </CardHeader>
-          <CardContent className="p-0 sm:p-6">
+          <CardContent className="p-0 sm:p-6 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50 border-b">
@@ -918,7 +918,7 @@ export default function SalariesPage() {
         {/* Print Preview Dialog (Teacher Copy) */}
         {activeStatement && (
           <Dialog open={statementDialogOpen} onOpenChange={setStatementDialogOpen}>
-            <DialogContent className="max-w-2xl bg-white rounded-xl shadow-xl border p-0 overflow-hidden">
+            <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border p-0 overflow-hidden">
               <DialogTitle className="sr-only">Salary Statement - {activeStatement.month}</DialogTitle>
               <DialogDescription className="sr-only">Detailed breakdown of monthly earnings and sessions.</DialogDescription>
               <div className="p-6 md:p-8 space-y-6">

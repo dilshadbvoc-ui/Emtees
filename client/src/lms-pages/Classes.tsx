@@ -734,7 +734,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                         <Button size="sm" variant="outline" onClick={() => setAttendanceClassId(cls.id)}>
                           <ClipboardList className="w-4 h-4 mr-1.5" /> Attendance
                         </Button>
-                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl">
+                        <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl">
                           <DialogHeader>
                             <DialogTitle>Attendance Log — {cls.title}</DialogTitle>
                           </DialogHeader>
@@ -746,7 +746,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                               ) : !attendanceQuery.data || attendanceQuery.data.length === 0 ? (
                                 <p className="text-xs text-gray-400 bg-gray-50 p-3 rounded-lg text-center">No attendance logs recorded yet.</p>
                               ) : (
-                                <div className="border rounded-lg overflow-hidden border-gray-100">
+                                <div className="border rounded-lg overflow-x-auto border-gray-100">
                                   <Table>
                                     <TableHeader className="bg-gray-50">
                                       <TableRow>
@@ -1774,7 +1774,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
               <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleOpenCreate}>
                 <Plus className="w-4 h-4 mr-2" /> Schedule Class
               </Button>
-              <DialogContent className="max-w-md bg-white rounded-xl shadow-xl border border-gray-100">
+              <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100">
                 <DialogHeader>
                   <DialogTitle className="text-base font-bold text-gray-800">Schedule New Class</DialogTitle>
                 </DialogHeader>
@@ -1792,7 +1792,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
         {/* Edit Dialog (Group Class) */}
         {(!type || type === "group") && (
           <Dialog open={editOpen} onOpenChange={setEditOpen}>
-            <DialogContent className="max-w-md bg-white rounded-xl shadow-xl border border-gray-100">
+            <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100">
               <DialogHeader>
                 <DialogTitle className="text-base font-bold text-gray-800">Edit Class Details</DialogTitle>
               </DialogHeader>
@@ -1806,7 +1806,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
           <>
             {/* Create 1-on-1 Modal */}
             <Dialog open={otoOpen} onOpenChange={setOtoOpen}>
-              <DialogContent className="max-w-md bg-white rounded-xl shadow-xl border border-gray-100">
+              <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100">
                 <DialogHeader><DialogTitle className="text-base font-bold text-gray-800">Create 1-on-1 Session</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => {
                   e.preventDefault();
@@ -1919,7 +1919,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
 
             {/* Edit 1-on-1 Modal */}
             <Dialog open={otoEditOpen} onOpenChange={setOtoEditOpen}>
-              <DialogContent className="max-w-md bg-white rounded-xl shadow-xl border border-gray-100">
+              <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100">
                 <DialogHeader><DialogTitle className="text-base font-bold text-gray-800">Edit 1-on-1 Session</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => {
                   e.preventDefault();
@@ -2034,7 +2034,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
 
             {/* Reschedule Modal */}
             <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-              <DialogContent className="max-w-md bg-white rounded-xl shadow-xl border border-gray-100">
+              <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100">
                 <DialogHeader><DialogTitle className="text-base font-bold text-gray-800">Reschedule 1-on-1 Session</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => {
                   e.preventDefault();
@@ -2062,7 +2062,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
 
             {/* Teacher Request Reschedule Modal */}
             <Dialog open={teacherRescheduleOpen} onOpenChange={setTeacherRescheduleOpen}>
-              <DialogContent className="max-w-md bg-white rounded-xl shadow-xl border border-gray-100">
+              <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100">
                 <DialogHeader>
                   <DialogTitle className="text-base font-bold text-gray-800">Request 1-on-1 Reschedule</DialogTitle>
                 </DialogHeader>
@@ -2221,7 +2221,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
 
     {/* Schedule Session Dialog */}
     <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-      <DialogContent className="max-w-md bg-white rounded-2xl p-6 border shadow-xl">
+      <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-6 border shadow-xl">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">Schedule Class Session</DialogTitle>
         </DialogHeader>

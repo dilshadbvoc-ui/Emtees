@@ -265,30 +265,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-[100dvh] bg-gray-50 overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-60 bg-white border-r flex-col shrink-0">
         <SidebarContent />
       </aside>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white flex flex-col shadow-xl z-50">
-            <div className="flex items-center justify-between px-4 pt-4">
-              <span className="text-sm font-semibold text-gray-700">Menu</span>
-              <button onClick={() => setSidebarOpen(false)} className="p-1 rounded hover:bg-gray-100">
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <SidebarContent />
-          </aside>
-        </div>
-      )}
+      {/* Mobile sidebar overlay & drawer with smooth CSS animation */}
+      <div className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+        <div
+          className="absolute inset-0 bg-black/40"
+          onClick={() => setSidebarOpen(false)}
+        />
+        <aside className={`absolute left-0 top-0 bottom-0 w-64 bg-white flex flex-col shadow-xl z-50 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          <div className="flex items-center justify-between px-4 pt-4">
+            <span className="text-sm font-semibold text-gray-700">Menu</span>
+            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded hover:bg-gray-100">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+          <SidebarContent />
+        </aside>
+      </div>
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -327,13 +325,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-safe">
           {children}
         </div>
 
         {/* Mobile bottom nav */}
-        <nav className="md:hidden bg-white border-t flex items-center justify-around px-1 py-1 shrink-0">
-          {items.slice(0, 5).map((item) => {
+        <nav className="md:hidden bg-white border-t flex items-center justify-around px-1 py-1 pb-safe shrink-0">
+          {items.slice(0, 4).map((item) => {
             const active = pathname === item.path;
             return (
               <Link
@@ -348,6 +346,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg min-w-0 flex-1 text-gray-500"
+          >
+            <Menu className="w-5 h-5 text-gray-400" />
+            <span className="text-[10px] font-medium truncate w-full text-center">More</span>
+          </button>
         </nav>
       </main>
     </div>

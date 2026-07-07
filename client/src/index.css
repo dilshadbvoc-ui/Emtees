@@ -8,9 +8,20 @@
     touch-action: manipulation;
   }
 
-  /* Smooth scrolling */
+  /* Remove tap highlight flash on mobile */
   * {
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent horizontal overflow bleeding on mobile */
+  html, body {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  /* Use dynamic viewport height so mobile browser chrome is accounted for */
+  body {
+    min-height: 100dvh;
   }
 
   :root {
@@ -42,6 +53,9 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Safe area inset variables for iPhone notch/home bar */
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-top: env(safe-area-inset-top, 0px);
   }
 
   .dark {
@@ -91,7 +105,21 @@
   }
   /* Hide scrollbar for IE, Edge and Firefox */
   .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Horizontal scroll table container */
+  .table-scroll {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area padding utilities */
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  .pt-safe {
+    padding-top: max(0px, env(safe-area-inset-top));
   }
 }

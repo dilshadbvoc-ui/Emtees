@@ -1061,7 +1061,7 @@ export default function StudentsPage() {
                     Add Student
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+                <DialogContent className="w-[95vw] md:max-w-4xl max-h-[90vh] flex flex-col overflow-hidden rounded-2xl">
                   <DialogHeader className="pb-2 border-b">
                     <DialogTitle>Register New Student</DialogTitle>
                   </DialogHeader>
@@ -1549,7 +1549,7 @@ export default function StudentsPage() {
           setImportSummary(null);
         }
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-slate-800">Bulk Student Import</DialogTitle>
           </DialogHeader>
@@ -1748,7 +1748,7 @@ export default function StudentsPage() {
 
       {/* Edit Student Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogContent className="w-[95vw] md:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden rounded-2xl">
           <DialogHeader className="pb-2 border-b"><DialogTitle>Edit Student Account</DialogTitle></DialogHeader>
           {editStudent && (() => {
             const editCourse = activeCourses.find((c) => c.id === Number(editStudent.courseId));
@@ -2826,7 +2826,7 @@ export default function StudentsPage() {
 
       {/* Configure Allocation Dialog */}
       <Dialog open={isConfiguringAllocation} onOpenChange={setIsConfiguringAllocation}>
-        <DialogContent className="max-w-2xl rounded-2xl">
+        <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">Configure Student Class Allocation</DialogTitle>
             <DialogDescription className="text-xs">Adjust total allocated sessions, assign teachers, and select batches.</DialogDescription>

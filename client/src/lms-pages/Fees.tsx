@@ -486,7 +486,7 @@ export default function FeesPage() {
                     <Plus className="w-4 h-4" /> Create Payment Invoice
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800">
+                <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800">
                   <DialogHeader><DialogTitle className="text-base font-bold">Create Fee Invoice Record</DialogTitle></DialogHeader>
                   <form
                     onSubmit={(e) => {
@@ -730,7 +730,7 @@ export default function FeesPage() {
 
       {/* Adjust Student Fees Dialog */}
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800">
+        <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-gray-800 dark:text-gray-200">Student Fee Configuration</DialogTitle>
           </DialogHeader>
@@ -822,7 +822,7 @@ export default function FeesPage() {
 
       {/* Student Payment Dialog */}
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800">
+        <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-gray-800 dark:text-gray-200">Make Course Fee Payment</DialogTitle>
           </DialogHeader>
@@ -887,7 +887,7 @@ export default function FeesPage() {
 
       {/* Receipt Modal */}
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
-        <DialogContent className="max-w-md bg-white border border-gray-100 shadow-xl rounded-xl p-0 overflow-hidden">
+        <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white border border-gray-100 shadow-xl rounded-xl p-0 overflow-hidden">
           <div className="p-6 space-y-6 print:p-0 print:m-0" id="payment-receipt">
             <div className="text-center space-y-2 border-b pb-4">
               <h2 className="text-2xl font-extrabold text-emerald-600 tracking-tight">EMTEES ACADEMY</h2>
@@ -934,7 +934,7 @@ export default function FeesPage() {
 
       {/* Razorpay Payment Simulator Dialog */}
       <Dialog open={openSimulator} onOpenChange={setOpenSimulator}>
-        <DialogContent className="max-w-md bg-white border border-yellow-100 shadow-xl rounded-xl p-6">
+        <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white border border-yellow-100 shadow-xl rounded-xl p-6">
           <DialogHeader>
             <DialogTitle className="text-amber-800 flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-amber-500" />
