@@ -291,7 +291,7 @@ export default function JitsiMeet({
         {/* Left Panel: Jitsi Meeting */}
         <div className="flex-1 h-full relative">
           <JitsiMeeting
-            domain="meet.jit.si"
+            domain="meet.gecouncil.com"
             roomName={cleanRoomName}
             jwt={jwt || undefined}
             userInfo={{

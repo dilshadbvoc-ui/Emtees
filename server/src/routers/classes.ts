@@ -323,7 +323,7 @@ export const classRouter = createRouter({
       if (!roomName) {
         const slug = cls.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase().substring(0, 50);
         roomName = `emtees-${slug}-${cls.id}`;
-        await db.update(classes).set({ meetingRoomId: roomName, meetingUrl: `https://meet.jit.si/${roomName}` }).where(eq(classes.id, cls.id));
+        await db.update(classes).set({ meetingRoomId: roomName, meetingUrl: `https://meet.gecouncil.com/${roomName}` }).where(eq(classes.id, cls.id));
       }
 
       // Role determination - Stricter Jitsi moderator rules
@@ -411,7 +411,7 @@ export const classRouter = createRouter({
         ...classValues,
         batchId: batchIds[0],
         meetingRoomId: roomName,
-        meetingUrl: `https://meet.jit.si/${roomName}`,
+        meetingUrl: `https://meet.gecouncil.com/${roomName}`,
       }).returning();
 
       if (!newClass) {
@@ -832,7 +832,7 @@ export const classRouter = createRouter({
       // Generate unique meeting room ID
       const slug = input.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase().substring(0, 50);
       const meetingRoomId = `emtees-1to1-${slug}-${Date.now()}`;
-      const meetingUrl = `https://meet.jit.si/${meetingRoomId}`;
+      const meetingUrl = `https://meet.gecouncil.com/${meetingRoomId}`;
 
       const result = await db.insert(oneToOneSessions).values({
         teacherId: input.teacherId,
@@ -940,7 +940,7 @@ export const classRouter = createRouter({
 
       const title = `Instant 1-to-1 Session (${input.sessionLength}m)`;
       const roomName = `emtees-1to1-instant-${crypto.randomUUID().substring(0, 8)}`;
-      const meetingUrl = `https://meet.jit.si/${roomName}`;
+      const meetingUrl = `https://meet.gecouncil.com/${roomName}`;
 
       const teacherId = ctx.user.role === "teacher" ? ctx.user.id : (assignedTeacherId || assignedTeachers[0]);
       if (!teacherId) {

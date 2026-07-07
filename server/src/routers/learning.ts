@@ -262,7 +262,7 @@ export const learningRouter = createRouter({
               scheduledAt,
               duration: item.duration,
               meetingRoomId: roomName,
-              meetingUrl: `https://meet.jit.si/${roomName}`,
+              meetingUrl: `https://meet.gecouncil.com/${roomName}`,
             }).returning();
 
             if (newClass) {

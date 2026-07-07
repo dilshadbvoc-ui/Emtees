@@ -617,7 +617,7 @@ export const communityRouter = createRouter({
           classType: "group",
           status: "scheduled",
           meetingRoomId: roomName,
-          meetingUrl: `https://meet.jit.si/${roomName}`,
+          meetingUrl: `https://meet.gecouncil.com/${roomName}`,
         })
         .returning();
 
