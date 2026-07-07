@@ -31,7 +31,8 @@ export async function updateStudentSessionBalances(db: any, studentId: number) {
     .where(
       and(
         eq(oneToOneSessions.studentId, studentId),
-        eq(oneToOneSessions.status, "completed")
+        eq(oneToOneSessions.status, "completed"),
+        sql`(${oneToOneSessions.actualDuration} IS NULL OR ${oneToOneSessions.actualDuration} >= 25)`
       )
     )
     .groupBy(oneToOneSessions.sessionLength);
