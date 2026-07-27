@@ -33,6 +33,7 @@ import { useSocket, useClassStartedAlert } from "@/hooks/useSocket";
 import { trpc } from "@/providers/trpc";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import IncomingCallOverlay from "@/components/IncomingCallOverlay";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -288,7 +289,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </aside>
       </div>
 
-      {/* Main content */}
+      <IncomingCallOverlay />
+
+      {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Top header */}
         <header className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10 shrink-0">

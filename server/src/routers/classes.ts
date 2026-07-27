@@ -982,6 +982,16 @@ export const classRouter = createRouter({
       const io = getIo();
       if (io) {
         io.emit("class:updated");
+        
+        // Emit direct call event to the student's personal socket room
+        if (newSession) {
+          io.to(`user:${input.studentId}`).emit("1to1:incoming_call", {
+            sessionId: newSession.id,
+            title: newSession.title,
+            teacherName: newSession.teacher?.name || "Your Teacher",
+            roomName: newSession.meetingRoomId
+          });
+        }
       }
 
       return newSession;
@@ -1419,6 +1429,15 @@ export const classRouter = createRouter({
       const io = getIo();
       if (io) {
         io.emit("class:updated");
+
+        // Emit direct call event to the student's personal socket room
+        const teacherName = ctx.user.role === "teacher" ? ctx.user.name : "Your Teacher";
+        io.to(`user:${session.studentId}`).emit("1to1:incoming_call", {
+          sessionId: session.id,
+          title: session.title,
+          teacherName: teacherName,
+          roomName: session.meetingRoomId
+        });
       }
 
       return { success: true };
