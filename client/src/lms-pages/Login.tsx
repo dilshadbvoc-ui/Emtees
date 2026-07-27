@@ -50,8 +50,8 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
-            <Input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-            <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+            <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
             <Button type="submit" className="w-full bg-[#C8102E] hover:bg-[#A50C22] text-white font-medium" disabled={loginMutation.isPending}>
               {loginMutation.isPending ? "Logging in..." : "Login"}
             </Button>
