@@ -259,7 +259,8 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
         setSelectedClassForMeeting({
           ...data,
           isOneToOne: true,
-          roomName: data.meetingRoomId
+          roomName: data.meetingRoomId,
+          jwt: data.jwt,
         });
         setJitsiRoom(data.meetingRoomId || `emtees-1to1-${data.id}`);
       }
@@ -503,6 +504,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
         scheduledAt: details.scheduledAt,
         teacherName: details.teacherName,
         isOneToOne: true,
+        jwt: details.jwt,
       });
       setJitsiRoom(details.roomName);
     } catch (err: any) {
@@ -521,13 +523,14 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
 
   const handleStartOneToOne = async (session: any) => {
     try {
-      await startOneToOne.mutateAsync({ sessionId: session.id });
+      const details = await startOneToOne.mutateAsync({ sessionId: session.id });
       setSelectedClassForMeeting({
         id: session.id,
         title: session.title || `1-on-1 Session`,
         scheduledAt: session.scheduledAt,
         teacher: session.teacher,
         isOneToOne: true,
+        jwt: details.jwt,
       });
       setJitsiRoom(session.meetingRoomId || `emtees-1on1-${session.id}`);
       toast.success("1-to-1 Session started");

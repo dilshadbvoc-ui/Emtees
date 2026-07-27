@@ -993,8 +993,27 @@ export const classRouter = createRouter({
           });
         }
       }
+      let jwt: string | null = null;
+      const jitsiAppId = process.env.JITSI_APP_ID;
+      const jitsiAppSecret = process.env.JITSI_APP_SECRET;
+      if (jitsiAppId && jitsiAppSecret) {
+        const userDetails = await db.query.users.findFirst({ where: eq(users.id, ctx.user.id) });
+        jwt = await generateJitsiToken({
+          room: roomName,
+          userName: ctx.user.name,
+          userEmail: userDetails?.email || undefined,
+          userId: String(ctx.user.id),
+          isModerator: true,
+          appId: jitsiAppId,
+          appSecret: jitsiAppSecret,
+        });
+      }
 
-      return newSession;
+      return {
+        ...newSession,
+        jwt,
+        isModerator: true,
+      };
     }),
 
   editOneToOne: authedQuery
@@ -1440,7 +1459,24 @@ export const classRouter = createRouter({
         });
       }
 
-      return { success: true };
+      let jwt: string | null = null;
+      const jitsiAppId = process.env.JITSI_APP_ID;
+      const jitsiAppSecret = process.env.JITSI_APP_SECRET;
+      const roomName = session.meetingRoomId || `emtees-1to1-${session.id}`;
+      if (jitsiAppId && jitsiAppSecret) {
+        const userDetails = await db.query.users.findFirst({ where: eq(users.id, ctx.user.id) });
+        jwt = await generateJitsiToken({
+          room: roomName,
+          userName: ctx.user.name,
+          userEmail: userDetails?.email || undefined,
+          userId: String(ctx.user.id),
+          isModerator: true,
+          appId: jitsiAppId,
+          appSecret: jitsiAppSecret,
+        });
+      }
+
+      return { success: true, jwt, roomName, isModerator: true };
     }),
 
   joinOneToOne: authedQuery
