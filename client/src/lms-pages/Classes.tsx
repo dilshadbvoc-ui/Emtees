@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { trpc } from "@/providers/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
@@ -45,6 +46,8 @@ function OngoingTimer({ startedAt }: { startedAt: string }) {
 
 export default function ClassesPage({ type }: { type?: "group" | "one-to-one" }) {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingClassId, setEditingClassId] = useState<number | null>(null);
@@ -506,6 +509,15 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
       toast.error(err.message || "Failed to join 1-to-1 session");
     }
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const joinId = params.get("joinOneToOne");
+    if (joinId) {
+      handleJoinOneToOne({ id: parseInt(joinId, 10) });
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.search, navigate]);
 
   const handleStartOneToOne = async (session: any) => {
     try {
