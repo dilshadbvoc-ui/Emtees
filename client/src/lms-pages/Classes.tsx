@@ -1676,7 +1676,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
         <JitsiMeet
           classId={selectedClassForMeeting.classId || selectedClassForMeeting.id}
           isOneToOne={selectedClassForMeeting.classType === "one_to_one" || selectedClassForMeeting.roomName?.includes("1on1") || selectedClassForMeeting.roomName?.includes("1to1") || selectedClassForMeeting.title?.startsWith("1-on-1") || !!selectedClassForMeeting.isOneToOne}
-          roomName={selectedClassForMeeting.roomName}
+          roomName={jitsiRoom}
           jwt={selectedClassForMeeting.jwt}
           onJoin={() => {
             if (selectedClassForMeeting && user.role === "student" && selectedClassForMeeting.classType !== "one_to_one" && !selectedClassForMeeting.roomName?.includes("1on1") && !selectedClassForMeeting.roomName?.includes("1to1") && !selectedClassForMeeting.title?.startsWith("1-on-1") && !selectedClassForMeeting.isOneToOne) {

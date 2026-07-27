@@ -539,6 +539,7 @@ export default function Dashboard() {
         <JitsiMeet
           classId={selectedClassForMeeting.classId || selectedClassForMeeting.id}
           isOneToOne={selectedClassForMeeting.classType === "one_to_one" || selectedClassForMeeting.title?.startsWith("1-on-1") || !!selectedClassForMeeting.isOneToOne}
+          roomName={jitsiRoom}
           onJoin={() => {
             if (selectedClassForMeeting && user.role === "student" && selectedClassForMeeting.classType !== "one_to_one" && !selectedClassForMeeting.title?.startsWith("1-on-1")) {
               recordJoinTime.mutate({ classId: selectedClassForMeeting.classId || selectedClassForMeeting.id });
