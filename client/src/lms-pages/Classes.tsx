@@ -253,7 +253,11 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
       oneToOneQuery.refetch();
       allocationsQuery.refetch();
       if (data) {
-        setSelectedClassForMeeting(data);
+        setSelectedClassForMeeting({
+          ...data,
+          isOneToOne: true,
+          roomName: data.meetingRoomId
+        });
         setJitsiRoom(data.meetingRoomId || `emtees-1to1-${data.id}`);
       }
     },
