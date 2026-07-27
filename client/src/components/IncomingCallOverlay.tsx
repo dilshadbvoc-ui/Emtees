@@ -94,8 +94,8 @@ export default function IncomingCallOverlay() {
     stopRinging();
     const sessionId = incomingCall.sessionId;
     setIncomingCall(null);
-    // Redirect to classes page with a query parameter to automatically join
-    navigate(`/classes?joinOneToOne=${sessionId}`);
+    // Redirect to classes/one-to-one with a query parameter to automatically join
+    navigate(`/classes/one-to-one?joinOneToOne=${sessionId}`);
   };
 
   const handleDecline = () => {
