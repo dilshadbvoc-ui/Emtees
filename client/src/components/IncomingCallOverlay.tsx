@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import socket from "@/lib/socket";
+import { socket } from "@/lib/socket";
 import { Phone, PhoneOff } from "lucide-react";
 
 export default function IncomingCallOverlay() {
