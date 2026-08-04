@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "outDir": "./dist",
+    "rootDir": "..",
     "paths": {
       "zod": ["./node_modules/zod"],
       "libphonenumber-js": ["./node_modules/libphonenumber-js"],
