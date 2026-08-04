@@ -532,7 +532,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
         isOneToOne: true,
         jwt: details.jwt,
       });
-      setJitsiRoom(session.meetingRoomId || `emtees-1on1-${session.id}`);
+      setJitsiRoom(details.roomName || session.meetingRoomId || `emtees-1to1-${session.id}`);
       toast.success("1-to-1 Session started");
     } catch (err: any) {
       toast.error(err.message || "Failed to start 1-to-1 session");
@@ -1765,13 +1765,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                   size="sm"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
                   onClick={() => {
-                    setSelectedClassForMeeting({
-                      id: ongoingSession.id,
-                      title: "1-to-1 Session",
-                      scheduledAt: ongoingSession.startedAt ? (ongoingSession.startedAt instanceof Date ? ongoingSession.startedAt.toISOString() : String(ongoingSession.startedAt)) : new Date().toISOString(),
-                      isOneToOne: true,
-                    });
-                    setJitsiRoom(`emtees-session-${ongoingSession.id}`);
+                    handleJoinOneToOne(ongoingSession);
                   }}
                 >
                   <Video className="w-3.5 h-3.5 mr-1.5" /> Join Class

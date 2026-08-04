@@ -86,12 +86,23 @@ export default function Dashboard() {
     onError: (err) => toast.error(err.message),
   });
 
+  const joinOneToOne = trpc.class.joinOneToOne.useMutation({
+    onSuccess: () => {
+      classesQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleStartClass = async (cls: any) => {
     try {
       if (cls.classType === "one_to_one") {
-        await startOneToOne.mutateAsync({ sessionId: cls.id });
-        setSelectedClassForMeeting(cls);
-        setJitsiRoom(cls.meetingRoomId || `session-${cls.id}`);
+        const details = await startOneToOne.mutateAsync({ sessionId: cls.id });
+        setSelectedClassForMeeting({
+          ...cls,
+          isOneToOne: true,
+          jwt: details?.jwt,
+        });
+        setJitsiRoom(details?.roomName || cls.meetingRoomId || `emtees-1to1-${cls.id}`);
       } else {
         await startClass.mutateAsync({ id: cls.id });
         setSelectedClassForMeeting(cls);
@@ -102,9 +113,23 @@ export default function Dashboard() {
     }
   };
 
-  const handleJoinClass = (cls: any) => {
-    setSelectedClassForMeeting(cls);
-    setJitsiRoom(cls.meetingRoomId || (cls.classType === "one_to_one" ? `session-${cls.id}` : `class-${cls.id}`));
+  const handleJoinClass = async (cls: any) => {
+    if (cls.classType === "one_to_one") {
+      try {
+        const details = await joinOneToOne.mutateAsync({ sessionId: cls.id });
+        setSelectedClassForMeeting({
+          ...cls,
+          isOneToOne: true,
+          jwt: details.jwt,
+        });
+        setJitsiRoom(details.roomName || cls.meetingRoomId || `emtees-1to1-${cls.id}`);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to join 1-to-1 session");
+      }
+    } else {
+      setSelectedClassForMeeting(cls);
+      setJitsiRoom(cls.meetingRoomId || `class-${cls.id}`);
+    }
   };
 
   // Local time state updating every minute
