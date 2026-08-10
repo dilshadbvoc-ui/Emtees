@@ -13,7 +13,7 @@ export async function generateJitsiToken(params: {
   return new SignJWT({
     aud: "jitsi",
     iss: params.appId,
-    sub: params.appId,
+    sub: "meet.gecouncil.com",
     room: params.room,
     context: {
       user: {
