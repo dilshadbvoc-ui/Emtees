@@ -256,13 +256,14 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
       oneToOneQuery.refetch();
       allocationsQuery.refetch();
       if (data) {
+        console.log("[startInstantOneToOne] Success. JWT:", data.jwt);
         setSelectedClassForMeeting({
           ...data,
           isOneToOne: true,
-          roomName: (data as any).roomName,
+          roomName: data.meetingRoomId || null,
           jwt: data.jwt,
         });
-        setJitsiRoom((data as any).roomName);
+        setJitsiRoom(data.meetingRoomId || null);
       }
     },
     onError: (err) => toast.error(err.message),
@@ -497,7 +498,9 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
 
   const handleJoinOneToOne = async (session: any) => {
     try {
+      console.log("[handleJoinOneToOne] Requesting token for session:", session.id);
       const details = await joinOneToOne.mutateAsync({ sessionId: session.id });
+      console.log("[handleJoinOneToOne] Details received:", details);
       setSelectedClassForMeeting({
         id: session.id,
         title: details.title || `1-on-1 Session`,

@@ -1009,6 +1009,8 @@ export const classRouter = createRouter({
         });
       }
 
+      console.log("[startInstantOneToOne] Generated JWT:", jwt);
+
       return {
         ...newSession,
         jwt,
@@ -1532,6 +1534,8 @@ export const classRouter = createRouter({
           appSecret: jitsiAppSecret,
         });
       }
+
+      console.log("[joinOneToOne] Generated JWT:", jwt);
 
       return {
         sessionId: session.id,
