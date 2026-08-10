@@ -259,10 +259,10 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
         setSelectedClassForMeeting({
           ...data,
           isOneToOne: true,
-          roomName: data.meetingRoomId,
+          roomName: (data as any).roomName,
           jwt: data.jwt,
         });
-        setJitsiRoom(data.meetingRoomId || `emtees-1to1-${data.id}`);
+        setJitsiRoom((data as any).roomName);
       }
     },
     onError: (err) => toast.error(err.message),

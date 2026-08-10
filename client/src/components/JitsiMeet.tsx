@@ -276,6 +276,8 @@ export default function JitsiMeet({
 
   const roomName = propRoomName || (isOneToOne ? `emtees-1on1-${classId}` : detailsQuery.data?.roomName || "");
   const jwt = propJwt !== undefined ? propJwt : (isOneToOne ? null : detailsQuery.data?.jwt);
+  
+  console.log("[JitsiMeet] Initializing...", { isOneToOne, propRoomName, propJwt, resolvedRoomName: roomName, resolvedJwt: jwt });
   const cleanRoomName = roomName.replace(/\s+/g, "-").toLowerCase();
   const displayName = user?.name || "Anonymous";
   const email = user?.email || "";
