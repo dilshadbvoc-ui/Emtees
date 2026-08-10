@@ -14,7 +14,7 @@ export async function generateJitsiToken(params: {
     aud: "jitsi",
     iss: params.appId,
     sub: params.appId,
-    room: "*",
+    room: params.room,
     context: {
       user: {
         name: params.userName,
