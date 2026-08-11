@@ -1164,6 +1164,7 @@ export const studentClassAllocations = pgTable("student_class_allocations", {
   allocation: json("allocation").default({
     oneToOne: {
       teacherId: null,
+      designatedTime: "",
       sessions30: 0,
       sessions45: 0,
       sessions60: 0,
@@ -1177,6 +1178,7 @@ export const studentClassAllocations = pgTable("student_class_allocations", {
     group: {
       teacherId: null,
       batchId: null,
+      designatedTime: "",
       sessions30: 0,
       sessions45: 0,
       sessions60: 0,

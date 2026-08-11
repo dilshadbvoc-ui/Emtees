@@ -153,6 +153,7 @@ export default function StudentsPage() {
   const [classAllocation, setClassAllocation] = useState<ClassAllocationValue>({
     oneToOne: {
       teacherId: "",
+      designatedTime: "",
       sessions30: 0,
       sessions45: 0,
       sessions60: 0,
@@ -160,6 +161,7 @@ export default function StudentsPage() {
     group: {
       teacherId: "",
       batchId: "",
+      designatedTime: "",
       sessions30: 0,
       sessions45: 0,
       sessions60: 0,
@@ -168,8 +170,8 @@ export default function StudentsPage() {
 
   const [isConfiguringAllocation, setIsConfiguringAllocation] = useState(false);
   const [tempAllocation, setTempAllocation] = useState<ClassAllocationValue>({
-    oneToOne: { teacherId: "", sessions30: 0, sessions45: 0, sessions60: 0 },
-    group: { teacherId: "", batchId: "", sessions30: 0, sessions45: 0, sessions60: 0 },
+    oneToOne: { teacherId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
+    group: { teacherId: "", batchId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
   });
 
   const [isAdjustingBalance, setIsAdjustingBalance] = useState(false);
@@ -234,8 +236,8 @@ export default function StudentsPage() {
       enrollmentId: "",
     });
     setClassAllocation({
-      oneToOne: { teacherId: "", sessions30: 0, sessions45: 0, sessions60: 0 },
-      group: { teacherId: "", batchId: "", sessions30: 0, sessions45: 0, sessions60: 0 }
+      oneToOne: { teacherId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
+      group: { teacherId: "", batchId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 }
     });
     setIdGenerationType("auto");
     setPaymentType("FULL_PAYMENT");
@@ -753,6 +755,7 @@ export default function StudentsPage() {
     setClassAllocation({
       oneToOne: {
         teacherId: "",
+        designatedTime: "",
         sessions30: 0,
         sessions45: 0,
         sessions60: 0,
@@ -760,6 +763,7 @@ export default function StudentsPage() {
       group: {
         teacherId: "",
         batchId: "",
+        designatedTime: "",
         sessions30: 0,
         sessions45: 0,
         sessions60: 0,
@@ -1406,6 +1410,8 @@ export default function StudentsPage() {
                 <TableHead>Postal Code</TableHead>
                 <TableHead>Course</TableHead>
                 <TableHead>Session Type</TableHead>
+                <TableHead>Assigned Teacher</TableHead>
+                <TableHead>Designated Time</TableHead>
                 <TableHead>Batch</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joined</TableHead>
@@ -1441,6 +1447,24 @@ export default function StudentsPage() {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${sessionBadgeClass}`}>
                         {sessionLabel}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {isO2O && (s.classAllocation as any)?.oneToOne?.teacherId && (
+                        <div className="whitespace-nowrap"><span className="font-semibold text-blue-700">1v1:</span> {getTeacherName((s.classAllocation as any).oneToOne.teacherId)}</div>
+                      )}
+                      {isGrp && (s.classAllocation as any)?.group?.teacherId && (
+                        <div className="whitespace-nowrap"><span className="font-semibold text-emerald-700">Grp:</span> {getTeacherName((s.classAllocation as any).group.teacherId)}</div>
+                      )}
+                      {(!isO2O || !(s.classAllocation as any)?.oneToOne?.teacherId) && (!isGrp || !(s.classAllocation as any)?.group?.teacherId) && "-"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {isO2O && (s.classAllocation as any)?.oneToOne?.designatedTime && (
+                        <div className="whitespace-nowrap"><span className="font-semibold text-blue-700">1v1:</span> {(s.classAllocation as any).oneToOne.designatedTime}</div>
+                      )}
+                      {isGrp && (s.classAllocation as any)?.group?.designatedTime && (
+                        <div className="whitespace-nowrap"><span className="font-semibold text-emerald-700">Grp:</span> {(s.classAllocation as any).group.designatedTime}</div>
+                      )}
+                      {(!isO2O || !(s.classAllocation as any)?.oneToOne?.designatedTime) && (!isGrp || !(s.classAllocation as any)?.group?.designatedTime) && "-"}
                     </TableCell>
                     <TableCell>
                       {s.profile?.batch ? (
@@ -2105,17 +2129,19 @@ export default function StudentsPage() {
                             };
                             setTempAllocation({
                               oneToOne: {
-                                teacherId: alloc.oneToOne?.teacherId ?? "",
-                                sessions30: alloc.oneToOne?.sessions30 ?? 0,
-                                sessions45: alloc.oneToOne?.sessions45 ?? 0,
-                                sessions60: alloc.oneToOne?.sessions60 ?? 0,
+                                teacherId: (alloc as any).oneToOne?.teacherId ?? "",
+                                designatedTime: (alloc as any).oneToOne?.designatedTime ?? "",
+                                sessions30: (alloc as any).oneToOne?.sessions30 ?? 0,
+                                sessions45: (alloc as any).oneToOne?.sessions45 ?? 0,
+                                sessions60: (alloc as any).oneToOne?.sessions60 ?? 0,
                               },
                               group: {
-                                teacherId: alloc.group?.teacherId ?? "",
-                                batchId: (alloc.group?.batchId as any) ?? "",
-                                sessions30: alloc.group?.sessions30 ?? 0,
-                                sessions45: alloc.group?.sessions45 ?? 0,
-                                sessions60: alloc.group?.sessions60 ?? 0,
+                                teacherId: (alloc as any).group?.teacherId ?? "",
+                                batchId: ((alloc as any).group?.batchId as any) ?? "",
+                                designatedTime: (alloc as any).group?.designatedTime ?? "",
+                                sessions30: (alloc as any).group?.sessions30 ?? 0,
+                                sessions45: (alloc as any).group?.sessions45 ?? 0,
+                                sessions60: (alloc as any).group?.sessions60 ?? 0,
                               }
                             });
                             setIsConfiguringAllocation(true);
@@ -2846,8 +2872,9 @@ export default function StudentsPage() {
                 updateClassAllocationMutation.mutate({
                   studentId: detailsStudentId || 0,
                   allocation: {
-                    oneToOne: {
+                      oneToOne: {
                       teacherId: tempAllocation.oneToOne.teacherId !== "" ? Number(tempAllocation.oneToOne.teacherId) : null,
+                      designatedTime: tempAllocation.oneToOne.designatedTime || "",
                       sessions30: Number(tempAllocation.oneToOne.sessions30),
                       sessions45: Number(tempAllocation.oneToOne.sessions45),
                       sessions60: Number(tempAllocation.oneToOne.sessions60),
@@ -2855,6 +2882,7 @@ export default function StudentsPage() {
                     group: {
                       teacherId: tempAllocation.group.teacherId !== "" ? Number(tempAllocation.group.teacherId) : null,
                       batchId: tempAllocation.group.batchId !== "" ? Number(tempAllocation.group.batchId) : null,
+                      designatedTime: tempAllocation.group.designatedTime || "",
                       sessions30: Number(tempAllocation.group.sessions30),
                       sessions45: Number(tempAllocation.group.sessions45),
                       sessions60: Number(tempAllocation.group.sessions60),

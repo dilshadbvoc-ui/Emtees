@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 export interface ClassAllocationValue {
   oneToOne: {
     teacherId: number | "";
+    designatedTime: string;
     sessions30: number;
     sessions45: number;
     sessions60: number;
@@ -13,6 +14,7 @@ export interface ClassAllocationValue {
   group: {
     teacherId: number | "";
     batchId: number | "";
+    designatedTime: string;
     sessions30: number;
     sessions45: number;
     sessions60: number;
@@ -53,7 +55,7 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
       {/* One-to-One Allocation Section */}
       <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-4">
         <h4 className="font-bold text-xs text-emerald-800 uppercase tracking-wider">One-to-One Sessions Allocation</h4>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Assigned Teacher</Label>
             <select
@@ -66,6 +68,16 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
                 <option key={t.id} value={t.id}>{t.name} ({t.unionId})</option>
               ))}
             </select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-gray-600">Designated Time</Label>
+            <Input
+              type="text"
+              placeholder="e.g. 10:00 AM"
+              value={value.oneToOne.designatedTime || ""}
+              onChange={(e) => handleO2OChange("designatedTime", e.target.value)}
+              className="h-9 text-xs bg-white"
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">30 Min Classes</Label>
@@ -106,7 +118,7 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
       {/* Group Allocation Section */}
       <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-4">
         <h4 className="font-bold text-xs text-emerald-800 uppercase tracking-wider">Group Sessions Allocation</h4>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Assigned Teacher</Label>
             <select
@@ -132,6 +144,16 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-gray-600">Designated Time</Label>
+            <Input
+              type="text"
+              placeholder="e.g. 10:00 AM"
+              value={value.group.designatedTime || ""}
+              onChange={(e) => handleGroupChange("designatedTime", e.target.value)}
+              className="h-9 text-xs bg-white"
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">30 Min Classes</Label>

@@ -942,16 +942,42 @@ export const studentsRouter = createRouter({
                 batchId: batchId,
                 teacherId: selectedBatch.teacherId || null,
               },
+            const existingAllocation = classAllocRecord.allocation as any;
+            const newAlloc = {
+              oneToOne: {
+                ...existingAllocation.oneToOne,
+                teacherId: allocation.oneToOne.teacherId !== undefined ? allocation.oneToOne.teacherId : existingAllocation.oneToOne?.teacherId,
+                designatedTime: allocation.oneToOne.designatedTime !== undefined ? allocation.oneToOne.designatedTime : existingAllocation.oneToOne?.designatedTime || "",
+                sessions30: allocation.oneToOne.sessions30,
+                sessions45: allocation.oneToOne.sessions45,
+                sessions60: allocation.oneToOne.sessions60,
+                remaining30: Math.max(0, allocation.oneToOne.sessions30 - (existingAllocation.oneToOne?.completed30 || 0)),
+                remaining45: Math.max(0, allocation.oneToOne.sessions45 - (existingAllocation.oneToOne?.completed45 || 0)),
+                remaining60: Math.max(0, allocation.oneToOne.sessions60 - (existingAllocation.oneToOne?.completed60 || 0)),
+              },
+              group: {
+                ...existingAllocation.group,
+                teacherId: allocation.group.teacherId !== undefined ? allocation.group.teacherId : existingAllocation.group?.teacherId,
+                batchId: batchId,
+                designatedTime: allocation.group.designatedTime !== undefined ? allocation.group.designatedTime : existingAllocation.group?.designatedTime || "",
+                sessions30: allocation.group.sessions30,
+                sessions45: allocation.group.sessions45,
+                sessions60: allocation.group.sessions60,
+                remaining30: Math.max(0, allocation.group.sessions30 - (existingAllocation.group?.completed30 || 0)),
+                remaining45: Math.max(0, allocation.group.sessions45 - (existingAllocation.group?.completed45 || 0)),
+                remaining60: Math.max(0, allocation.group.sessions60 - (existingAllocation.group?.completed60 || 0)),
+              }
             };
             await tx.update(studentClassAllocations)
-              .set({ allocation: updatedAlloc, updatedAt: new Date() })
+              .set({ allocation: newAlloc, updatedAt: new Date() })
               .where(eq(studentClassAllocations.studentId, id));
           } else {
             const newAlloc = {
-              oneToOne: { teacherId: null, sessions30: 0, sessions45: 0, sessions60: 0, completed30: 0, completed45: 0, completed60: 0, remaining30: 0, remaining45: 0, remaining60: 0 },
+              oneToOne: { teacherId: null, designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0, completed30: 0, completed45: 0, completed60: 0, remaining30: 0, remaining45: 0, remaining60: 0 },
               group: {
                 teacherId: selectedBatch.teacherId || null,
                 batchId: batchId,
+                designatedTime: "",
                 sessions30: 0,
                 sessions45: 0,
                 sessions60: 0,
@@ -2040,6 +2066,7 @@ export const studentsRouter = createRouter({
       allocation: z.object({
         oneToOne: z.object({
           teacherId: z.number().nullable().optional(),
+          designatedTime: z.string().optional(),
           sessions30: z.number().nonnegative(),
           sessions45: z.number().nonnegative(),
           sessions60: z.number().nonnegative(),
@@ -2047,6 +2074,7 @@ export const studentsRouter = createRouter({
         group: z.object({
           teacherId: z.number().nullable().optional(),
           batchId: z.number().nullable().optional(),
+          designatedTime: z.string().optional(),
           sessions30: z.number().nonnegative(),
           sessions45: z.number().nonnegative(),
           sessions60: z.number().nonnegative(),
@@ -2103,6 +2131,7 @@ export const studentsRouter = createRouter({
         oldAlloc = {
           oneToOne: {
             teacherId: alloc.oneToOne?.teacherId || null,
+            designatedTime: alloc.oneToOne?.designatedTime || "",
             sessions30: alloc.oneToOne?.sessions30 || 0,
             sessions45: alloc.oneToOne?.sessions45 || 0,
             sessions60: alloc.oneToOne?.sessions60 || 0,
@@ -2113,6 +2142,7 @@ export const studentsRouter = createRouter({
           group: {
             teacherId: alloc.group?.teacherId || null,
             batchId: alloc.group?.batchId || null,
+            designatedTime: alloc.group?.designatedTime || "",
             sessions30: alloc.group?.sessions30 || 0,
             sessions45: alloc.group?.sessions45 || 0,
             sessions60: alloc.group?.sessions60 || 0,
@@ -2171,45 +2201,47 @@ export const studentsRouter = createRouter({
               assignedTeachers: teacherIds,
             })
             .where(eq(batchEnrollments.id, activeEnrollment.id));
-        } else {
-          const newAllocationJson = {
-            oneToOne: {
-              teacherId: allocation.oneToOne.teacherId || null,
-              sessions30: allocation.oneToOne.sessions30,
-              sessions45: allocation.oneToOne.sessions45,
-              sessions60: allocation.oneToOne.sessions60,
-              completed30: completedO2O30,
-              completed45: completedO2O45,
-              completed60: completedO2O60,
-              remaining30: Math.max(0, allocation.oneToOne.sessions30 - completedO2O30),
-              remaining45: Math.max(0, allocation.oneToOne.sessions45 - completedO2O45),
-              remaining60: Math.max(0, allocation.oneToOne.sessions60 - completedO2O60),
-            },
-            group: {
-              teacherId: allocation.group.teacherId || null,
-              batchId: allocation.group.batchId || null,
-              sessions30: allocation.group.sessions30,
-              sessions45: allocation.group.sessions45,
-              sessions60: allocation.group.sessions60,
-              completed30: completedGroup30,
-              completed45: completedGroup45,
-              completed60: completedGroup60,
-              remaining30: Math.max(0, allocation.group.sessions30 - completedGroup30),
-              remaining45: Math.max(0, allocation.group.sessions45 - completedGroup45),
-              remaining60: Math.max(0, allocation.group.sessions60 - completedGroup60),
-            }
-          };
-
-          if (classAllocRecord) {
-            await tx.update(studentClassAllocations)
-              .set({ allocation: newAllocationJson, updatedAt: new Date() })
-              .where(eq(studentClassAllocations.studentId, studentId));
-          } else {
-            await tx.insert(studentClassAllocations).values({
-              studentId,
-              allocation: newAllocationJson,
-            });
+        }
+        
+        const newAllocationJson = {
+          oneToOne: {
+            teacherId: allocation.oneToOne.teacherId || null,
+            designatedTime: allocation.oneToOne.designatedTime || oldAlloc?.oneToOne?.designatedTime || "",
+            sessions30: allocation.oneToOne.sessions30,
+            sessions45: allocation.oneToOne.sessions45,
+            sessions60: allocation.oneToOne.sessions60,
+            completed30: completedO2O30,
+            completed45: completedO2O45,
+            completed60: completedO2O60,
+            remaining30: Math.max(0, allocation.oneToOne.sessions30 - completedO2O30),
+            remaining45: Math.max(0, allocation.oneToOne.sessions45 - completedO2O45),
+            remaining60: Math.max(0, allocation.oneToOne.sessions60 - completedO2O60),
+          },
+          group: {
+            teacherId: allocation.group.teacherId || null,
+            batchId: allocation.group.batchId || null,
+            designatedTime: allocation.group.designatedTime || oldAlloc?.group?.designatedTime || "",
+            sessions30: allocation.group.sessions30,
+            sessions45: allocation.group.sessions45,
+            sessions60: allocation.group.sessions60,
+            completed30: completedGroup30,
+            completed45: completedGroup45,
+            completed60: completedGroup60,
+            remaining30: Math.max(0, allocation.group.sessions30 - completedGroup30),
+            remaining45: Math.max(0, allocation.group.sessions45 - completedGroup45),
+            remaining60: Math.max(0, allocation.group.sessions60 - completedGroup60),
           }
+        };
+
+        if (classAllocRecord) {
+          await tx.update(studentClassAllocations)
+            .set({ allocation: newAllocationJson, updatedAt: new Date() })
+            .where(eq(studentClassAllocations.studentId, studentId));
+        } else {
+          await tx.insert(studentClassAllocations).values({
+            studentId,
+            allocation: newAllocationJson,
+          });
         }
 
         // Recalculate and sync with profile
