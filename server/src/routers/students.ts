@@ -942,34 +942,9 @@ export const studentsRouter = createRouter({
                 batchId: batchId,
                 teacherId: selectedBatch.teacherId || null,
               },
-            const existingAllocation = classAllocRecord.allocation as any;
-            const newAlloc = {
-              oneToOne: {
-                ...existingAllocation.oneToOne,
-                teacherId: allocation.oneToOne.teacherId !== undefined ? allocation.oneToOne.teacherId : existingAllocation.oneToOne?.teacherId,
-                designatedTime: allocation.oneToOne.designatedTime !== undefined ? allocation.oneToOne.designatedTime : existingAllocation.oneToOne?.designatedTime || "",
-                sessions30: allocation.oneToOne.sessions30,
-                sessions45: allocation.oneToOne.sessions45,
-                sessions60: allocation.oneToOne.sessions60,
-                remaining30: Math.max(0, allocation.oneToOne.sessions30 - (existingAllocation.oneToOne?.completed30 || 0)),
-                remaining45: Math.max(0, allocation.oneToOne.sessions45 - (existingAllocation.oneToOne?.completed45 || 0)),
-                remaining60: Math.max(0, allocation.oneToOne.sessions60 - (existingAllocation.oneToOne?.completed60 || 0)),
-              },
-              group: {
-                ...existingAllocation.group,
-                teacherId: allocation.group.teacherId !== undefined ? allocation.group.teacherId : existingAllocation.group?.teacherId,
-                batchId: batchId,
-                designatedTime: allocation.group.designatedTime !== undefined ? allocation.group.designatedTime : existingAllocation.group?.designatedTime || "",
-                sessions30: allocation.group.sessions30,
-                sessions45: allocation.group.sessions45,
-                sessions60: allocation.group.sessions60,
-                remaining30: Math.max(0, allocation.group.sessions30 - (existingAllocation.group?.completed30 || 0)),
-                remaining45: Math.max(0, allocation.group.sessions45 - (existingAllocation.group?.completed45 || 0)),
-                remaining60: Math.max(0, allocation.group.sessions60 - (existingAllocation.group?.completed60 || 0)),
-              }
             };
             await tx.update(studentClassAllocations)
-              .set({ allocation: newAlloc, updatedAt: new Date() })
+              .set({ allocation: updatedAlloc, updatedAt: new Date() })
               .where(eq(studentClassAllocations.studentId, id));
           } else {
             const newAlloc = {
