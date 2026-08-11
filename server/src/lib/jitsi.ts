@@ -18,8 +18,9 @@ export async function generateJitsiToken(params: {
     context: {
       user: {
         name: params.userName,
-        email: params.userEmail || "",
+        email: params.userEmail || `user${params.userId}@gecouncil.com`,
         id: params.userId,
+        affiliation: params.isModerator ? "owner" : "member",
         lobby_bypass: params.isModerator,
       },
       features: {
