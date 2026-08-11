@@ -72,8 +72,7 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Designated Time</Label>
             <Input
-              type="text"
-              placeholder="e.g. 10:00 AM"
+              type="time"
               value={value.oneToOne.designatedTime || ""}
               onChange={(e) => handleO2OChange("designatedTime", e.target.value)}
               className="h-9 text-xs bg-white"
@@ -148,8 +147,7 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Designated Time</Label>
             <Input
-              type="text"
-              placeholder="e.g. 10:00 AM"
+              type="time"
               value={value.group.designatedTime || ""}
               onChange={(e) => handleGroupChange("designatedTime", e.target.value)}
               className="h-9 text-xs bg-white"

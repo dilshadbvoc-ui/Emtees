@@ -14,6 +14,7 @@ import { isStudentFeeRestricted, recalculateStudentFees } from "../lib/feeHelper
 import { phoneSchema, parseFullPhone, validatePhoneNumber, PHONE_ERROR_MESSAGE, getCountryISOFromDialCode } from "@contracts/validation";
 import { sendUserCredentialsEmail } from "../lib/email";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { EnrollmentPaymentService } from "../lib/EnrollmentPaymentService";
 import { StudentAdmissionService } from "../lib/StudentAdmissionService";
 
@@ -2217,6 +2218,84 @@ export const studentsRouter = createRouter({
             studentId,
             allocation: newAllocationJson,
           });
+        }
+
+        // Generate upcoming sessions based on designated time
+        if (allocation.oneToOne.teacherId && allocation.oneToOne.designatedTime) {
+          const designatedTime = allocation.oneToOne.designatedTime;
+          const [hoursStr, minutesStr] = designatedTime.split(':');
+          if (hoursStr && minutesStr) {
+            const hours = parseInt(hoursStr, 10);
+            const minutes = parseInt(minutesStr, 10);
+            
+            const existingSessions = await tx.query.oneToOneSessions.findMany({
+              where: and(
+                eq(oneToOneSessions.studentId, studentId),
+                eq(oneToOneSessions.teacherId, allocation.oneToOne.teacherId),
+                inArray(oneToOneSessions.status, ["scheduled", "ongoing", "completed", "rescheduled"])
+              ),
+              columns: { id: true, sessionLength: true, status: true }
+            });
+            
+            let existing30 = 0, existing45 = 0, existing60 = 0;
+            for (const s of existingSessions) {
+              if (s.sessionLength === 30) existing30++;
+              if (s.sessionLength === 45) existing45++;
+              if (s.sessionLength === 60) existing60++;
+            }
+            
+            const new30 = Math.max(0, allocation.oneToOne.sessions30 - existing30);
+            const new45 = Math.max(0, allocation.oneToOne.sessions45 - existing45);
+            const new60 = Math.max(0, allocation.oneToOne.sessions60 - existing60);
+            
+            const totalNew = new30 + new45 + new60;
+            
+            if (totalNew > 0) {
+              const sessionsToCreate = [];
+              let currentDate = new Date();
+              currentDate.setHours(0, 0, 0, 0);
+              
+              let createdCount = 0;
+              let currentDurationQueue = [
+                ...Array(new30).fill(30),
+                ...Array(new45).fill(45),
+                ...Array(new60).fill(60)
+              ];
+              
+              while (createdCount < totalNew) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                
+                if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
+                  continue; // Skip weekends
+                }
+                
+                const sessionLength = currentDurationQueue[createdCount];
+                const scheduledAt = new Date(currentDate);
+                scheduledAt.setHours(hours, minutes, 0, 0);
+                
+                const meetingRoomId = crypto.randomUUID();
+                const meetingUrl = `https://meet.emteesacademy.com/${meetingRoomId}`;
+                
+                sessionsToCreate.push({
+                  teacherId: allocation.oneToOne.teacherId,
+                  studentId: studentId,
+                  title: "1-to-1 Session",
+                  sessionLength,
+                  scheduledAt,
+                  status: "scheduled" as const,
+                  meetingRoomId,
+                  meetingUrl,
+                  createdBy: ctx.user.id
+                });
+                
+                createdCount++;
+              }
+              
+              if (sessionsToCreate.length > 0) {
+                await tx.insert(oneToOneSessions).values(sessionsToCreate);
+              }
+            }
+          }
         }
 
         // Recalculate and sync with profile
