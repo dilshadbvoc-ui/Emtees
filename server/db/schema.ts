@@ -1143,6 +1143,8 @@ export const salesExecutives = pgTable(
     password: varchar("password", { length: 255 }).notNull(),
     referralCode: varchar("referral_code", { length: 50 }).notNull().unique(),
     status: varchar("status", { length: 50 }).notNull().default("active"),
+    groupId: bigint("group_id", { mode: "number" }), // references salesGroups.id (added below)
+    isASM: boolean("is_asm").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -1151,6 +1153,21 @@ export const salesExecutives = pgTable(
     execPhoneIdx: uniqueIndex("exec_full_phone_idx").on(table.fullInternationalNumber),
   })
 );
+
+// Sales Groups / Teams (ASM Hierarchy)
+export const salesGroups = pgTable("sales_groups", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  asmId: bigint("asm_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type SalesGroup = typeof salesGroups.$inferSelect;
+export type InsertSalesGroup = typeof salesGroups.$inferInsert;
+
 export type SalesExecutive = typeof salesExecutives.$inferSelect;
 export type InsertSalesExecutive = typeof salesExecutives.$inferInsert;
 
@@ -1242,6 +1259,77 @@ export type InsertPerformanceConfig = typeof performanceConfigs.$inferInsert;
 export type PerformanceReport = typeof performanceReports.$inferSelect;
 export type InsertPerformanceReport = typeof performanceReports.$inferInsert;
 
+// Sales Closures (Single Source of Truth for Sales)
+export const salesClosures = pgTable("sales_closures", {
+  id: serial("id").primaryKey(),
+  closingDate: timestamp("closing_date").notNull(),
+  monthStr: varchar("month_str", { length: 20 }), // e.g. "August 2025" (computed)
+  cleanMonthStr: varchar("clean_month_str", { length: 20 }), // e.g. "August" (computed)
+  caCategory: varchar("ca_category", { length: 100 }), // e.g. "CORE_STRENGTH"
+  caId: bigint("ca_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
+  asmId: bigint("asm_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
+  groupId: bigint("group_id", { mode: "number" }).references(() => salesGroups.id, { onDelete: "set null" }),
+  courseName: varchar("course_name", { length: 255 }), // e.g. "HINDI_O_TO_O"
+  admNo: varchar("adm_no", { length: 50 }),
+  studentId: bigint("student_id", { mode: "number" }).references(() => users.id, { onDelete: "set null" }), // link if exists
+  studentName: varchar("student_name", { length: 255 }),
+  type: varchar("type", { length: 50 }), // 'New Closure', 'Old Balance', 'Renewal'
+  totalFee: decimal("total_fee", { precision: 10, scale: 2 }).default("0").notNull(),
+  firstInst: decimal("first_inst", { precision: 10, scale: 2 }).default("0").notNull(),
+  secondInst: decimal("second_inst", { precision: 10, scale: 2 }).default("0").notNull(),
+  thirdInst: decimal("third_inst", { precision: 10, scale: 2 }).default("0").notNull(),
+  balance: decimal("balance", { precision: 10, scale: 2 }).default("0").notNull(), // auto-calculated
+  points: decimal("points", { precision: 10, scale: 2 }).default("0").notNull(), // auto-calculated
+  baseAmountForPoints: decimal("base_amount_for_points", { precision: 10, scale: 2 }).default("0").notNull(),
+  bank: varchar("bank", { length: 255 }),
+  isVerified: boolean("is_verified").default(false),
+  verificationStatus: varchar("verification_status", { length: 50 }), // 'NOT', 'Verified', etc
+  courseChangeStatus: varchar("course_change_status", { length: 100 }),
+  obNumber: varchar("ob_number", { length: 100 }),
+  leadStatus: varchar("lead_status", { length: 100 }),
+  remarks: text("remarks"),
+  isDeleted: boolean("is_deleted").default(false),
+  createdBy: bigint("created_by", { mode: "number" }).references(() => users.id, { onDelete: "set null" }),
+  updatedBy: bigint("updated_by", { mode: "number" }).references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  caIdx: index("sc_ca_idx").on(table.caId),
+  asmIdx: index("sc_asm_idx").on(table.asmId),
+  dateIdx: index("sc_date_idx").on(table.closingDate),
+}));
+export type SalesClosure = typeof salesClosures.$inferSelect;
+export type InsertSalesClosure = typeof salesClosures.$inferInsert;
 
+// Sales Points Engine Rules
+export const salesPointsRules = pgTable("sales_points_rules", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  caCategoryMatch: varchar("ca_category_match", { length: 100 }), // null means any
+  courseMatch: varchar("course_match", { length: 255 }), // null means any, or "O_TO_O"
+  minTotalFee: decimal("min_total_fee", { precision: 10, scale: 2 }),
+  maxTotalFee: decimal("max_total_fee", { precision: 10, scale: 2 }),
+  minPaymentPercent: decimal("min_payment_percent", { precision: 5, scale: 2 }), // e.g. 100 for full, 50 for half
+  fixedPointsAward: decimal("fixed_points_award", { precision: 10, scale: 2 }),
+  formula: text("formula"), // e.g. "(paymentAmount / totalFee) * 5"
+  priority: integer("priority").default(0).notNull(), // higher priority runs first
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type SalesPointsRule = typeof salesPointsRules.$inferSelect;
+export type InsertSalesPointsRule = typeof salesPointsRules.$inferInsert;
 
-
+// Custom Report Templates / Configs
+export const reportTemplates = pgTable("report_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'sales_dashboard', 'weekly_report'
+  config: json("config").notNull(), // stores columns, week definitions, filters
+  createdBy: bigint("created_by", { mode: "number" }).references(() => users.id, { onDelete: "set null" }),
+  isGlobal: boolean("is_global").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type ReportTemplate = typeof reportTemplates.$inferSelect;
+export type InsertReportTemplate = typeof reportTemplates.$inferInsert;

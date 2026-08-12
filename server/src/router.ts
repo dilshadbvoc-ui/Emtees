@@ -13,6 +13,7 @@ import { disciplineRouter } from "./routers/discipline";
 import { salesExecutiveRouter } from "./routers/salesExecutive";
 import { performanceRouter } from "./routers/performance";
 import { qualificationsRouter } from "./routers/qualifications";
+import { salesRouter } from "./routers/sales";
 
 
 export const appRouter = createRouter({
@@ -29,6 +30,7 @@ export const appRouter = createRouter({
   community: communityRouter,
   discipline: disciplineRouter,
   salesExecutive: salesExecutiveRouter,
+  sales: salesRouter,
   performance: performanceRouter,
   qualifications: qualificationsRouter,
 });

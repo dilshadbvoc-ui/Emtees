@@ -41,6 +41,7 @@ const navItems = [
   { icon: Contact, label: "Students", path: "/students" },
   { icon: GraduationCap, label: "Qualifications", path: "/qualifications" },
   { icon: Users, label: "Sales Executives", path: "/sales-management/executives" },
+  { icon: BarChart3, label: "Sales & Accounts", path: "/sales-management/dashboard" },
   { icon: BookOpen, label: "Batches", path: "/batches" },
   { icon: MessageCircle, label: "Chat", path: "/chat" },
   { icon: Globe, label: "Community", path: "/community" },
@@ -79,6 +80,7 @@ const studentNav = [
 
 const salesNav = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: BarChart3, label: "Sales & Accounts", path: "/sales-management/dashboard" },
   { icon: Contact, label: "My Students", path: "/sales-executive/students" },
   { icon: GitPullRequest, label: "Enrollments", path: "/sales-management/registrations" },
   { icon: User, label: "Profile", path: "/settings?tab=profile" },
