@@ -457,6 +457,10 @@ export const studentsRouter = createRouter({
         }
       });
 
+      const classAllocRecord = await db.query.studentClassAllocations.findFirst({
+        where: eq(studentClassAllocations.studentId, userId),
+      });
+
       const formattedO2O = o2oSessions.map((s) => ({
         id: `o2o_${s.id}`,
         sessionType: "one_to_one",
@@ -488,33 +492,42 @@ export const studentsRouter = createRouter({
       const combinedHistory = [...formattedO2O, ...formattedGroup].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       const activeEnrollment = resolvedEnrollments.find((e: any) => e.status === "active") || resolvedEnrollments[0];
-      const classAllocation = activeEnrollment ? {
-        oneToOne: {
-          teacherId: (activeEnrollment.assignedTeachers as any)?.[0] || null,
-          sessions30: activeEnrollment.oneOnOne30Allocated,
-          sessions45: activeEnrollment.oneOnOne45Allocated,
-          sessions60: activeEnrollment.oneOnOne60Allocated,
-          completed30: activeEnrollment.oneOnOne30Used,
-          completed45: activeEnrollment.oneOnOne45Used,
-          completed60: activeEnrollment.oneOnOne60Used,
-          remaining30: Math.max(0, activeEnrollment.oneOnOne30Allocated - activeEnrollment.oneOnOne30Used),
-          remaining45: Math.max(0, activeEnrollment.oneOnOne45Allocated - activeEnrollment.oneOnOne45Used),
-          remaining60: Math.max(0, activeEnrollment.oneOnOne60Allocated - activeEnrollment.oneOnOne60Used),
-        },
-        group: {
-          teacherId: (activeEnrollment.assignedTeachers as any)?.[1] || (activeEnrollment.assignedTeachers as any)?.[0] || null,
-          batchId: activeEnrollment.batchId,
-          sessions30: activeEnrollment.group30Allocated,
-          sessions45: activeEnrollment.group45Allocated,
-          sessions60: activeEnrollment.group60Allocated,
-          completed30: activeEnrollment.group30Used,
-          completed45: activeEnrollment.group45Used,
-          completed60: activeEnrollment.group60Used,
-          remaining30: Math.max(0, activeEnrollment.group30Allocated - activeEnrollment.group30Used),
-          remaining45: Math.max(0, activeEnrollment.group45Allocated - activeEnrollment.group45Used),
-          remaining60: Math.max(0, activeEnrollment.group60Allocated - activeEnrollment.group60Used),
-        }
-      } : null;
+      
+      let classAllocation = null;
+      if (classAllocRecord && classAllocRecord.allocation) {
+        classAllocation = classAllocRecord.allocation;
+        // Optionally merge with activeEnrollment live counts if desired, but studentClassAllocations should be updated in sync.
+      } else if (activeEnrollment) {
+        classAllocation = {
+          oneToOne: {
+            teacherId: (activeEnrollment.assignedTeachers as any)?.[0] || null,
+            designatedTime: "",
+            sessions30: activeEnrollment.oneOnOne30Allocated,
+            sessions45: activeEnrollment.oneOnOne45Allocated,
+            sessions60: activeEnrollment.oneOnOne60Allocated,
+            completed30: activeEnrollment.oneOnOne30Used,
+            completed45: activeEnrollment.oneOnOne45Used,
+            completed60: activeEnrollment.oneOnOne60Used,
+            remaining30: Math.max(0, activeEnrollment.oneOnOne30Allocated - activeEnrollment.oneOnOne30Used),
+            remaining45: Math.max(0, activeEnrollment.oneOnOne45Allocated - activeEnrollment.oneOnOne45Used),
+            remaining60: Math.max(0, activeEnrollment.oneOnOne60Allocated - activeEnrollment.oneOnOne60Used),
+          },
+          group: {
+            teacherId: (activeEnrollment.assignedTeachers as any)?.[1] || (activeEnrollment.assignedTeachers as any)?.[0] || null,
+            batchId: activeEnrollment.batchId,
+            designatedTime: "",
+            sessions30: activeEnrollment.group30Allocated,
+            sessions45: activeEnrollment.group45Allocated,
+            sessions60: activeEnrollment.group60Allocated,
+            completed30: activeEnrollment.group30Used,
+            completed45: activeEnrollment.group45Used,
+            completed60: activeEnrollment.group60Used,
+            remaining30: Math.max(0, activeEnrollment.group30Allocated - activeEnrollment.group30Used),
+            remaining45: Math.max(0, activeEnrollment.group45Allocated - activeEnrollment.group45Used),
+            remaining60: Math.max(0, activeEnrollment.group60Allocated - activeEnrollment.group60Used),
+          }
+        };
+      }
 
       return {
         student: studentWithQual,
@@ -2231,17 +2244,37 @@ export const studentsRouter = createRouter({
             const existingSessions = await tx.query.oneToOneSessions.findMany({
               where: and(
                 eq(oneToOneSessions.studentId, studentId),
-                eq(oneToOneSessions.teacherId, allocation.oneToOne.teacherId),
                 inArray(oneToOneSessions.status, ["scheduled", "ongoing", "completed", "rescheduled"])
               ),
-              columns: { id: true, sessionLength: true, status: true }
+              columns: { id: true, sessionLength: true, status: true, scheduledAt: true, teacherId: true }
             });
             
             let existing30 = 0, existing45 = 0, existing60 = 0;
+            const upcomingSessionIdsToUpdate = [];
+            
             for (const s of existingSessions) {
               if (s.sessionLength === 30) existing30++;
               if (s.sessionLength === 45) existing45++;
               if (s.sessionLength === 60) existing60++;
+              
+              if (s.status === "scheduled" || s.status === "rescheduled") {
+                upcomingSessionIdsToUpdate.push(s);
+              }
+            }
+            
+            // Re-assign upcoming sessions to the new teacher and update their times
+            if (upcomingSessionIdsToUpdate.length > 0) {
+              for (const upcoming of upcomingSessionIdsToUpdate) {
+                const newScheduledAt = new Date(upcoming.scheduledAt);
+                newScheduledAt.setHours(hours, minutes, 0, 0);
+                
+                await tx.update(oneToOneSessions)
+                  .set({
+                    teacherId: allocation.oneToOne.teacherId,
+                    scheduledAt: newScheduledAt
+                  })
+                  .where(eq(oneToOneSessions.id, upcoming.id));
+              }
             }
             
             const new30 = Math.max(0, allocation.oneToOne.sessions30 - existing30);
@@ -2253,6 +2286,15 @@ export const studentsRouter = createRouter({
             if (totalNew > 0) {
               const sessionsToCreate = [];
               let currentDate = new Date();
+              
+              // If there are existing upcoming sessions, start from the latest scheduled date
+              if (upcomingSessionIdsToUpdate.length > 0) {
+                const latestSession = upcomingSessionIdsToUpdate.reduce((latest, current) => {
+                  return new Date(current.scheduledAt) > new Date(latest.scheduledAt) ? current : latest;
+                });
+                currentDate = new Date(latestSession.scheduledAt);
+              }
+              
               currentDate.setHours(0, 0, 0, 0);
               
               let createdCount = 0;
