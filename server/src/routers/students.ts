@@ -1914,6 +1914,10 @@ export const studentsRouter = createRouter({
         });
       }
 
+      const profile = await db.query.profiles.findFirst({
+        where: eq(profiles.userId, studentId)
+      });
+
       const oldTeacherIds = enrollment.assignedTeachers && Array.isArray(enrollment.assignedTeachers)
         ? enrollment.assignedTeachers as number[]
         : [];
@@ -1952,6 +1956,48 @@ export const studentsRouter = createRouter({
           await tx.update(studentClassAllocations)
             .set({ allocation: newAllocJson, updatedAt: new Date() })
             .where(eq(studentClassAllocations.studentId, studentId));
+        } else {
+          // If no allocation exists, create one with the new teacher
+          const pkg = (profile?.packageConfig as any) || {};
+          const newAllocJson = {
+            oneToOne: {
+              teacherId: teacherIds[0] || null,
+              designatedTime: "",
+              sessions30: pkg.oneToOne?.min30 || profile?.allocatedOneToOneSessions || 0,
+              sessions45: pkg.oneToOne?.min45 || 0,
+              sessions60: pkg.oneToOne?.min60 || 0,
+              completed30: 0,
+              completed45: 0,
+              completed60: 0,
+            },
+            group: {
+              teacherId: teacherIds[1] || teacherIds[0] || null,
+              batchId: null,
+              designatedTime: "",
+              sessions30: pkg.group?.min30 || profile?.allocatedGroupSessions || 0,
+              sessions45: pkg.group?.min45 || 0,
+              sessions60: pkg.group?.min60 || 0,
+              completed30: 0,
+              completed45: 0,
+              completed60: 0,
+            }
+          };
+          await tx.insert(studentClassAllocations).values({
+            studentId,
+            allocation: newAllocJson
+          });
+        }
+
+        // Update upcoming one-to-one sessions to the new teacher
+        if (teacherIds[0]) {
+          await tx.update(oneToOneSessions)
+            .set({ teacherId: teacherIds[0] })
+            .where(
+              and(
+                eq(oneToOneSessions.studentId, studentId),
+                inArray(oneToOneSessions.status, ["scheduled", "rescheduled"])
+              )
+            );
         }
 
         await tx.insert(studentCourseAuditLogs).values({
