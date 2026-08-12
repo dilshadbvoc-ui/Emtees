@@ -2264,6 +2264,18 @@ export const studentsRouter = createRouter({
           });
         }
 
+        // Always sync the teacher for upcoming sessions if it changed
+        if (allocation.oneToOne.teacherId) {
+          await tx.update(oneToOneSessions)
+            .set({ teacherId: allocation.oneToOne.teacherId })
+            .where(
+              and(
+                eq(oneToOneSessions.studentId, studentId),
+                inArray(oneToOneSessions.status, ["scheduled", "rescheduled"])
+              )
+            );
+        }
+
         // Generate upcoming sessions based on designated time
         if (allocation.oneToOne.teacherId && allocation.oneToOne.designatedTime) {
           const designatedTime = allocation.oneToOne.designatedTime;
@@ -2293,7 +2305,7 @@ export const studentsRouter = createRouter({
               }
             }
             
-            // Re-assign upcoming sessions to the new teacher and update their times
+            // We'll update the scheduledAt for upcoming sessions
             if (upcomingSessionIdsToUpdate.length > 0) {
               for (const upcoming of upcomingSessionIdsToUpdate) {
                 const newScheduledAt = new Date(upcoming.scheduledAt);
@@ -2301,7 +2313,6 @@ export const studentsRouter = createRouter({
                 
                 await tx.update(oneToOneSessions)
                   .set({
-                    teacherId: allocation.oneToOne.teacherId,
                     scheduledAt: newScheduledAt
                   })
                   .where(eq(oneToOneSessions.id, upcoming.id));
