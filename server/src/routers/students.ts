@@ -1937,6 +1937,23 @@ export const studentsRouter = createRouter({
           })
           .where(eq(batchEnrollments.id, enrollmentId));
 
+        // Sync with studentClassAllocations to prevent UI state desync
+        const classAlloc = await tx.query.studentClassAllocations.findFirst({
+          where: eq(studentClassAllocations.studentId, studentId)
+        });
+        if (classAlloc) {
+          const newAllocJson = classAlloc.allocation as any;
+          if (newAllocJson && newAllocJson.oneToOne) {
+            newAllocJson.oneToOne.teacherId = teacherIds[0] || null;
+          }
+          if (newAllocJson && newAllocJson.group) {
+            newAllocJson.group.teacherId = teacherIds[1] || teacherIds[0] || null;
+          }
+          await tx.update(studentClassAllocations)
+            .set({ allocation: newAllocJson, updatedAt: new Date() })
+            .where(eq(studentClassAllocations.studentId, studentId));
+        }
+
         await tx.insert(studentCourseAuditLogs).values({
           studentId,
           changedBy: ctx.user.id,
@@ -2036,6 +2053,20 @@ export const studentsRouter = createRouter({
             updatedAt: new Date(),
           })
           .where(eq(profiles.userId, studentId));
+
+        // Sync with studentClassAllocations to prevent UI state desync
+        const classAlloc = await tx.query.studentClassAllocations.findFirst({
+          where: eq(studentClassAllocations.studentId, studentId)
+        });
+        if (classAlloc) {
+          const newAllocJson = classAlloc.allocation as any;
+          if (newAllocJson && newAllocJson.group) {
+            newAllocJson.group.batchId = newBatch.id;
+          }
+          await tx.update(studentClassAllocations)
+            .set({ allocation: newAllocJson, updatedAt: new Date() })
+            .where(eq(studentClassAllocations.studentId, studentId));
+        }
 
         await tx.insert(studentCourseAuditLogs).values({
           studentId,

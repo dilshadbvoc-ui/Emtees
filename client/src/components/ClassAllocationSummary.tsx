@@ -7,6 +7,7 @@ import { Settings, User, BookOpen, Clock } from "lucide-react";
 interface AllocationDetail {
   teacherId: number | null;
   batchId?: number | null;
+  designatedTime?: string | null;
   sessions30: number;
   sessions45: number;
   sessions60: number;
@@ -184,6 +185,13 @@ export function ClassAllocationSummary({
                 <span className="text-slate-400 font-medium">Assigned Teacher:</span>
                 <span className="font-bold text-slate-700 dark:text-slate-300">{oneToOneTeacherName}</span>
               </div>
+              <div className="flex items-center gap-2 text-xs">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-slate-400 font-medium">Designated Time:</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">
+                  {o2oAlloc?.designatedTime ? o2oAlloc.designatedTime : "Not set"}
+                </span>
+              </div>
               {isAdmin && onAdjustClick && (
                 <Button
                   size="sm"
@@ -264,6 +272,13 @@ export function ClassAllocationSummary({
                   <BookOpen className="w-3.5 h-3.5 text-slate-400" />
                   <span className="text-slate-400 font-medium">Assigned Batch:</span>
                   <span className="font-bold text-slate-700 dark:text-slate-300">{groupBatchName}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-slate-400 font-medium">Designated Time:</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                    {groupAlloc?.designatedTime ? groupAlloc.designatedTime : "Not set"}
+                  </span>
                 </div>
               </div>
               {isAdmin && onAdjustClick && (
