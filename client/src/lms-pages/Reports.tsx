@@ -347,9 +347,9 @@ export default function ReportsPage() {
               <tr>
                 <td>${e.moduleName}</td>
                 <td>${e.batchName}</td>
-                <td>₹${parseFloat(data.profile?.totalCourseFee || data.profile?.feesTotal || "0").toLocaleString("en-IN")}</td>
+                <td>₹${parseFloat(data.profile?.totalCourseFee || "0").toLocaleString("en-IN")}</td>
                 <td>₹${parseFloat(data.profile?.feesPaid || "0").toLocaleString("en-IN")}</td>
-                <td>₹${parseFloat(data.profile?.remainingBalance || data.profile?.feesBalance || "0").toLocaleString("en-IN")}</td>
+                <td>₹${parseFloat(data.profile?.remainingBalance || "0").toLocaleString("en-IN")}</td>
                 <td style="text-transform: capitalize;">${data.profile?.paymentOption?.replace('_', ' ') || "Full Payment"}</td>
                 <td style="text-transform: capitalize;">${data.profile?.paymentStatus || "Unpaid"}</td>
                 <td>${e.batchStartDate ? new Date(e.batchStartDate).toLocaleDateString() : "-"}</td>
@@ -389,9 +389,9 @@ export default function ReportsPage() {
         <h3>4. Fee & Payment Summary</h3>
         <table>
           <tr class="header-row"><td colspan="2">Financial Overview</td></tr>
-          <tr><td>Total Course Fee</td><td>₹${data.profile?.feesTotal || 0}</td></tr>
+          <tr><td>Total Course Fee</td><td>₹${data.profile?.totalCourseFee || 0}</td></tr>
           <tr><td>Total Amount Paid</td><td>₹${data.profile?.feesPaid || 0}</td></tr>
-          <tr><td>Total Outstanding Balance</td><td>₹${data.profile?.feesBalance || 0}</td></tr>
+          <tr><td>Total Outstanding Balance</td><td>₹${data.profile?.remainingBalance || 0}</td></tr>
           <tr><td>Next Due Date</td><td>${data.profile?.paymentDueDate ? new Date(data.profile.paymentDueDate).toLocaleDateString() : "-"}</td></tr>
           <tr><td>Last Payment Date</td><td>${data.lastPaymentDate ? new Date(data.lastPaymentDate).toLocaleDateString() : "-"}</td></tr>
           <tr><td>Payment Status</td><td>${data.profile?.paymentStatus || "unpaid"}</td></tr>
@@ -426,7 +426,7 @@ export default function ReportsPage() {
         <h3>5. Attendance & Class Utilization</h3>
         <table>
           <tr class="header-row"><td colspan="2">Attendance Overview</td></tr>
-          <tr><td>Total Classes Allocated</td><td>${data.profile?.totalAllocatedSessions || 0}</td></tr>
+          <tr><td>Total Classes Allocated</td><td>${(data.sessionUtilization?.oneToOne?.allocated || 0) + (data.sessionUtilization?.group?.allocated || 0)}</td></tr>
           <tr><td>Total Classes Attended</td><td>${data.attendance.present}</td></tr>
           <tr><td>Total Classes Missed</td><td>${data.attendance.missed}</td></tr>
           <tr><td>Attendance Percentage</td><td>${data.attendance.percentage}%</td></tr>
@@ -1451,8 +1451,8 @@ export default function ReportsPage() {
                             </div>
                             <div>
                               <p className="text-xs text-gray-400 font-medium">Outstanding Balance</p>
-                              <p className={`text-base font-bold mt-0.5 ${parseFloat(studentReport.data.profile?.feesBalance || "0") > 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                                ₹{parseFloat(studentReport.data.profile?.feesBalance || "0").toLocaleString("en-IN")}
+                              <p className={`text-base font-bold mt-0.5 ${parseFloat(studentReport.data.profile?.remainingBalance || "0") > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                                ₹{parseFloat(studentReport.data.profile?.remainingBalance || "0").toLocaleString("en-IN")}
                               </p>
                             </div>
                           </CardContent>
@@ -1604,9 +1604,9 @@ export default function ReportsPage() {
                                       <div><span className="font-medium text-gray-400">Duration:</span> {e.batchDuration || "-"}</div>
                                       <div className="col-span-2"><span className="font-medium text-gray-400">Enrolled On:</span> {new Date(e.joinedAt).toLocaleDateString("en-IN")}</div>
                                       <div className="col-span-2 border-t border-dashed border-gray-100 pt-2 mt-1 grid grid-cols-2 gap-x-3 gap-y-1.5">
-                                        <div><span className="font-medium text-gray-400">Total Course Fee:</span> ₹{parseFloat(studentReport.data.profile?.totalCourseFee || studentReport.data.profile?.feesTotal || "0").toLocaleString("en-IN")}</div>
-                                        <div><span className="font-medium text-gray-400">Amount Paid:</span> ₹{parseFloat(studentReport.data.profile?.feesPaid || "0").toLocaleString("en-IN")}</div>
-                                        <div><span className="font-medium text-gray-400">Outstanding Balance:</span> ₹{parseFloat(studentReport.data.profile?.remainingBalance || studentReport.data.profile?.feesBalance || "0").toLocaleString("en-IN")}</div>
+                                        <div><span className="font-medium text-gray-400">Total Course Fee:</span> ₹{parseFloat(studentReport.data.profile?.totalCourseFee || "0").toLocaleString("en-IN")}</div>
+                                        <div><span className="font-medium text-gray-400">Total Paid:</span> <span className="font-semibold text-emerald-700">₹{parseFloat(studentReport.data.profile?.feesPaid || "0").toLocaleString("en-IN")}</span></div>
+                                        <div><span className="font-medium text-gray-400">Outstanding Balance:</span> ₹{parseFloat(studentReport.data.profile?.remainingBalance || "0").toLocaleString("en-IN")}</div>
                                         <div><span className="font-medium text-gray-400">Payment Option:</span> <span className="capitalize">{studentReport.data.profile?.paymentOption?.replace('_', ' ') || "Full Payment"}</span></div>
                                         <div className="col-span-2"><span className="font-medium text-gray-400">Payment Status:</span> <span className="capitalize font-semibold text-emerald-700">{studentReport.data.profile?.paymentStatus || "Unpaid"}</span></div>
                                       </div>
@@ -1843,7 +1843,7 @@ export default function ReportsPage() {
                             <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg text-center border border-slate-100">
                               <p className="text-[10px] text-gray-405 font-medium">Total Course Fee</p>
                               <p className="text-sm font-bold text-gray-800 mt-0.5">
-                                ₹{parseFloat(studentReport.data.profile?.feesTotal || "0").toLocaleString("en-IN")}
+                                ₹{parseFloat(studentReport.data.profile?.totalCourseFee || "0").toLocaleString("en-IN")}
                               </p>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg text-center border border-slate-100">
@@ -1854,8 +1854,8 @@ export default function ReportsPage() {
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg text-center border border-slate-100">
                               <p className="text-[10px] text-gray-405 font-medium">Outstanding Balance</p>
-                              <p className={`text-sm font-bold mt-0.5 ${parseFloat(studentReport.data.profile?.feesBalance || "0") > 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                                ₹{parseFloat(studentReport.data.profile?.feesBalance || "0").toLocaleString("en-IN")}
+                              <p className={`text-sm font-bold mt-0.5 ${parseFloat(studentReport.data.profile?.remainingBalance || "0") > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                                ₹{parseFloat(studentReport.data.profile?.remainingBalance || "0").toLocaleString("en-IN")}
                               </p>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg text-center border border-slate-100">
@@ -1904,7 +1904,7 @@ export default function ReportsPage() {
                                   <TableBody>
                                     {(() => {
                                       const sortedPayments = [...studentReport.data.payments].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-                                      let tempBalance = parseFloat(studentReport.data.profile?.feesTotal || "0");
+                                      let tempBalance = parseFloat(studentReport.data.profile?.totalCourseFee || "0");
                                       const paymentsWithBal = sortedPayments.map((p) => {
                                         if (p.status === "paid") {
                                           tempBalance -= parseFloat(p.amount);
@@ -1979,7 +1979,7 @@ export default function ReportsPage() {
                             <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
                               <div className="border-r border-gray-100">
                                 <p className="text-[10px] text-gray-400 font-medium">Allocated</p>
-                                <p className="text-sm font-bold text-gray-700">{studentReport.data.profile?.totalAllocatedSessions || 0}</p>
+                                <p className="text-sm font-bold text-gray-700">{(studentReport.data.sessionUtilization.oneToOne.allocated + studentReport.data.sessionUtilization.group.allocated) || 0}</p>
                               </div>
                               <div className="border-r border-gray-100">
                                 <p className="text-[10px] text-gray-400 font-medium">Attended</p>

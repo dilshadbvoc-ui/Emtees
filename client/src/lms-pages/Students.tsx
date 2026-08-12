@@ -2112,13 +2112,13 @@ export default function StudentsPage() {
 
                         {/* 1. Class Allocation Summary */}
                         <ClassAllocationSummary
-                          allocation={classAllocation || {
+                          allocation={(classAllocation as any) || {
                             oneToOne: { teacherId: null, sessions30: 0, sessions45: 0, sessions60: 0, completed30: 0, completed45: 0, completed60: 0, remaining30: 0, remaining45: 0, remaining60: 0 },
                             group: { teacherId: null, batchId: null, sessions30: 0, sessions45: 0, sessions60: 0, completed30: 0, completed45: 0, completed60: 0, remaining30: 0, remaining45: 0, remaining60: 0 }
                           }}
-                          oneToOneTeacherName={getTeacherName(classAllocation?.oneToOne?.teacherId)}
-                          groupTeacherName={getTeacherName(classAllocation?.group?.teacherId)}
-                          groupBatchName={getBatchName(classAllocation?.group?.batchId)}
+                          oneToOneTeacherName={getTeacherName((classAllocation as any)?.oneToOne?.teacherId)}
+                          groupTeacherName={getTeacherName((classAllocation as any)?.group?.teacherId)}
+                          groupBatchName={getBatchName((classAllocation as any)?.group?.batchId)}
                           batchName={activeEnrollment?.batch?.name}
                           moduleName={activeEnrollment?.batch?.module?.name}
                           isAdmin={isAdmin}
@@ -2904,7 +2904,7 @@ export default function StudentsPage() {
           onClose={() => setIsAdjustingBalance(false)}
           studentId={detailsStudentId}
           type={adjustType}
-          currentAllocation={profileQuery.data.classAllocation}
+          currentAllocation={profileQuery.data.classAllocation as any}
           onSuccess={() => profileQuery.refetch()}
         />
       )}

@@ -546,9 +546,9 @@ export default function Dashboard() {
 
             return (
               <ClassAllocationSummary
-                allocation={classAlloc}
-                oneToOneTeacherName={getTeacherName(classAlloc.oneToOne?.teacherId)}
-                groupTeacherName={getTeacherName(classAlloc.group?.teacherId)}
+                allocation={classAlloc as any}
+                oneToOneTeacherName={getTeacherName((classAlloc as any)?.oneToOne?.teacherId)}
+                groupTeacherName={getTeacherName((classAlloc as any)?.group?.teacherId)}
                 groupBatchName={groupBatchName}
                 batchName={groupBatchName}
                 moduleName={activeEnrollment?.batch?.module?.name}
