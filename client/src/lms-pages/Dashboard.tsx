@@ -350,7 +350,9 @@ export default function Dashboard() {
             <StatCard icon={Users} label="Total Students" value={stats.totalStudents} color="bg-blue-50 text-blue-600" to="/students" />
             <StatCard icon={GraduationCap} label="Teachers" value={stats.totalTeachers} color="bg-emerald-50 text-emerald-600" to="/users" />
             <StatCard icon={BookOpen} label="Batches" value={stats.totalBatches} color="bg-purple-50 text-purple-600" to="/batches" />
-            <StatCard icon={Calendar} label="Classes Held" value={stats.totalClasses} color="bg-orange-50 text-orange-600" to="/classes/group" />
+            <StatCard icon={Calendar} label="Total Classes Held" value={stats.totalClasses} color="bg-orange-50 text-orange-600" to="/classes/group" />
+            <StatCard icon={Check} label="Valid Classes (≥20m)" value={stats.totalValidClasses ?? 0} color="bg-emerald-50 text-emerald-600" to="/reports" />
+            <StatCard icon={CreditCard} label="Ledger Balance (Credits)" value={stats.totalLedgerBalance ?? 0} color="bg-indigo-50 text-indigo-600" to="/reports" />
             <StatCard icon={Check} label="Attendance Today" value={stats.todayTotalAttendance ?? 0} color="bg-teal-50 text-teal-600" to="/reports" />
             <StatCard icon={Check} label="Present Today" value={stats.todayPresentCount ?? 0} color="bg-green-50 text-green-600" to="/reports" />
             <StatCard icon={X} label="Absent Today" value={stats.todayAbsentCount ?? 0} color="bg-red-50 text-red-600" to="/reports" />

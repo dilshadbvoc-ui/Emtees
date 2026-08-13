@@ -1,0 +1,1 @@
+ALTER TABLE "batch_enrollments" ADD COLUMN "is_rejoin" boolean DEFAULT false NOT NULL;

@@ -9,7 +9,7 @@ const pool = new Pool({
 });
 
 async function run() {
-  const sql = fs.readFileSync(path.join(".", "db", "migrations", "0002_boring_skin.sql"), "utf-8");
+  const sql = fs.readFileSync(path.join(".", "db", "migrations", "0004_overrated_rogue.sql"), "utf-8");
   const statements = sql.split("--> statement-breakpoint");
   
   for (const statement of statements) {

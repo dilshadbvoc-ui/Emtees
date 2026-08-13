@@ -40,6 +40,8 @@ import {
   X,
   Plus
 } from "lucide-react";
+import ClassReportView from "@/components/ClassReportView";
+import WorkloadReportView from "@/components/WorkloadReportView";
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -1262,7 +1264,8 @@ export default function ReportsPage() {
               <TabsTrigger value="student">Student Report</TabsTrigger>
               <TabsTrigger value="teacher">Teacher Report</TabsTrigger>
               <TabsTrigger value="teacher-attendance">Teacher Attendance Report</TabsTrigger>
-              <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+              <TabsTrigger value="class-report">Class Report</TabsTrigger>
+              <TabsTrigger value="workload">Workload Report</TabsTrigger>
             </TabsList>
 
             <TabsContent value="student">
@@ -2886,6 +2889,14 @@ export default function ReportsPage() {
 
             <TabsContent value="teacher-attendance">
               {renderTeacherAttendanceReport(false)}
+            </TabsContent>
+            
+            <TabsContent value="class-report">
+              <ClassReportView />
+            </TabsContent>
+
+            <TabsContent value="workload">
+              <WorkloadReportView />
             </TabsContent>
           </Tabs>
         </>

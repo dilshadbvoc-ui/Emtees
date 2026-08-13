@@ -1874,7 +1874,7 @@ export const studentsRouter = createRouter({
     .input(z.object({
       studentId: z.number(),
       enrollmentId: z.number(),
-      teacherIds: z.array(z.number()),
+      teacherIds: z.array(z.number()).max(1, "Only one active teacher per student is allowed"),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();

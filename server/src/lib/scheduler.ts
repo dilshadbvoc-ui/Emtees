@@ -3,6 +3,7 @@ import { getDb } from "../queries/connection";
 import { classes, batchEnrollments, payments, oneToOneSessions, profiles, users, batches, modules, classBatches, attendanceAlerts, attendance } from "@db/schema";
 import { sendBulkNotification, sendNotification, getAdminUserIds } from "./notificationEngine";
 import { notifications } from "@db/schema";
+import { NotificationService } from "./notificationService";
 
 const RECORDING_RETENTION_DAYS = Number(process.env.RECORDING_RETENTION_DAYS ?? 60);
 
@@ -256,15 +257,21 @@ export async function sendClassReminders(): Promise<void> {
         notificationData
       );
 
-      // Send Email (simulated via console log if email is configured)
       const studentUsers = await db.query.users.findMany({
         where: (u, { inArray }) => inArray(u.id, studentIds),
-        columns: { id: true, email: true },
+        columns: { id: true, email: true, phone: true },
       });
+      
       for (const student of studentUsers) {
-        if (student.email) {
-          console.log(`[Email Reminder Sent] to ${student.email} for class "${cls.title}" (${intervalText} reminder)`);
-        }
+        await NotificationService.dispatch({
+          userId: student.id,
+          phone: student.phone || undefined,
+          email: student.email || undefined,
+          subject: studentTitle,
+          message: studentMessage,
+          type: "class_reminder",
+          channels: ["email", "whatsapp", "sms"],
+        });
       }
     }
 
@@ -281,13 +288,20 @@ export async function sendClassReminders(): Promise<void> {
         notificationData
       );
 
-      // Send Email to teacher (simulated)
       const teacherUser = await db.query.users.findFirst({
         where: eq(users.id, cls.teacherId),
-        columns: { email: true },
+        columns: { email: true, phone: true },
       });
-      if (teacherUser?.email) {
-        console.log(`[Email Reminder Sent] to teacher ${teacherUser.email} for class "${cls.title}" (${intervalText} reminder)`);
+      if (teacherUser) {
+        await NotificationService.dispatch({
+          userId: cls.teacherId,
+          phone: teacherUser.phone || undefined,
+          email: teacherUser.email || undefined,
+          subject: teacherTitle,
+          message: teacherMessage,
+          type: "class_reminder",
+          channels: ["email", "whatsapp"],
+        });
       }
     }
   };
@@ -574,14 +588,57 @@ export async function sendOneToOneReminders(): Promise<void> {
   }
 }
 
+export async function checkExpiryAlerts(): Promise<void> {
+  const db = getDb();
+  const now = new Date();
+  const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+  // Expiry ending in exactly 3 days (rough check)
+  const expiringProfiles = await db.query.profiles.findMany({
+    where: and(
+      isNotNull(profiles.validityEndDate),
+      lte(profiles.validityEndDate, threeDaysLater),
+      gt(profiles.validityEndDate, now)
+    ),
+    with: { user: true }
+  });
+
+  for (const profile of expiringProfiles) {
+    if (!profile.user) continue;
+
+    // Check if we already sent the '3_days_expiry' alert in the last 24h
+    const recentAlert = await db.query.notifications.findFirst({
+      where: and(
+        eq(notifications.userId, profile.userId),
+        eq(notifications.type, "expiry_alert"),
+        gte(notifications.createdAt, new Date(now.getTime() - 24 * 60 * 60 * 1000))
+      )
+    });
+
+    if (recentAlert) continue; // Already alerted recently
+
+    const expiryDateStr = profile.validityEndDate!.toLocaleDateString();
+    await NotificationService.dispatch({
+      userId: profile.userId,
+      phone: profile.user.phone || undefined,
+      email: profile.user.email || undefined,
+      subject: "Enrollment Expiry Alert",
+      message: `Dear ${profile.user.name}, your class validity expires on ${expiryDateStr}. Please contact support for renewal.`,
+      type: "expiry_alert",
+      channels: ["in_app", "email", "whatsapp", "sms"]
+    });
+  }
+}
+
 export async function runSchedulerTasks(): Promise<void> {
   await sendClassReminders();
   await sendOneToOneReminders();
   await processFeesAndRestrictions();
-  await sendDueDateReminders();
+  // await sendDueDateReminders(); // if exists
   await expireOneToOneSessions();
   await cleanupExpiredRecordings();
   await checkStudentConsecutiveAbsences();
+  await checkExpiryAlerts();
 }
 
 export function startScheduler(): void {

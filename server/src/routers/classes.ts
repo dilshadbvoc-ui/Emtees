@@ -4,12 +4,13 @@ import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
 import { createRouter, authedQuery, adminQuery, teacherQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { classes, attendance, oneToOneSessions, batchEnrollments, batches, profiles, users, classBatches, classJoinRequests, attendanceAlerts, oneToOneRescheduleRequests, notifications, studentClassAllocations, holidays, modules } from "@db/schema";
+import { classes, attendance, oneToOneSessions, batchEnrollments, batches, profiles, users, classBatches, classJoinRequests, attendanceAlerts, oneToOneRescheduleRequests, notifications, studentClassAllocations, holidays, modules, classLedgerTransactions } from "@db/schema";
 import { sendBulkNotification, sendNotification, getAdminUserIds } from "../lib/notificationEngine";
 import { getIo } from "../lib/socketInstance";
 import { isStudentFeeRestricted } from "../lib/feeHelper";
 import { updateStudentSessionBalances } from "../lib/sessionHelper";
 import { generateJitsiToken } from "../lib/jitsi";
+import { evaluateClassCompletion } from "../lib/classEngine";
 import { generateNextEnrollmentId } from "../lib/studentIdGenerator";
 import { recalculateSalaryInternal } from "./admin";
 
@@ -657,9 +658,8 @@ export const classRouter = createRouter({
         .set({ status: "completed", endedAt, actualDuration })
         .where(eq(classes.id, input.id));
 
-      // Recalculate salary
-      const monthStr = new Date(cls.scheduledAt).toISOString().substring(0, 7);
-      await recalculateSalaryInternal(db, cls.teacherId, monthStr);
+      // Evaluate 20-min Class Completion Rule
+      await evaluateClassCompletion(input.id);
 
       const cbList = await db.select({ batchId: classBatches.batchId }).from(classBatches).where(eq(classBatches.classId, input.id));
       const classBatchIds = Array.from(new Set([cls.batchId, ...cbList.map(x => x.batchId)]));
@@ -675,6 +675,42 @@ export const classRouter = createRouter({
         io.emit("class:updated");
       }
 
+      return { success: true };
+    }),
+
+  overrideClassLedger: adminQuery
+    .input(z.object({
+      classId: z.number(),
+      studentId: z.number(),
+      type: z.enum(["credit", "debit", "adjustment"]),
+      amount: z.number(),
+      remarks: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      
+      const enrollment = await db.query.batchEnrollments.findFirst({
+        where: and(
+          eq(batchEnrollments.studentId, input.studentId),
+          eq(batchEnrollments.status, "active")
+        ),
+        orderBy: (fields, { desc }) => [desc(fields.joinedAt)]
+      });
+
+      if (!enrollment) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No active enrollment found for this student" });
+      }
+
+      await db.insert(classLedgerTransactions).values({
+        studentId: input.studentId,
+        enrollmentId: enrollment.id,
+        type: input.type,
+        amount: input.amount,
+        referenceClassId: input.classId,
+        remarks: `[Admin Override]: ${input.remarks}`,
+        createdBy: ctx.user.id,
+      });
+      
       return { success: true };
     }),
 

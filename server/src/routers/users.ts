@@ -163,7 +163,7 @@ export const userRouter = createRouter({
         phoneNumber: z.string().optional(),
         phone: z.string().optional(),
         email: z.string().email().optional(),
-        username: z.string().min(3),
+        username: z.string().optional(),
         password: z.string().min(6),
         role: z.enum(["student", "teacher", "admin", "academic_head", "super_admin"]),
         courseId: z.number().optional(),
@@ -315,7 +315,7 @@ export const userRouter = createRouter({
       }
 
       const existingUsername = await db.query.users.findFirst({
-        where: eq(users.username, input.username),
+        where: eq(users.username, fullIntNum),
       });
       if (existingUsername) {
         throw new TRPCError({ code: "CONFLICT", message: "Username already exists" });
@@ -357,7 +357,7 @@ export const userRouter = createRouter({
         phoneNumber,
         fullInternationalNumber: fullIntNum,
         email: input.email,
-        username: input.username,
+        username: fullIntNum,
         password: hashedPassword,
         role: input.role,
         status: input.status || "active",
@@ -525,7 +525,7 @@ export const userRouter = createRouter({
           const emailResult = await sendUserCredentialsEmail({
             email: input.email,
             name: input.name,
-            username: input.username,
+            username: fullIntNum,
             password: input.password,
             loginUrl,
           });

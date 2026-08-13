@@ -73,6 +73,7 @@ export const users = pgTable(
     notificationsPausedUntil: timestamp("notifications_paused_until"),
     canViewSalaryReports: boolean("can_view_salary_reports").default(false).notNull(),
     mustChangePassword: boolean("must_change_password").default(false).notNull(),
+    isLocked: boolean("is_locked").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
     salesExecutiveId: integer("sales_executive_id"),
@@ -129,6 +130,7 @@ export const profiles = pgTable(
     downPayment: decimal("down_payment", { precision: 10, scale: 2 }).default("0"),
     remainingBalance: decimal("remaining_balance", { precision: 10, scale: 2 }).default("0"),
     totalCourseFee: decimal("total_course_fee", { precision: 10, scale: 2 }).default("0"),
+    validityEndDate: timestamp("validity_end_date"),
     completionDate: timestamp("completion_date"),
     activityTimeline: json("activity_timeline"),
     packageConfig: json("package_config").default({
@@ -267,6 +269,7 @@ export const batchEnrollments = pgTable(
     group30Used: integer("group_30_used").default(0).notNull(),
     group45Used: integer("group_45_used").default(0).notNull(),
     group60Used: integer("group_60_used").default(0).notNull(),
+    isRejoin: boolean("is_rejoin").default(false).notNull(),
     studentFeeConfigId: bigint("student_fee_config_id", { mode: "number" }).references(() => studentFeeConfigurations.id, { onDelete: "set null" }),
   },
   (table) => ({
@@ -529,6 +532,8 @@ export const teacherSalaries = pgTable("teacher_salaries", {
   oneToOne30MinRate: decimal("one_to_one_30min_rate", { precision: 10, scale: 2 }).default("0"),
   oneToOne45MinRate: decimal("one_to_one_45min_rate", { precision: 10, scale: 2 }).default("0"),
   oneToOne60MinRate: decimal("one_to_one_60min_rate", { precision: 10, scale: 2 }).default("0"),
+  demoConversionCount: integer("demo_conversion_count").default(0),
+  demoBonusAmount: decimal("demo_bonus_amount", { precision: 10, scale: 2 }).default("0"),
   netSalary: decimal("net_salary", { precision: 10, scale: 2 }).default("0"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).default("0"),
   status: varchar("status", { length: 20 }).default("pending"),
@@ -550,6 +555,8 @@ export const teacherSalaryConfigs = pgTable("teacher_salary_configs", {
   oneToOne30MinRate: decimal("one_to_one_30min_rate", { precision: 10, scale: 2 }).default("0").notNull(),
   oneToOne45MinRate: decimal("one_to_one_45min_rate", { precision: 10, scale: 2 }).default("0").notNull(),
   oneToOne60MinRate: decimal("one_to_one_60min_rate", { precision: 10, scale: 2 }).default("0").notNull(),
+  demoBaseRate: decimal("demo_base_rate", { precision: 10, scale: 2 }).default("0").notNull(),
+  demoConversionBonus: decimal("demo_conversion_bonus", { precision: 10, scale: 2 }).default("0").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -1365,6 +1372,45 @@ export const salesLeadsRelations = relations(salesLeads, ({ one }) => ({
     fields: [salesLeads.caId],
     references: [salesExecutives.id],
   }),
+}));
+
+// Class Ledger Transactions (Single Source of Truth for class entitlement)
+export const classLedgerTransactions = pgTable("class_ledger_transactions", {
+  id: serial("id").primaryKey(),
+  studentId: bigint("student_id", { mode: "number" }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  enrollmentId: bigint("enrollment_id", { mode: "number" }).references(() => batchEnrollments.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 20 }).notNull(), // 'credit', 'debit', 'expired', 'adjustment'
+  amount: integer("amount").notNull(),
+  referenceClassId: bigint("reference_class_id", { mode: "number" }).references(() => classes.id, { onDelete: "set null" }),
+  referenceOneToOneId: bigint("reference_one_to_one_id", { mode: "number" }).references(() => oneToOneSessions.id, { onDelete: "set null" }),
+  remarks: text("remarks"),
+  createdBy: bigint("created_by", { mode: "number" }).references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ClassLedgerTransaction = typeof classLedgerTransactions.$inferSelect;
+export type InsertClassLedgerTransaction = typeof classLedgerTransactions.$inferInsert;
+
+// Attendance Events (for 20-minute cumulative rule)
+export const attendanceEvents = pgTable("attendance_events", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  classId: bigint("class_id", { mode: "number" }).references(() => classes.id, { onDelete: "cascade" }),
+  oneToOneSessionId: bigint("one_to_one_session_id", { mode: "number" }).references(() => oneToOneSessions.id, { onDelete: "cascade" }),
+  eventType: varchar("event_type", { length: 20 }).notNull(), // 'join', 'leave'
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  metadata: json("metadata"),
+});
+export type AttendanceEvent = typeof attendanceEvents.$inferSelect;
+export type InsertAttendanceEvent = typeof attendanceEvents.$inferInsert;
+
+export const classLedgerRelations = relations(classLedgerTransactions, ({ one }) => ({
+  student: one(users, { fields: [classLedgerTransactions.studentId], references: [users.id] }),
+  enrollment: one(batchEnrollments, { fields: [classLedgerTransactions.enrollmentId], references: [batchEnrollments.id] }),
+  creator: one(users, { fields: [classLedgerTransactions.createdBy], references: [users.id] }),
+}));
+
+export const attendanceEventsRelations = relations(attendanceEvents, ({ one }) => ({
+  user: one(users, { fields: [attendanceEvents.userId], references: [users.id] }),
 }));
 
 // Custom Report Templates / Configs

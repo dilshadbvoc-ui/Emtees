@@ -93,10 +93,10 @@ export class StudentAdmissionService {
     const [existingUsername] = await tx
       .select()
       .from(users)
-      .where(eq(users.username, input.username))
+      .where(eq(users.username, fullIntNum))
       .limit(1);
     if (existingUsername) {
-      throw new Error("Username already exists");
+      throw new Error("Username (Phone number) already exists");
     }
 
     // 3. Enrollment ID uniqueness
@@ -190,7 +190,7 @@ export class StudentAdmissionService {
       phoneNumber: input.phoneNumber,
       fullInternationalNumber: fullIntNum,
       email: input.email || null,
-      username: input.username,
+      username: fullIntNum,
       password: hashedPassword,
       role: "student",
       status: "active",

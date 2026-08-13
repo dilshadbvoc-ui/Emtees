@@ -30,6 +30,7 @@ import SalesExecutiveStudents from "./lms-pages/SalesExecutiveStudents";
 import SalesExecutives from "./lms-pages/SalesExecutives";
 import SalesRegistrations from "./lms-pages/SalesRegistrations";
 import SalesReports from "./lms-pages/SalesReports";
+import SalesLeads from "./lms-pages/SalesLeads";
 import SalesDashboard from "./lms-pages/SalesDashboard";
 
 function ProtectedLayout() {
@@ -127,6 +128,7 @@ export default function App() {
             <Route path="executives" element={<SalesExecutives />} />
             <Route path="registrations" element={<SalesRegistrations />} />
             <Route path="reports" element={<SalesReports />} />
+            <Route path="leads" element={<SalesLeads />} />
           </Route>
         </Route>
         

@@ -26,6 +26,8 @@ import {
   studentIdSequence,
   studentClassAllocations,
   studentFeeConfigurations,
+  classLedgerTransactions,
+  salesClosures,
 } from "@db/schema";
 import { sendNotification } from "../lib/notificationEngine";
 import { updateStudentSessionBalances } from "../lib/sessionHelper";
@@ -450,7 +452,13 @@ export async function recalculateSalaryInternal(
     eq(classes.teacherId, teacherId),
     eq(classes.status, "completed"),
     eq(classes.classType, "group"),
-    sql`TO_CHAR(${classes.scheduledAt}, 'YYYY-MM') = ${month}`
+    sql`TO_CHAR(${classes.scheduledAt}, 'YYYY-MM') = ${month}`,
+    inArray(
+      classes.id,
+      db.select({ id: classLedgerTransactions.referenceClassId })
+        .from(classLedgerTransactions)
+        .where(and(eq(classLedgerTransactions.type, "debit"), sql`${classLedgerTransactions.referenceClassId} IS NOT NULL`))
+    )
   ));
 
   // 2. Fetch completed 1-to-1 sessions for this teacher in the month
@@ -461,7 +469,13 @@ export async function recalculateSalaryInternal(
   .where(and(
     eq(oneToOneSessions.teacherId, teacherId),
     eq(oneToOneSessions.status, "completed"),
-    sql`TO_CHAR(${oneToOneSessions.scheduledAt}, 'YYYY-MM') = ${month}`
+    sql`TO_CHAR(${oneToOneSessions.scheduledAt}, 'YYYY-MM') = ${month}`,
+    inArray(
+      oneToOneSessions.id,
+      db.select({ id: classLedgerTransactions.referenceOneToOneId })
+        .from(classLedgerTransactions)
+        .where(and(eq(classLedgerTransactions.type, "debit"), sql`${classLedgerTransactions.referenceOneToOneId} IS NOT NULL`))
+    )
   ));
 
   // 2b. Fetch completed new flow class sessions for this teacher in the month (deprecated)
@@ -522,7 +536,48 @@ export async function recalculateSalaryInternal(
     (oneToOne45Count * oneToOne45MinRate) +
     (oneToOne60Count * oneToOne60MinRate);
 
-  const netSalary = basicSalary + sessionEarnings;
+  // 5b. Calculate Demo Conversion Bonus
+  const demoConversionBonusRate = config ? parseFloat(config.demoConversionBonus) : 0;
+  let demoConversionCount = 0;
+  
+  if (demoConversionBonusRate > 0) {
+    const closuresInMonth = await db.select({
+        studentId: salesClosures.studentId,
+        admNo: salesClosures.admNo,
+        closingDate: salesClosures.closingDate
+      })
+      .from(salesClosures)
+      .where(and(
+        eq(salesClosures.isDeleted, false),
+        sql`TO_CHAR(${salesClosures.closingDate}, 'YYYY-MM') = ${month}`
+      ));
+      
+    for (const closure of closuresInMonth) {
+      let sId = closure.studentId;
+      if (!sId && closure.admNo) {
+        const student = await db.query.users.findFirst({ where: eq(users.username, closure.admNo) });
+        if (student) sId = student.id;
+      }
+      
+      if (sId) {
+        // Find if this teacher took a 1-on-1 session with this student BEFORE the closure
+        const demo = await db.query.oneToOneSessions.findFirst({
+          where: and(
+            eq(oneToOneSessions.studentId, sId),
+            eq(oneToOneSessions.teacherId, teacherId),
+            eq(oneToOneSessions.status, "completed"),
+            lte(oneToOneSessions.scheduledAt, closure.closingDate)
+          )
+        });
+        if (demo) {
+          demoConversionCount++;
+        }
+      }
+    }
+  }
+
+  const demoBonusAmount = demoConversionCount * demoConversionBonusRate;
+  const netSalary = basicSalary + sessionEarnings + demoBonusAmount;
 
   // 6. Find if there is an existing record
   const existing = await db.query.teacherSalaries.findFirst({
@@ -553,6 +608,8 @@ export async function recalculateSalaryInternal(
     oneToOne30MinRate: String(oneToOne30MinRate),
     oneToOne45MinRate: String(oneToOne45MinRate),
     oneToOne60MinRate: String(oneToOne60MinRate),
+    demoConversionCount,
+    demoBonusAmount: String(demoBonusAmount),
     netSalary: String(netSalary),
     totalAmount: String(totalAmount),
   };
@@ -2481,6 +2538,14 @@ export const adminRouter = createRouter({
     const totalOneToOnes = await db.select({ count: sql<number>`count(*)` }).from(oneToOneSessions).where(eq(oneToOneSessions.status, "completed"));
     const totalClassesCount = Number(totalGroupClasses[0]?.count || 0) + Number(totalOneToOnes[0]?.count || 0);
     const pendingFees = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(payments).where(eq(payments.status, "unpaid"));
+    
+    // 20-min Metrics & Ledger Balances
+    const validClassesResult = await db.select({ count: sql<number>`count(DISTINCT ${attendance.classId})` }).from(attendance).where(eq(attendance.status, "present"));
+    const totalValidClasses = Number(validClassesResult[0]?.count || 0);
+    
+    const ledgerCreditsResult = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(classLedgerTransactions).where(eq(classLedgerTransactions.type, "credit"));
+    const ledgerDebitsResult = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(classLedgerTransactions).where(eq(classLedgerTransactions.type, "debit"));
+    const totalLedgerBalance = Number(ledgerCreditsResult[0]?.total || 0) - Number(ledgerDebitsResult[0]?.total || 0);
 
     const startOfToday = new Date();
     startOfToday.setHours(0,0,0,0);
@@ -2513,6 +2578,8 @@ export const adminRouter = createRouter({
       totalTeachers: Number(totalTeachers[0]?.count || 0),
       totalBatches: Number(totalBatches[0]?.count || 0),
       totalClasses: totalClassesCount,
+      totalValidClasses,
+      totalLedgerBalance,
       pendingFees: Number(pendingFees[0]?.total || 0),
       todayTotalAttendance,
       todayPresentCount,
@@ -2520,6 +2587,97 @@ export const adminRouter = createRouter({
       todayAttendancePercentage,
     };
   }),
+
+  generateClassReport: adminQuery
+    .input(z.object({
+      monthStr: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      
+      const allClasses = await db
+        .select({
+          classId: classes.id,
+          title: classes.title,
+          teacherName: users.name,
+          startedAt: classes.startedAt,
+          endedAt: classes.endedAt,
+          classType: classes.classType,
+        })
+        .from(classes)
+        .leftJoin(users, eq(classes.teacherId, users.id))
+        .orderBy(desc(classes.startedAt))
+        .limit(200); // For now limit to 200 to prevent huge payloads
+
+      const classIds = allClasses.map(c => c.classId);
+      let attendanceMap: Record<number, number> = {};
+      
+      if (classIds.length > 0) {
+        const atts = await db
+          .select({
+            classId: attendance.classId,
+            count: sql<number>`count(*)`
+          })
+          .from(attendance)
+          .where(and(
+            inArray(attendance.classId, classIds),
+            eq(attendance.status, "present")
+          ))
+          .groupBy(attendance.classId);
+          
+        atts.forEach(a => {
+          if (a.classId) {
+            attendanceMap[a.classId] = Number(a.count);
+          }
+        });
+      }
+
+      return allClasses.map(c => ({
+        ...c,
+        validStudents: attendanceMap[c.classId] || 0,
+        isValid: (attendanceMap[c.classId] || 0) > 0,
+      }));
+    }),
+
+  generateWorkloadReport: adminQuery
+    .input(z.object({
+      monthStr: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      
+      // Get all completed classes
+      const allCompleted = await db
+        .select({
+          classId: classes.id,
+          teacherId: classes.teacherId,
+          teacherName: users.name,
+          classType: classes.classType,
+        })
+        .from(classes)
+        .leftJoin(users, eq(classes.teacherId, users.id))
+        .where(eq(classes.status, "completed"));
+
+      // Group by teacher
+      const teacherWorkload: Record<number, any> = {};
+      
+      allCompleted.forEach(c => {
+        if (!c.teacherId) return;
+        if (!teacherWorkload[c.teacherId]) {
+          teacherWorkload[c.teacherId] = {
+            teacherName: c.teacherName || `Teacher #${c.teacherId}`,
+            totalClasses: 0,
+            oneToOne: 0,
+            group: 0,
+          };
+        }
+        teacherWorkload[c.teacherId].totalClasses++;
+        if (c.classType === "one_to_one") teacherWorkload[c.teacherId].oneToOne++;
+        else teacherWorkload[c.teacherId].group++;
+      });
+      
+      return Object.values(teacherWorkload).sort((a: any, b: any) => b.totalClasses - a.totalClasses);
+    }),
 
   searchStudents: adminQuery
     .input(z.object({ search: z.string() }))
