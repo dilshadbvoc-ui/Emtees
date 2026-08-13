@@ -83,7 +83,7 @@ export default function NewClosureForm({ onSuccess }: Props) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-slate-700 dark:text-slate-300">Date</Label>
               <Input 
@@ -112,7 +112,7 @@ export default function NewClosureForm({ onSuccess }: Props) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-slate-700 dark:text-slate-300">Type</Label>
               <Select value={type} onValueChange={setType}>
@@ -142,7 +142,7 @@ export default function NewClosureForm({ onSuccess }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-slate-700 dark:text-slate-300">Admission No</Label>
               <Input 
@@ -162,7 +162,7 @@ export default function NewClosureForm({ onSuccess }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
             <div className="space-y-2">
               <Label className="text-slate-700 dark:text-slate-300">Total Fee</Label>
               <Input 
@@ -202,7 +202,7 @@ export default function NewClosureForm({ onSuccess }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="text-slate-700 dark:text-slate-300">Bank</Label>
               <Input 

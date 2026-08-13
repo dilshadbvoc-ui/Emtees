@@ -307,7 +307,7 @@ export default function DisciplinePage() {
 
       {/* 1. Create Record Modal */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-2xl max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle>Record Disciplinary Action</DialogTitle>
             <DialogDescription>Create a Warning, Final Warning, or Suspension. Students receive instant notification alerts.</DialogDescription>
@@ -415,7 +415,7 @@ export default function DisciplinePage() {
       {/* 2. Edit Record Modal */}
       {editingRecord && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="rounded-2xl max-w-md">
+          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl">
             <DialogHeader>
               <DialogTitle>Edit Disciplinary Action</DialogTitle>
               <DialogDescription>Modify record levels, reason, or change status between Active and Resolved.</DialogDescription>
@@ -547,7 +547,7 @@ export default function DisciplinePage() {
       {/* 3. View Details Modal */}
       {selectedRecord && (
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="rounded-2xl max-w-md">
+          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Info className="w-5 h-5 text-emerald-600" />

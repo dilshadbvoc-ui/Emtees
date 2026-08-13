@@ -58,7 +58,7 @@ export default function LeadsManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Leads Management</h2>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -68,7 +68,7 @@ export default function LeadsManager() {
               New Lead
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
             <DialogHeader>
               <DialogTitle className="text-slate-900 dark:text-slate-100">Add New Lead</DialogTitle>
             </DialogHeader>

@@ -105,7 +105,7 @@ export default function ReconciliationUpload() {
 
       {results && (
         <div className="space-y-6">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
               <CardContent className="p-6">
                 <div className="text-sm font-medium text-slate-500 mb-1">Total Processed</div>

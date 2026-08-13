@@ -67,7 +67,7 @@ export default function PointsEngineConfig() {
                 Add Rule
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
               <DialogHeader>
                 <DialogTitle>Create New Points Rule</DialogTitle>
               </DialogHeader>

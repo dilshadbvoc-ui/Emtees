@@ -99,7 +99,7 @@ export function ClassBalanceAdjustment({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             Adjust {title}

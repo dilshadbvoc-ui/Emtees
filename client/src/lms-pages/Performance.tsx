@@ -780,7 +780,7 @@ function CreateReportDialog({ isOpen, onClose, refetchReports }: { isOpen: boole
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <Label htmlFor="start">Start Date</Label>
                 <Input
@@ -820,7 +820,7 @@ function CreateReportDialog({ isOpen, onClose, refetchReports }: { isOpen: boole
                 </h3>
                 
                 {roleType === "student" ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="p-3 bg-white border rounded-lg shadow-sm">
                       <p className="text-[10px] text-gray-500 font-semibold uppercase">Class Attendance</p>
                       <p className="text-lg font-bold text-gray-800">{draftData.autoMetrics.attendanceRate}%</p>
@@ -849,7 +849,7 @@ function CreateReportDialog({ isOpen, onClose, refetchReports }: { isOpen: boole
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="p-3 bg-white border rounded-lg shadow-sm">
                       <p className="text-[10px] text-gray-500 font-semibold uppercase">Class Completion</p>
                       <p className="text-lg font-bold text-gray-800">{draftData.autoMetrics.classCompletionRate}%</p>
@@ -1005,7 +1005,7 @@ function EditReportDialog({
 
         {report && (
           <div className="space-y-4 my-2">
-            <div className="bg-gray-50 p-3 rounded-lg border text-sm text-gray-700 grid grid-cols-2 gap-2">
+            <div className="bg-gray-50 p-3 rounded-lg border text-sm text-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <strong>Evaluation Period:</strong> <span className="capitalize">{report.assessmentPeriod}</span>
               </div>
@@ -1017,7 +1017,7 @@ function EditReportDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="ovScore">Adjust Score (%)</Label>
                 <Input
@@ -1126,7 +1126,7 @@ function ReportDetailsDialog({ isOpen, onClose, report }: { isOpen: boolean; onC
             </h3>
 
             {report.type === "student" ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3 border rounded-xl bg-white shadow-sm flex items-center gap-3">
                   <BookOpen className="w-8 h-8 text-emerald-600 shrink-0" />
                   <div>
@@ -1170,7 +1170,7 @@ function ReportDetailsDialog({ isOpen, onClose, report }: { isOpen: boolean; onC
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3 border rounded-xl bg-white shadow-sm flex items-center gap-3">
                   <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
                   <div>

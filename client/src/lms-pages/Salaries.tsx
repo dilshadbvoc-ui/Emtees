@@ -516,7 +516,7 @@ export default function SalariesPage() {
                 <div className="border-t pt-3 mt-3">
                   <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">Group Session Rates</p>
                   <div className="space-y-3">
-                    <div className="grid grid-cols-3 items-center gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                       <Label htmlFor="group-30min" className="text-left text-xs font-medium text-gray-700">30 Min Rate</Label>
                       <div className="col-span-2 relative">
                         <span className="absolute left-3 top-1.5 text-gray-400 text-xs">₹</span>
@@ -529,7 +529,7 @@ export default function SalariesPage() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                       <Label htmlFor="group-45min" className="text-left text-xs font-medium text-gray-700">45 Min Rate</Label>
                       <div className="col-span-2 relative">
                         <span className="absolute left-3 top-1.5 text-gray-400 text-xs">₹</span>
@@ -542,7 +542,7 @@ export default function SalariesPage() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                       <Label htmlFor="group-60min" className="text-left text-xs font-medium text-gray-700">60 Min Rate</Label>
                       <div className="col-span-2 relative">
                         <span className="absolute left-3 top-1.5 text-gray-400 text-xs">₹</span>
@@ -561,7 +561,7 @@ export default function SalariesPage() {
                 <div className="border-t pt-3 mt-3">
                   <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">One-to-One Session Rates</p>
                   <div className="space-y-3">
-                    <div className="grid grid-cols-3 items-center gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                       <Label htmlFor="oto-30min" className="text-left text-xs font-medium text-gray-700">30 Min Rate</Label>
                       <div className="col-span-2 relative">
                         <span className="absolute left-3 top-1.5 text-gray-400 text-xs">₹</span>
@@ -574,7 +574,7 @@ export default function SalariesPage() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                       <Label htmlFor="oto-45min" className="text-left text-xs font-medium text-gray-700">45 Min Rate</Label>
                       <div className="col-span-2 relative">
                         <span className="absolute left-3 top-1.5 text-gray-400 text-xs">₹</span>
@@ -587,7 +587,7 @@ export default function SalariesPage() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                       <Label htmlFor="oto-60min" className="text-left text-xs font-medium text-gray-700">60 Min Rate</Label>
                       <div className="col-span-2 relative">
                         <span className="absolute left-3 top-1.5 text-gray-400 text-xs">₹</span>
@@ -681,7 +681,7 @@ export default function SalariesPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
                   <div>
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Teacher Information</p>
                     <p className="font-semibold text-gray-800 text-base">{activeStatement.teacher?.name || user?.name}</p>
@@ -933,7 +933,7 @@ export default function SalariesPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
                   <div>
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Teacher Information</p>
                     <p className="font-semibold text-gray-800 text-base">{user?.name}</p>

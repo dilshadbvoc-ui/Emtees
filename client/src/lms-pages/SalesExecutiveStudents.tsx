@@ -34,7 +34,7 @@ export default function MyStudentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-gray-900">My Students</h1>
           <p className="text-xs text-gray-500 mt-1">View and track students registered through your referral link</p>

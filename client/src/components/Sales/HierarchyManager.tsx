@@ -60,7 +60,7 @@ export default function HierarchyManager() {
                 Add Team
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
               <DialogHeader>
                 <DialogTitle>Create New Team</DialogTitle>
               </DialogHeader>

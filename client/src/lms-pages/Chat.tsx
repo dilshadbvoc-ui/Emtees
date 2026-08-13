@@ -1160,7 +1160,7 @@ export default function ChatPage() {
         setIsDeleteModalOpen(open);
         if (!open) setDeleteTargetMessage(null);
       }}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Delete Message</DialogTitle>
             <DialogDescription>

@@ -106,7 +106,7 @@ export default function SalesLeads() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-gray-900">Sales Leads</h1>
           <p className="text-xs text-gray-500 mt-1">Manage and track your student leads</p>
@@ -123,7 +123,7 @@ export default function SalesLeads() {
                 Add Lead
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Lead</DialogTitle>
               </DialogHeader>

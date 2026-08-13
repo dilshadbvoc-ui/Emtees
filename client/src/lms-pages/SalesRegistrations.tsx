@@ -58,7 +58,7 @@ export default function RegistrationsAdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-gray-900">Referral Registrations</h1>
           <p className="text-xs text-gray-500 mt-1">Monitor all student registrations created through sales referral links</p>
