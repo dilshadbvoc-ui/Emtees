@@ -144,6 +144,239 @@ export const salesRouter = createRouter({
     }),
 
   // ----------------------------------------------------
+  // DASHBOARD
+  // ----------------------------------------------------
+  getDashboardStats: salesExecQuery.query(async ({ ctx }) => {
+    const db = getDb();
+    const allClosures = await db.query.salesClosures.findMany({
+      where: eq(salesClosures.isDeleted, false)
+    });
+
+    let filteredClosures = allClosures;
+    
+    // Apply CA / Role restrictions
+    if (ctx.user.role === "sales_executive") {
+      const dbUser = await db.query.users.findFirst({
+        where: eq(users.id, ctx.user.id)
+      });
+      if (dbUser?.salesExecutiveId) {
+        const profile = await db.query.salesExecutives.findFirst({
+          where: eq(salesExecutives.id, dbUser.salesExecutiveId)
+        });
+
+        if (profile?.isASM && profile?.groupId) {
+          filteredClosures = allClosures.filter(c => c.groupId === profile.groupId);
+        } else {
+          filteredClosures = allClosures.filter(c => c.caId === dbUser.salesExecutiveId);
+        }
+      }
+    }
+
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const thisMonthClosures = filteredClosures.filter(c => c.date && c.date.toISOString().startsWith(currentMonth));
+
+    const totalRevenue = thisMonthClosures.reduce((acc, curr) => acc + Number(curr.firstInst || 0), 0);
+    const totalPipeline = thisMonthClosures.reduce((acc, curr) => acc + Number(curr.totalFee || 0), 0);
+    const outstanding = totalPipeline - totalRevenue;
+
+    // Group by month for graph
+    const monthlyData: Record<string, { month: string; closures: number; revenue: number }> = {};
+    
+    // Get last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const mStr = d.toISOString().substring(0, 7);
+      monthlyData[mStr] = { month: mStr, closures: 0, revenue: 0 };
+    }
+
+    filteredClosures.forEach(c => {
+      if (!c.date) return;
+      const mStr = c.date.toISOString().substring(0, 7);
+      if (monthlyData[mStr]) {
+        monthlyData[mStr].closures += 1;
+        monthlyData[mStr].revenue += Number(c.firstInst || 0);
+      }
+    });
+
+    return {
+      totalClosures: thisMonthClosures.length,
+      totalRevenue,
+      totalPipeline,
+      outstanding,
+      trendData: Object.values(monthlyData)
+    };
+  }),
+
+  // ----------------------------------------------------
+  // ASM WISE REPORT
+  // ----------------------------------------------------
+  getAsmPerformance: adminQuery
+    .input(z.object({
+      monthStr: z.string().optional()
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const targetMonth = input.monthStr || new Date().toISOString().substring(0, 7);
+
+      const closures = await db.query.salesClosures.findMany({
+        where: and(
+          eq(salesClosures.isDeleted, false),
+          eq(salesClosures.monthStr, targetMonth)
+        ),
+        with: {
+          salesExecutive: true,
+          asm: true,
+          group: true,
+        }
+      });
+
+      // Group by groupId
+      const grouped: Record<number, any> = {};
+
+      closures.forEach(c => {
+        const gid = c.groupId || 0;
+        if (!grouped[gid]) {
+          grouped[gid] = {
+            groupId: gid,
+            groupName: c.group?.name || "Unassigned",
+            asmName: c.asm?.name || "N/A",
+            closures: 0,
+            firstPayment: 0,
+            oldBalance: 0,
+            renewal: 0,
+            totalFee: 0,
+            caList: new Set()
+          };
+        }
+
+        grouped[gid].closures += 1;
+        grouped[gid].firstPayment += Number(c.firstInst || 0);
+        
+        // Simple heuristic for type of payment based on UI form (assuming secondInst/thirdInst count as old balance for reporting purposes, or use type if available)
+        // If they add custom "Type" we should use it. For now sum it up.
+        if (c.type === "renewal") {
+          grouped[gid].renewal += Number(c.firstInst || 0);
+        } else if (c.type === "old_balance") {
+          grouped[gid].oldBalance += Number(c.firstInst || 0);
+        }
+
+        grouped[gid].totalFee += Number(c.totalFee || 0);
+        if (c.salesExecutive) {
+          grouped[gid].caList.add(c.salesExecutive.name);
+        }
+      });
+
+      return Object.values(grouped).map(g => ({
+        ...g,
+        caList: Array.from(g.caList).join(", ")
+      }));
+    }),
+
+  // ----------------------------------------------------
+  // WEEKLY LEADERBOARD (Points Engine)
+  // ----------------------------------------------------
+  getWeeklyLeaderboard: salesExecQuery
+    .input(z.object({
+      weekStart: z.string(), // YYYY-MM-DD
+      weekEnd: z.string(),   // YYYY-MM-DD
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      
+      const start = new Date(input.weekStart);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(input.weekEnd);
+      end.setHours(23, 59, 59, 999);
+
+      // 1. Fetch closures for this date range
+      const closures = await db.query.salesClosures.findMany({
+        where: and(
+          eq(salesClosures.isDeleted, false),
+          gte(salesClosures.date, start),
+          lte(salesClosures.date, end)
+        ),
+        with: {
+          salesExecutive: true,
+          asm: true,
+          group: true,
+        }
+      });
+
+      // 2. Fetch active rules
+      const rules = await db.query.salesPointsRules.findMany({
+        where: eq(salesPointsRules.isActive, true),
+        orderBy: (p, { desc }) => [desc(p.priority)]
+      });
+
+      // 3. Group by CA and calculate points
+      const leaderboard: Record<number, any> = {};
+
+      closures.forEach(c => {
+        const caId = c.caId;
+        if (!caId) return;
+
+        if (!leaderboard[caId]) {
+          leaderboard[caId] = {
+            caId,
+            caName: c.salesExecutive?.name || "Unknown",
+            asmName: c.asm?.name || "N/A",
+            groupName: c.group?.name || "Unassigned",
+            closures: 0,
+            revenue: 0,
+            points: 0,
+          };
+        }
+
+        leaderboard[caId].closures += 1;
+        
+        const firstInst = Number(c.firstInst || 0);
+        const totalFee = Number(c.totalFee || 0);
+        leaderboard[caId].revenue += firstInst;
+
+        // Apply rules engine
+        let pointsAwarded = 0;
+        for (const rule of rules) {
+          // Check conditions
+          let match = true;
+          if (rule.conditionCourseMatch && rule.conditionCourseMatch !== c.course) {
+            match = false;
+          }
+          if (rule.conditionMinPaymentPercent) {
+            const percentPaid = (firstInst / totalFee) * 100;
+            if (percentPaid < Number(rule.conditionMinPaymentPercent)) {
+              match = false;
+            }
+          }
+          
+          if (match) {
+            if (rule.pointsFixed) {
+              pointsAwarded = Number(rule.pointsFixed);
+            } else if (rule.formula) {
+              try {
+                // Safe basic evaluation replacing variables
+                let evalString = rule.formula
+                  .replace(/received_amount/g, firstInst.toString())
+                  .replace(/total_fee/g, totalFee.toString());
+                
+                // Allow simple math
+                pointsAwarded = new Function(`return ${evalString}`)();
+              } catch (e) {
+                console.error("Formula eval failed", e);
+              }
+            }
+            break; // Stop after highest priority matching rule
+          }
+        }
+        
+        leaderboard[caId].points += pointsAwarded;
+      });
+
+      // Sort by points descending
+      return Object.values(leaderboard).sort((a, b) => b.points - a.points);
+    }),
+
+  // ----------------------------------------------------
   // CLOSURES
   // ----------------------------------------------------
   listClosures: salesExecQuery

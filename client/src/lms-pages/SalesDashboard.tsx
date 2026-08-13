@@ -9,10 +9,13 @@ import ClosuresList from "@/components/Sales/ClosuresList";
 import SalesReportsView from "@/components/Sales/SalesReportsView";
 import PointsEngineConfig from "@/components/Sales/PointsEngineConfig";
 import HierarchyManager from "@/components/Sales/HierarchyManager";
+import DashboardView from "@/components/Sales/DashboardView";
+import AsmPerformanceReport from "@/components/Sales/AsmPerformanceReport";
+import WeeklyLeaderboard from "@/components/Sales/WeeklyLeaderboard";
 
 export default function SalesDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("closures");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   const isAdmin = ["super_admin", "admin"].includes(user?.role || "");
 
@@ -25,9 +28,12 @@ export default function SalesDashboard() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+          <TabsTrigger value="dashboard" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Dashboard</TabsTrigger>
+          <TabsTrigger value="leaderboard" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Leaderboard</TabsTrigger>
           <TabsTrigger value="closures" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Closures</TabsTrigger>
           <TabsTrigger value="new-closure" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">New Closure (Data Entry)</TabsTrigger>
-          <TabsTrigger value="reports" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Reports</TabsTrigger>
+          <TabsTrigger value="reports" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Closures List</TabsTrigger>
+          <TabsTrigger value="asm-report" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">ASM Report</TabsTrigger>
           {isAdmin && (
             <>
               <TabsTrigger value="hierarchy" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Hierarchy & Teams</TabsTrigger>
@@ -35,6 +41,14 @@ export default function SalesDashboard() {
             </>
           )}
         </TabsList>
+
+        <TabsContent value="dashboard" className="mt-6">
+          <DashboardView />
+        </TabsContent>
+
+        <TabsContent value="leaderboard" className="mt-6">
+          <WeeklyLeaderboard />
+        </TabsContent>
 
         <TabsContent value="closures" className="mt-6">
           <ClosuresList />
@@ -46,6 +60,10 @@ export default function SalesDashboard() {
 
         <TabsContent value="reports" className="mt-6">
           <SalesReportsView />
+        </TabsContent>
+
+        <TabsContent value="asm-report" className="mt-6">
+          <AsmPerformanceReport />
         </TabsContent>
 
         {isAdmin && (
