@@ -4,17 +4,64 @@ import { useState, useEffect } from "react";
 import { trpc } from "@/providers/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Search, Plus, RefreshCw, Key, ToggleLeft, ToggleRight, Copy, Edit, MoreVertical, GraduationCap, BarChart3, Coins, Users, Trash2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import {
+  Search,
+  Plus,
+  RefreshCw,
+  Key,
+  ToggleLeft,
+  ToggleRight,
+  Copy,
+  Edit,
+  MoreVertical,
+  GraduationCap,
+  BarChart3,
+  Coins,
+  Users,
+  Trash2,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { PhoneNumberInput } from "@/components/PhoneNumberInput";
 
 export default function SalesExecutivesAdminPage() {
@@ -24,7 +71,10 @@ export default function SalesExecutivesAdminPage() {
   // Client-side route guard: only allow admin/super_admin
   useEffect(() => {
     if (user && !["super_admin", "admin"].includes(user.role)) {
-      router("/?reason=You+do+not+have+permission+to+access+the+sales+executives+page.", { replace: true });
+      router(
+        "/?reason=You+do+not+have+permission+to+access+the+sales+executives+page.",
+        { replace: true },
+      );
     }
   }, [user, router]);
 
@@ -37,7 +87,8 @@ export default function SalesExecutivesAdminPage() {
 
   // New Modals
   const [studentsModalOpen, setStudentsModalOpen] = useState(false);
-  const [selectedExecForStudents, setSelectedExecForStudents] = useState<any>(null);
+  const [selectedExecForStudents, setSelectedExecForStudents] =
+    useState<any>(null);
 
   const [perfModalOpen, setPerfModalOpen] = useState(false);
   const [selectedExecForPerf, setSelectedExecForPerf] = useState<any>(null);
@@ -70,13 +121,14 @@ export default function SalesExecutivesAdminPage() {
 
   const registrationsQuery = trpc.salesExecutive.getAllRegistrations.useQuery();
 
-  const selectedExecStudents = registrationsQuery.data?.filter(
-    (reg) => reg.salesExecutiveId === selectedExecForStudents?.id
-  ) || [];
+  const selectedExecStudents =
+    registrationsQuery.data?.filter(
+      (reg) => reg.salesExecutiveId === selectedExecForStudents?.id,
+    ) || [];
 
   const perfQuery = trpc.salesExecutive.getPerformanceDashboard.useQuery(
     { salesExecutiveId: selectedExecForPerf?.id || 0, period: "all" },
-    { enabled: !!selectedExecForPerf }
+    { enabled: !!selectedExecForPerf },
   );
   const perfData = perfQuery.data?.[0];
 
@@ -126,15 +178,16 @@ export default function SalesExecutivesAdminPage() {
     },
   });
 
-  const regenerateReferralMutation = trpc.salesExecutive.regenerateReferralCode.useMutation({
-    onSuccess: () => {
-      toast.success("Referral code regenerated");
-      execsQuery.refetch();
-    },
-    onError: (err) => {
-      toast.error(err.message);
-    },
-  });
+  const regenerateReferralMutation =
+    trpc.salesExecutive.regenerateReferralCode.useMutation({
+      onSuccess: () => {
+        toast.success("Referral code regenerated");
+        execsQuery.refetch();
+      },
+      onError: (err) => {
+        toast.error(err.message);
+      },
+    });
 
   const deleteMutation = trpc.salesExecutive.deleteExecutive.useMutation({
     onSuccess: () => {
@@ -169,16 +222,39 @@ export default function SalesExecutivesAdminPage() {
       toast.error("Please fill in all fields.");
       return;
     }
-    const isASM = designation === "Assistant Sales Manager (ASM)" || designation === "Manager";
-    createMutation.mutate({ name, email, phone, username, password, status, groupId, isASM, designation });
+    const isASM =
+      designation === "Assistant Sales Manager (ASM)" ||
+      designation === "Manager";
+    createMutation.mutate({
+      name,
+      email,
+      phone,
+      username,
+      password,
+      status,
+      groupId,
+      isASM,
+      designation,
+    });
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const phone = `${countryCode}${phoneNumber}`.replace(/\s+/g, "");
     if (!selectedId || !name || !email || !phoneNumber) return;
-    const isASM = designation === "Assistant Sales Manager (ASM)" || designation === "Manager";
-    editMutation.mutate({ id: selectedId, name, email, phone, status, groupId, isASM, designation });
+    const isASM =
+      designation === "Assistant Sales Manager (ASM)" ||
+      designation === "Manager";
+    editMutation.mutate({
+      id: selectedId,
+      name,
+      email,
+      phone,
+      status,
+      groupId,
+      isASM,
+      designation,
+    });
   };
 
   const handleResetPasswordSubmit = (e: React.FormEvent) => {
@@ -222,15 +298,33 @@ export default function SalesExecutivesAdminPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-gray-900">Sales Executives</h1>
-          <p className="text-xs text-gray-500 mt-1">Manage Sales Executives, passwords, status, and referral codes</p>
+          <h1 className="text-xl font-bold tracking-tight text-gray-900">
+            Sales Executives
+          </h1>
+          <p className="text-xs text-gray-500 mt-1">
+            Manage Sales Executives, passwords, status, and referral codes
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => execsQuery.refetch()} disabled={execsQuery.isFetching}>
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${execsQuery.isFetching ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => execsQuery.refetch()}
+            disabled={execsQuery.isFetching}
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 mr-1.5 ${execsQuery.isFetching ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
-          <Button size="sm" onClick={() => { resetForm(); setAddModalOpen(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+          <Button
+            size="sm"
+            onClick={() => {
+              resetForm();
+              setAddModalOpen(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+          >
             <Plus className="w-3.5 h-3.5 mr-1.5" />
             Add Executive
           </Button>
@@ -270,41 +364,72 @@ export default function SalesExecutivesAdminPage() {
             <Table>
               <TableHeader className="bg-gray-50/50">
                 <TableRow>
-                  <TableHead className="text-xs font-semibold">Employee ID</TableHead>
-                  <TableHead className="text-xs font-semibold">Full Name</TableHead>
-                  <TableHead className="text-xs font-semibold">Username</TableHead>
-                  <TableHead className="text-xs font-semibold">Email & Phone</TableHead>
-                  <TableHead className="text-xs font-semibold">Referrals</TableHead>
-                  <TableHead className="text-xs font-semibold">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-right">Actions</TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    Employee ID
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    Full Name
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    Username
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    Email & Phone
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    Referrals
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold text-right">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {execsQuery.isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-xs text-gray-500 py-10">
+                    <TableCell
+                      colSpan={7}
+                      className="text-center text-xs text-gray-500 py-10"
+                    >
                       Loading Sales Executives...
                     </TableCell>
                   </TableRow>
                 ) : execs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-xs text-gray-500 py-10">
+                    <TableCell
+                      colSpan={7}
+                      className="text-center text-xs text-gray-500 py-10"
+                    >
                       No Sales Executives found.
                     </TableCell>
                   </TableRow>
                 ) : (
                   execs.map((exec) => (
-                    <TableRow key={exec.id} className="hover:bg-gray-50/50 transition-colors">
+                    <TableRow
+                      key={exec.id}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
                       <TableCell className="text-xs font-semibold text-emerald-800 font-mono">
                         {exec.employeeId}
                       </TableCell>
-                      <TableCell className="text-xs font-semibold text-gray-900">{exec.name}</TableCell>
-                      <TableCell className="text-xs text-gray-600">{exec.username}</TableCell>
+                      <TableCell className="text-xs font-semibold text-gray-900">
+                        {exec.name}
+                      </TableCell>
+                      <TableCell className="text-xs text-gray-600">
+                        {exec.username}
+                      </TableCell>
                       <TableCell className="text-xs space-y-0.5">
                         <div className="text-gray-900">{exec.email}</div>
-                        <div className="text-gray-500 text-[10px]">{exec.phone}</div>
+                        <div className="text-gray-500 text-[10px]">
+                          {exec.phone}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-xs font-bold text-gray-800">{exec.studentCount}</TableCell>
+                      <TableCell className="text-xs font-bold text-gray-800">
+                        {exec.studentCount}
+                      </TableCell>
                       <TableCell className="text-xs">
                         <Badge
                           variant="outline"
@@ -316,10 +441,22 @@ export default function SalesExecutivesAdminPage() {
                         >
                           {exec.status === "active" ? "Active" : "Inactive"}
                         </Badge>
-                        {exec.designation !== "Sales User" && <Badge variant="secondary" className="ml-1 text-[10px] bg-purple-100 text-purple-700">{exec.designation}</Badge>}
+                        {exec.designation !== "Sales User" && (
+                          <Badge
+                            variant="secondary"
+                            className="ml-1 text-[10px] bg-purple-100 text-purple-700"
+                          >
+                            {exec.designation}
+                          </Badge>
+                        )}
                         {exec.groupId && (
-                          <Badge variant="outline" className="ml-1 text-[10px] bg-slate-100 text-slate-700">
-                            {groupsQuery.data?.find(g => g.id === exec.groupId)?.name || "Team"}
+                          <Badge
+                            variant="outline"
+                            className="ml-1 text-[10px] bg-slate-100 text-slate-700"
+                          >
+                            {groupsQuery.data?.find(
+                              (g) => g.id === exec.groupId,
+                            )?.name || "Team"}
                           </Badge>
                         )}
                       </TableCell>
@@ -357,35 +494,71 @@ export default function SalesExecutivesAdminPage() {
                         {/* Options Dropdown */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="w-7 h-7 hover:bg-gray-100 rounded-lg">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="w-7 h-7 hover:bg-gray-100 rounded-lg"
+                            >
                               <MoreVertical className="w-4 h-4 text-gray-500" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="text-xs">
-                            <DropdownMenuItem onClick={() => copyReferralLink(exec.referralCode)} className="flex items-center gap-2 cursor-pointer py-1.5">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                copyReferralLink(exec.referralCode)
+                              }
+                              className="flex items-center gap-2 cursor-pointer py-1.5"
+                            >
                               <Copy className="w-3.5 h-3.5 text-gray-500" />
                               Copy Referral Link
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => regenerateReferralMutation.mutate({ id: exec.id })} className="flex items-center gap-2 cursor-pointer py-1.5 text-emerald-700">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                regenerateReferralMutation.mutate({
+                                  id: exec.id,
+                                })
+                              }
+                              className="flex items-center gap-2 cursor-pointer py-1.5 text-emerald-700"
+                            >
                               <RefreshCw className="w-3.5 h-3.5" />
                               Regenerate Referral Code
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleOpenEdit(exec)} className="flex items-center gap-2 cursor-pointer py-1.5 text-blue-600">
+                            <DropdownMenuItem
+                              onClick={() => handleOpenEdit(exec)}
+                              className="flex items-center gap-2 cursor-pointer py-1.5 text-blue-600"
+                            >
                               <Edit className="w-3.5 h-3.5" />
                               Edit Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenResetPassword(exec.id)} className="flex items-center gap-2 cursor-pointer py-1.5 text-amber-600">
+                            <DropdownMenuItem
+                              onClick={() => handleOpenResetPassword(exec.id)}
+                              className="flex items-center gap-2 cursor-pointer py-1.5 text-amber-600"
+                            >
                               <Key className="w-3.5 h-3.5" />
                               Reset Password
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setSelectedExecForSalary(exec); setSalaryModalOpen(true); }} className="flex items-center gap-2 cursor-pointer py-1.5 text-indigo-600">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedExecForSalary(exec);
+                                setSalaryModalOpen(true);
+                              }}
+                              className="flex items-center gap-2 cursor-pointer py-1.5 text-indigo-600"
+                            >
                               <Coins className="w-3.5 h-3.5" />
                               View Salary & Incentives
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => toggleStatusMutation.mutate({ id: exec.id, status: exec.status === "active" ? "inactive" : "active" })}
+                            <DropdownMenuItem
+                              onClick={() =>
+                                toggleStatusMutation.mutate({
+                                  id: exec.id,
+                                  status:
+                                    exec.status === "active"
+                                      ? "inactive"
+                                      : "active",
+                                })
+                              }
                               className={`flex items-center gap-2 cursor-pointer py-1.5 font-medium ${exec.status === "active" ? "text-red-600" : "text-emerald-600"}`}
                             >
                               {exec.status === "active" ? (
@@ -401,7 +574,7 @@ export default function SalesExecutivesAdminPage() {
                               )}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => {
                                 setSelectedExecForDelete(exec);
                                 setDeleteConfirmOpen(true);
@@ -426,23 +599,49 @@ export default function SalesExecutivesAdminPage() {
       {/* Add Executive Modal */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
         <DialogContent className="max-w-md w-full rounded-2xl">
-          <form onSubmit={handleAddSubmit}>
+          <form onSubmit={handleAddSubmit} autoComplete="off">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-gray-900">Add Sales Executive</DialogTitle>
+              <DialogTitle className="text-base font-bold text-gray-900">
+                Add Sales Executive
+              </DialogTitle>
               <DialogDescription className="text-xs text-gray-500">
-                Create login credentials and a referral link for a new Sales Executive.
+                Create login credentials and a referral link for a new Sales
+                Executive.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-4 text-xs">
               <div className="space-y-1.5">
-                <Label htmlFor="exec-name" className="font-semibold text-gray-600">Full Name *</Label>
-                <Input id="exec-name" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required />
+                <Label
+                  htmlFor="exec-name"
+                  className="font-semibold text-gray-600"
+                >
+                  Full Name *
+                </Label>
+                <Input
+                  id="exec-name"
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="exec-email" className="font-semibold text-gray-600">Email Address *</Label>
-                <Input id="exec-email" type="email" placeholder="john@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Label
+                  htmlFor="exec-email"
+                  className="font-semibold text-gray-600"
+                >
+                  Email Address *
+                </Label>
+                <Input
+                  id="exec-email"
+                  type="email"
+                  placeholder="john@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
 
               <PhoneNumberInput
@@ -461,18 +660,51 @@ export default function SalesExecutivesAdminPage() {
               />
 
               <div className="space-y-1.5">
-                <Label htmlFor="exec-user" className="font-semibold text-gray-600">Username *</Label>
-                <Input id="exec-user" placeholder="johndoe" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                <Label
+                  htmlFor="exec-user"
+                  className="font-semibold text-gray-600"
+                >
+                  Username *
+                </Label>
+                <Input
+                  id="exec-user"
+                  placeholder="johndoe"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="exec-pass" className="font-semibold text-gray-600">Password *</Label>
-                <Input id="exec-pass" type="password" placeholder="Min 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <Label
+                  htmlFor="exec-pass"
+                  className="font-semibold text-gray-600"
+                >
+                  Password *
+                </Label>
+                <Input
+                  id="exec-pass"
+                  type="password"
+                  placeholder="Min 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="exec-status" className="font-semibold text-gray-600">Initial Status</Label>
-                <Select value={status} onValueChange={(val: any) => setStatus(val)}>
+                <Label
+                  htmlFor="exec-status"
+                  className="font-semibold text-gray-600"
+                >
+                  Initial Status
+                </Label>
+                <Select
+                  value={status}
+                  onValueChange={(val: any) => setStatus(val)}
+                >
                   <SelectTrigger id="exec-status" className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -484,15 +716,24 @@ export default function SalesExecutivesAdminPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="font-semibold text-gray-600">Assign to Team (Optional)</Label>
-                <Select value={groupId?.toString() || "none"} onValueChange={(val: any) => setGroupId(val === "none" ? null : parseInt(val))}>
+                <Label className="font-semibold text-gray-600">
+                  Assign to Team (Optional)
+                </Label>
+                <Select
+                  value={groupId?.toString() || "none"}
+                  onValueChange={(val: any) =>
+                    setGroupId(val === "none" ? null : parseInt(val))
+                  }
+                >
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="No Team" />
                   </SelectTrigger>
                   <SelectContent className="text-xs">
                     <SelectItem value="none">No Team</SelectItem>
-                    {groupsQuery.data?.map(g => (
-                      <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
+                    {groupsQuery.data?.map((g) => (
+                      <SelectItem key={g.id} value={g.id.toString()}>
+                        {g.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -506,7 +747,9 @@ export default function SalesExecutivesAdminPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Manager">Manager</SelectItem>
-                    <SelectItem value="Assistant Sales Manager (ASM)">Assistant Sales Manager (ASM)</SelectItem>
+                    <SelectItem value="Assistant Sales Manager (ASM)">
+                      Assistant Sales Manager (ASM)
+                    </SelectItem>
                     <SelectItem value="Sales User">Sales User</SelectItem>
                   </SelectContent>
                 </Select>
@@ -514,8 +757,18 @@ export default function SalesExecutivesAdminPage() {
             </div>
 
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setAddModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAddModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+              >
                 {createMutation.isPending ? "Saving..." : "Create Executive"}
               </Button>
             </DialogFooter>
@@ -528,7 +781,9 @@ export default function SalesExecutivesAdminPage() {
         <DialogContent className="max-w-md w-full rounded-2xl">
           <form onSubmit={handleEditSubmit}>
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-gray-900">Edit Sales Executive</DialogTitle>
+              <DialogTitle className="text-base font-bold text-gray-900">
+                Edit Sales Executive
+              </DialogTitle>
               <DialogDescription className="text-xs text-gray-500">
                 Update details for this Sales Executive.
               </DialogDescription>
@@ -536,13 +791,34 @@ export default function SalesExecutivesAdminPage() {
 
             <div className="space-y-4 py-4 text-xs">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-name" className="font-semibold text-gray-600">Full Name *</Label>
-                <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
+                <Label
+                  htmlFor="edit-name"
+                  className="font-semibold text-gray-600"
+                >
+                  Full Name *
+                </Label>
+                <Input
+                  id="edit-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="edit-email" className="font-semibold text-gray-600">Email Address *</Label>
-                <Input id="edit-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Label
+                  htmlFor="edit-email"
+                  className="font-semibold text-gray-600"
+                >
+                  Email Address *
+                </Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
 
               <PhoneNumberInput
@@ -561,8 +837,16 @@ export default function SalesExecutivesAdminPage() {
               />
 
               <div className="space-y-1.5">
-                <Label htmlFor="edit-status" className="font-semibold text-gray-600">Status</Label>
-                <Select value={status} onValueChange={(val: any) => setStatus(val)}>
+                <Label
+                  htmlFor="edit-status"
+                  className="font-semibold text-gray-600"
+                >
+                  Status
+                </Label>
+                <Select
+                  value={status}
+                  onValueChange={(val: any) => setStatus(val)}
+                >
                   <SelectTrigger id="edit-status" className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -574,15 +858,24 @@ export default function SalesExecutivesAdminPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="font-semibold text-gray-600">Assign to Team (Optional)</Label>
-                <Select value={groupId?.toString() || "none"} onValueChange={(val: any) => setGroupId(val === "none" ? null : parseInt(val))}>
+                <Label className="font-semibold text-gray-600">
+                  Assign to Team (Optional)
+                </Label>
+                <Select
+                  value={groupId?.toString() || "none"}
+                  onValueChange={(val: any) =>
+                    setGroupId(val === "none" ? null : parseInt(val))
+                  }
+                >
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="No Team" />
                   </SelectTrigger>
                   <SelectContent className="text-xs">
                     <SelectItem value="none">No Team</SelectItem>
-                    {groupsQuery.data?.map(g => (
-                      <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
+                    {groupsQuery.data?.map((g) => (
+                      <SelectItem key={g.id} value={g.id.toString()}>
+                        {g.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -596,7 +889,9 @@ export default function SalesExecutivesAdminPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Manager">Manager</SelectItem>
-                    <SelectItem value="Assistant Sales Manager (ASM)">Assistant Sales Manager (ASM)</SelectItem>
+                    <SelectItem value="Assistant Sales Manager (ASM)">
+                      Assistant Sales Manager (ASM)
+                    </SelectItem>
                     <SelectItem value="Sales User">Sales User</SelectItem>
                   </SelectContent>
                 </Select>
@@ -604,8 +899,18 @@ export default function SalesExecutivesAdminPage() {
             </div>
 
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={editMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={editMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+              >
                 {editMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
@@ -618,14 +923,21 @@ export default function SalesExecutivesAdminPage() {
         <DialogContent className="max-w-sm w-full rounded-2xl">
           <form onSubmit={handleResetPasswordSubmit}>
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-gray-900">Reset Password</DialogTitle>
+              <DialogTitle className="text-base font-bold text-gray-900">
+                Reset Password
+              </DialogTitle>
               <DialogDescription className="text-xs text-gray-500">
                 Change password for this Sales Executive.
               </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 text-xs space-y-1.5">
-              <Label htmlFor="reset-pass-field" className="font-semibold text-gray-600">New Password *</Label>
+              <Label
+                htmlFor="reset-pass-field"
+                className="font-semibold text-gray-600"
+              >
+                New Password *
+              </Label>
               <Input
                 id="reset-pass-field"
                 type="password"
@@ -637,9 +949,21 @@ export default function SalesExecutivesAdminPage() {
             </div>
 
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setPassModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={resetPasswordMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
-                {resetPasswordMutation.isPending ? "Updating..." : "Reset Password"}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPassModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={resetPasswordMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+              >
+                {resetPasswordMutation.isPending
+                  ? "Updating..."
+                  : "Reset Password"}
               </Button>
             </DialogFooter>
           </form>
@@ -655,40 +979,84 @@ export default function SalesExecutivesAdminPage() {
               Referred Students — {selectedExecForStudents?.name}
             </DialogTitle>
             <DialogDescription className="text-xs text-gray-500">
-              List of all students registered using referral code <span className="font-mono font-bold text-emerald-800">{selectedExecForStudents?.referralCode}</span>.
+              List of all students registered using referral code{" "}
+              <span className="font-mono font-bold text-emerald-800">
+                {selectedExecForStudents?.referralCode}
+              </span>
+              .
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto py-4 min-h-0">
             {registrationsQuery.isLoading ? (
-              <div className="text-center py-10 text-xs text-gray-500">Loading students...</div>
+              <div className="text-center py-10 text-xs text-gray-500">
+                Loading students...
+              </div>
             ) : selectedExecStudents.length === 0 ? (
-              <div className="text-center py-10 text-xs text-gray-500">No referred students registered yet for this executive.</div>
+              <div className="text-center py-10 text-xs text-gray-500">
+                No referred students registered yet for this executive.
+              </div>
             ) : (
               <div className="overflow-hidden border border-gray-100 rounded-xl">
                 <Table>
                   <TableHeader className="bg-gray-50/50">
                     <TableRow>
-                      <TableHead className="text-xs font-semibold">Student ID</TableHead>
-                      <TableHead className="text-xs font-semibold">Name</TableHead>
-                      <TableHead className="text-xs font-semibold">Qualification</TableHead>
-                      <TableHead className="text-xs font-semibold">Postal Code</TableHead>
-                      <TableHead className="text-xs font-semibold">Course</TableHead>
-                      <TableHead className="text-xs font-semibold">Date Registered</TableHead>
-                      <TableHead className="text-xs font-semibold">Payment Status</TableHead>
+                      <TableHead className="text-xs font-semibold">
+                        Student ID
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold">
+                        Name
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold">
+                        Qualification
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold">
+                        Postal Code
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold">
+                        Course
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold">
+                        Date Registered
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold">
+                        Payment Status
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {selectedExecStudents.map((student) => (
-                      <TableRow key={student.id} className="hover:bg-gray-50/50 transition-colors">
-                        <TableCell className="text-xs font-semibold font-mono text-emerald-800">{student.profile?.enrollmentId || student.unionId}</TableCell>
-                        <TableCell className="text-xs font-semibold text-gray-900">{student.name}</TableCell>
-                        <TableCell className="text-xs text-gray-600">{student.profile?.educationalQualification || student.educationalQualification || "-"}</TableCell>
-                        <TableCell className="text-xs font-mono text-gray-600">{student.postalCode || student.profile?.postalCode || "-"}</TableCell>
-                        <TableCell className="text-xs text-gray-700">{student.profile?.course || "-"}</TableCell>
-                        <TableCell className="text-xs text-gray-500">{new Date(student.createdAt).toLocaleDateString()}</TableCell>
+                      <TableRow
+                        key={student.id}
+                        className="hover:bg-gray-50/50 transition-colors"
+                      >
+                        <TableCell className="text-xs font-semibold font-mono text-emerald-800">
+                          {student.profile?.enrollmentId || student.unionId}
+                        </TableCell>
+                        <TableCell className="text-xs font-semibold text-gray-900">
+                          {student.name}
+                        </TableCell>
+                        <TableCell className="text-xs text-gray-600">
+                          {student.profile?.educationalQualification ||
+                            student.educationalQualification ||
+                            "-"}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono text-gray-600">
+                          {student.postalCode ||
+                            student.profile?.postalCode ||
+                            "-"}
+                        </TableCell>
+                        <TableCell className="text-xs text-gray-700">
+                          {student.profile?.course || "-"}
+                        </TableCell>
+                        <TableCell className="text-xs text-gray-500">
+                          {new Date(student.createdAt).toLocaleDateString()}
+                        </TableCell>
                         <TableCell className="text-xs">
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px] capitalize">
+                          <Badge
+                            variant="outline"
+                            className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px] capitalize"
+                          >
                             {student.profile?.paymentStatus || "unpaid"}
                           </Badge>
                         </TableCell>
@@ -701,7 +1069,9 @@ export default function SalesExecutivesAdminPage() {
           </div>
 
           <DialogFooter>
-            <Button type="button" onClick={() => setStudentsModalOpen(false)}>Close</Button>
+            <Button type="button" onClick={() => setStudentsModalOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -721,46 +1091,64 @@ export default function SalesExecutivesAdminPage() {
 
           <div className="py-4 space-y-4">
             {perfQuery.isLoading ? (
-              <div className="text-center py-10 text-xs text-gray-500">Loading performance data...</div>
+              <div className="text-center py-10 text-xs text-gray-500">
+                Loading performance data...
+              </div>
             ) : !perfData ? (
-              <div className="text-center py-10 text-xs text-gray-500">No performance records found.</div>
+              <div className="text-center py-10 text-xs text-gray-500">
+                No performance records found.
+              </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <Card className="bg-slate-50/50 border-gray-100">
                   <CardContent className="p-3.5 space-y-0.5">
-                    <span className="text-gray-500 block">Total Registrations</span>
-                    <span className="text-xl font-bold text-gray-900">{perfData.totalRegistrations}</span>
+                    <span className="text-gray-500 block">
+                      Total Registrations
+                    </span>
+                    <span className="text-xl font-bold text-gray-900">
+                      {perfData.totalRegistrations}
+                    </span>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-slate-50/50 border-gray-100">
                   <CardContent className="p-3.5 space-y-0.5">
-                    <span className="text-gray-500 block">Total Enrollments</span>
-                    <span className="text-xl font-bold text-gray-900">{perfData.totalEnrollments}</span>
+                    <span className="text-gray-500 block">
+                      Total Enrollments
+                    </span>
+                    <span className="text-xl font-bold text-gray-900">
+                      {perfData.totalEnrollments}
+                    </span>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-slate-50/50 border-gray-100">
                   <CardContent className="p-3.5 space-y-0.5">
                     <span className="text-gray-500 block">Active Students</span>
-                    <span className="text-xl font-bold text-emerald-700">{perfData.activeStudents}</span>
+                    <span className="text-xl font-bold text-emerald-700">
+                      {perfData.activeStudents}
+                    </span>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-slate-50/50 border-gray-100">
                   <CardContent className="p-3.5 space-y-0.5">
-                    <span className="text-gray-500 block">Revenue Generated</span>
-                    <span className="text-xl font-bold text-indigo-700">₹{perfData.revenueGenerated.toLocaleString()}</span>
+                    <span className="text-gray-500 block">
+                      Revenue Generated
+                    </span>
+                    <span className="text-xl font-bold text-indigo-700">
+                      ₹{perfData.revenueGenerated.toLocaleString()}
+                    </span>
                   </CardContent>
                 </Card>
-
-
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button type="button" onClick={() => setPerfModalOpen(false)}>Close</Button>
+            <Button type="button" onClick={() => setPerfModalOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -795,12 +1183,17 @@ export default function SalesExecutivesAdminPage() {
             </div>
 
             <div className="bg-amber-50/70 border border-amber-100 p-3 rounded-lg text-[11px] text-amber-800 leading-relaxed">
-              ⚠️ <strong>Salary & Incentives Module is currently disabled</strong> for Sales Executives. In the current platform settings, basic salary and class-based rates are only enabled for Teachers.
+              ⚠️{" "}
+              <strong>Salary & Incentives Module is currently disabled</strong>{" "}
+              for Sales Executives. In the current platform settings, basic
+              salary and class-based rates are only enabled for Teachers.
             </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" onClick={() => setSalaryModalOpen(false)}>Close</Button>
+            <Button type="button" onClick={() => setSalaryModalOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -809,18 +1202,36 @@ export default function SalesExecutivesAdminPage() {
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent className="max-w-md bg-white">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-gray-900">Delete Sales Executive</DialogTitle>
+            <DialogTitle className="text-base font-bold text-gray-900">
+              Delete Sales Executive
+            </DialogTitle>
             <DialogDescription className="text-sm text-gray-500 mt-2">
-              Are you sure you want to delete this Sales Executive? This action cannot be undone.
+              Are you sure you want to delete this Sales Executive? This action
+              cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
             {selectedExecForDelete && (
               <div className="bg-red-50/50 border border-red-100/50 rounded-lg p-3 space-y-1">
-                <div className="text-xs text-red-800 font-semibold">Sales Executive Details:</div>
-                <div className="text-xs text-gray-600"><span className="font-medium text-gray-800">Name:</span> {selectedExecForDelete.name}</div>
-                <div className="text-xs text-gray-600"><span className="font-medium text-gray-800">Employee ID:</span> {selectedExecForDelete.employeeId}</div>
-                <div className="text-xs text-gray-600"><span className="font-medium text-gray-800">Referral Code:</span> {selectedExecForDelete.referralCode}</div>
+                <div className="text-xs text-red-800 font-semibold">
+                  Sales Executive Details:
+                </div>
+                <div className="text-xs text-gray-600">
+                  <span className="font-medium text-gray-800">Name:</span>{" "}
+                  {selectedExecForDelete.name}
+                </div>
+                <div className="text-xs text-gray-600">
+                  <span className="font-medium text-gray-800">
+                    Employee ID:
+                  </span>{" "}
+                  {selectedExecForDelete.employeeId}
+                </div>
+                <div className="text-xs text-gray-600">
+                  <span className="font-medium text-gray-800">
+                    Referral Code:
+                  </span>{" "}
+                  {selectedExecForDelete.referralCode}
+                </div>
               </div>
             )}
           </div>
