@@ -48,6 +48,8 @@ export default function NewClosureForm({ onSuccess }: Props) {
     enabled: isAdmin,
   });
 
+  const { data: modules } = trpc.learning.listModules.useQuery();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!course || !type || !totalFee) {
@@ -127,13 +129,16 @@ export default function NewClosureForm({ onSuccess }: Props) {
             </div>
             <div className="space-y-2">
               <Label className="text-slate-700 dark:text-slate-300">Course</Label>
-              <Input 
-                placeholder="e.g. HINDI_O_TO_O" 
-                value={course} 
-                onChange={e => setCourse(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200"
-                required
-              />
+              <Select value={course} onValueChange={setCourse}>
+                <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200">
+                  <SelectValue placeholder="Select a course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {modules?.map(m => (
+                    <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
