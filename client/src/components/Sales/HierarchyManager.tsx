@@ -7,23 +7,23 @@ export default function HierarchyManager() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
         <CardHeader>
-          <CardTitle className="text-slate-100">Teams & Hierarchy Manager</CardTitle>
+          <CardTitle className="text-slate-900 dark:text-slate-100">Teams & Hierarchy Manager</CardTitle>
           <CardDescription>
             Manage Sales Groups and ASMs.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-slate-400">Loading groups...</div>
+            <div className="text-slate-500 dark:text-slate-400">Loading groups...</div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-800">
+              <TableHeader className="bg-slate-100 dark:bg-slate-800">
                 <TableRow>
-                  <TableHead className="text-slate-300">Team Name</TableHead>
-                  <TableHead className="text-slate-300">Description</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Team Name</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Description</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -35,9 +35,9 @@ export default function HierarchyManager() {
                   </TableRow>
                 )}
                 {groups?.map((group) => (
-                  <TableRow key={group.id} className="border-slate-800">
-                    <TableCell className="text-slate-200 font-medium">{group.name}</TableCell>
-                    <TableCell className="text-slate-300">{group.description || "—"}</TableCell>
+                  <TableRow key={group.id} className="border-slate-200 dark:border-slate-800">
+                    <TableCell className="text-slate-900 dark:text-slate-200 font-medium">{group.name}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300">{group.description || "—"}</TableCell>
                     <TableCell className="text-emerald-400">
                       {group.isActive ? "Active" : "Inactive"}
                     </TableCell>

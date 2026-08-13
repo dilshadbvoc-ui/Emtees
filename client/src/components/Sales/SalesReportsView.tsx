@@ -30,12 +30,12 @@ export default function SalesReportsView() {
   };
 
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-slate-100">Automated Reports</CardTitle>
+        <CardTitle className="text-slate-900 dark:text-slate-100">Automated Reports</CardTitle>
         <div className="flex gap-4">
           <Select value={monthStr} onValueChange={setMonthStr}>
-            <SelectTrigger className="w-[180px] bg-slate-950 border-slate-700 text-slate-200">
+            <SelectTrigger className="w-[180px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200">
               <SelectValue placeholder="Select Month" />
             </SelectTrigger>
             <SelectContent>
@@ -45,7 +45,7 @@ export default function SalesReportsView() {
           </Select>
 
           <Select value={groupBy} onValueChange={(val: any) => setGroupBy(val)}>
-            <SelectTrigger className="w-[180px] bg-slate-950 border-slate-700 text-slate-200">
+            <SelectTrigger className="w-[180px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200">
               <SelectValue placeholder="Group By" />
             </SelectTrigger>
             <SelectContent>
@@ -55,7 +55,7 @@ export default function SalesReportsView() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" onClick={handleExport} className="border-slate-700 text-slate-300 hover:text-white">
+          <Button variant="outline" onClick={handleExport} className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-white">
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
@@ -63,18 +63,18 @@ export default function SalesReportsView() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-slate-400 py-4">Generating report...</div>
+          <div className="text-slate-500 dark:text-slate-400 py-4">Generating report...</div>
         ) : (
           <Table>
-            <TableHeader className="bg-slate-800">
+            <TableHeader className="bg-slate-100 dark:bg-slate-800">
               <TableRow>
-                <TableHead className="text-slate-300">
+                <TableHead className="text-slate-700 dark:text-slate-300">
                   {groupBy === 'ca' ? "CA ID" : groupBy === 'asm' ? "ASM ID" : "Group ID"}
                 </TableHead>
-                <TableHead className="text-slate-300 text-right">Total Closures</TableHead>
-                <TableHead className="text-slate-300 text-right">Collected Revenue</TableHead>
-                <TableHead className="text-slate-300 text-right">Total Fee Value</TableHead>
-                <TableHead className="text-slate-300 text-right">Total Points</TableHead>
+                <TableHead className="text-slate-700 dark:text-slate-300 text-right">Total Closures</TableHead>
+                <TableHead className="text-slate-700 dark:text-slate-300 text-right">Collected Revenue</TableHead>
+                <TableHead className="text-slate-700 dark:text-slate-300 text-right">Total Fee Value</TableHead>
+                <TableHead className="text-slate-700 dark:text-slate-300 text-right">Total Points</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -84,11 +84,11 @@ export default function SalesReportsView() {
                 </TableRow>
               ) : (
                 Object.entries(report).map(([key, stats]) => (
-                  <TableRow key={key} className="border-slate-800">
-                    <TableCell className="text-slate-200 font-medium">{key}</TableCell>
-                    <TableCell className="text-right text-slate-300">{stats.totalClosures}</TableCell>
+                  <TableRow key={key} className="border-slate-200 dark:border-slate-800">
+                    <TableCell className="text-slate-900 dark:text-slate-200 font-medium">{key}</TableCell>
+                    <TableCell className="text-right text-slate-700 dark:text-slate-300">{stats.totalClosures}</TableCell>
                     <TableCell className="text-right text-emerald-400">₹{stats.collected}</TableCell>
-                    <TableCell className="text-right text-slate-400">₹{stats.totalFee}</TableCell>
+                    <TableCell className="text-right text-slate-500 dark:text-slate-400">₹{stats.totalFee}</TableCell>
                     <TableCell className="text-right text-indigo-400 font-bold">{stats.totalPoints}</TableCell>
                   </TableRow>
                 ))

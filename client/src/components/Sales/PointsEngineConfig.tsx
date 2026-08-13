@@ -8,26 +8,26 @@ export default function PointsEngineConfig() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
         <CardHeader>
-          <CardTitle className="text-slate-100">Points Calculation Engine</CardTitle>
+          <CardTitle className="text-slate-900 dark:text-slate-100">Points Calculation Engine</CardTitle>
           <CardDescription>
             Configure the dynamic rules that calculate points based on closures and payments.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-slate-400">Loading rules...</div>
+            <div className="text-slate-500 dark:text-slate-400">Loading rules...</div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-800">
+              <TableHeader className="bg-slate-100 dark:bg-slate-800">
                 <TableRow>
-                  <TableHead className="text-slate-300">Rule Name</TableHead>
-                  <TableHead className="text-slate-300">Priority</TableHead>
-                  <TableHead className="text-slate-300">Course Match</TableHead>
-                  <TableHead className="text-slate-300">Min Payment %</TableHead>
-                  <TableHead className="text-slate-300">Action / Formula</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Rule Name</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Priority</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Course Match</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Min Payment %</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Action / Formula</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -39,12 +39,12 @@ export default function PointsEngineConfig() {
                   </TableRow>
                 )}
                 {rules?.map((rule) => (
-                  <TableRow key={rule.id} className="border-slate-800">
-                    <TableCell className="text-slate-200 font-medium">{rule.name}</TableCell>
-                    <TableCell className="text-slate-300">{rule.priority}</TableCell>
-                    <TableCell className="text-slate-300">{rule.courseMatch || "Any"}</TableCell>
-                    <TableCell className="text-slate-300">{rule.minPaymentPercent ? `${rule.minPaymentPercent}%` : "N/A"}</TableCell>
-                    <TableCell className="text-slate-300 font-mono text-sm text-indigo-400">
+                  <TableRow key={rule.id} className="border-slate-200 dark:border-slate-800">
+                    <TableCell className="text-slate-900 dark:text-slate-200 font-medium">{rule.name}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300">{rule.priority}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300">{rule.courseMatch || "Any"}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300">{rule.minPaymentPercent ? `${rule.minPaymentPercent}%` : "N/A"}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300 font-mono text-sm text-indigo-400">
                       {rule.fixedPointsAward ? `+${rule.fixedPointsAward} pts` : rule.formula}
                     </TableCell>
                     <TableCell>

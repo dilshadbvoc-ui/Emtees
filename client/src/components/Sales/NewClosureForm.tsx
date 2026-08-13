@@ -65,30 +65,30 @@ export default function NewClosureForm({ onSuccess }: Props) {
   const previewBalance = parseFloat(totalFee || "0") - parseFloat(firstInst || "0");
 
   return (
-    <Card className="bg-slate-900 border-slate-800 max-w-2xl mx-auto">
+    <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-slate-100">New Data Entry (Closure)</CardTitle>
+        <CardTitle className="text-slate-900 dark:text-slate-100">New Data Entry (Closure)</CardTitle>
         <CardDescription>Enter sales details. Balance and Points are calculated automatically.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Date</Label>
+              <Label className="text-slate-700 dark:text-slate-300">Date</Label>
               <Input 
                 type="date" 
                 value={date} 
                 onChange={e => setDate(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-slate-200"
+                className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200"
                 required
               />
             </div>
             
             {isAdmin && (
               <div className="space-y-2">
-                <Label className="text-slate-300">Sales Executive (CA)</Label>
+                <Label className="text-slate-700 dark:text-slate-300">Sales Executive (CA)</Label>
                 <Select value={caId} onValueChange={setCaId}>
-                  <SelectTrigger className="bg-slate-950 border-slate-800 text-slate-200">
+                  <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200">
                     <SelectValue placeholder="Select CA" />
                   </SelectTrigger>
                   <SelectContent>
@@ -103,9 +103,9 @@ export default function NewClosureForm({ onSuccess }: Props) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Type</Label>
+              <Label className="text-slate-700 dark:text-slate-300">Type</Label>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger className="bg-slate-950 border-slate-800 text-slate-200">
+                <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -117,12 +117,12 @@ export default function NewClosureForm({ onSuccess }: Props) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Course</Label>
+              <Label className="text-slate-700 dark:text-slate-300">Course</Label>
               <Input 
                 placeholder="e.g. HINDI_O_TO_O" 
                 value={course} 
                 onChange={e => setCourse(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-slate-200"
+                className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200"
                 required
               />
             </div>
@@ -130,47 +130,47 @@ export default function NewClosureForm({ onSuccess }: Props) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Admission No</Label>
+              <Label className="text-slate-700 dark:text-slate-300">Admission No</Label>
               <Input 
                 placeholder="Leave blank if pending" 
                 value={admNo} 
                 onChange={e => setAdmNo(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-slate-200"
+                className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Student Name</Label>
+              <Label className="text-slate-700 dark:text-slate-300">Student Name</Label>
               <Input 
                 value={studentName} 
                 onChange={e => setStudentName(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-slate-200"
+                className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 p-4 bg-slate-950 rounded-lg border border-slate-800">
+          <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
             <div className="space-y-2">
-              <Label className="text-slate-300">Total Fee</Label>
+              <Label className="text-slate-700 dark:text-slate-300">Total Fee</Label>
               <Input 
                 type="number" 
                 value={totalFee} 
                 onChange={e => setTotalFee(e.target.value)}
-                className="bg-slate-900 border-slate-700 text-slate-200"
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Amount Paid (1st Inst)</Label>
+              <Label className="text-slate-700 dark:text-slate-300">Amount Paid (1st Inst)</Label>
               <Input 
                 type="number" 
                 value={firstInst} 
                 onChange={e => setFirstInst(e.target.value)}
-                className="bg-slate-900 border-slate-700 text-slate-200"
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Balance Preview</Label>
-              <div className="h-10 flex items-center px-3 bg-slate-900 rounded-md border border-slate-700 text-amber-400 font-bold">
+              <Label className="text-slate-700 dark:text-slate-300">Balance Preview</Label>
+              <div className="h-10 flex items-center px-3 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-700 text-amber-400 font-bold">
                 ₹{previewBalance > 0 ? previewBalance : 0}
               </div>
             </div>

@@ -19,19 +19,19 @@ export default function SalesDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Sales & Account Module</h1>
-        <p className="text-slate-400">Manage closures, team hierarchy, points calculation, and dynamic reports.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sales & Account Module</h1>
+        <p className="text-slate-500 dark:text-slate-400">Manage closures, team hierarchy, points calculation, and dynamic reports.</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="closures" className="data-[state=active]:bg-indigo-600">Closures</TabsTrigger>
-          <TabsTrigger value="new-closure" className="data-[state=active]:bg-indigo-600">New Closure (Data Entry)</TabsTrigger>
-          <TabsTrigger value="reports" className="data-[state=active]:bg-indigo-600">Reports</TabsTrigger>
+        <TabsList className="bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+          <TabsTrigger value="closures" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Closures</TabsTrigger>
+          <TabsTrigger value="new-closure" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">New Closure (Data Entry)</TabsTrigger>
+          <TabsTrigger value="reports" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Reports</TabsTrigger>
           {isAdmin && (
             <>
-              <TabsTrigger value="hierarchy" className="data-[state=active]:bg-indigo-600">Hierarchy & Teams</TabsTrigger>
-              <TabsTrigger value="points-engine" className="data-[state=active]:bg-indigo-600">Points Engine</TabsTrigger>
+              <TabsTrigger value="hierarchy" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Hierarchy & Teams</TabsTrigger>
+              <TabsTrigger value="points-engine" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Points Engine</TabsTrigger>
             </>
           )}
         </TabsList>
