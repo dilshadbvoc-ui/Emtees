@@ -610,7 +610,7 @@ export default function SalesExecutivesAdminPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4 text-xs">
+            <div className="space-y-4 py-4 text-xs max-h-[60vh] overflow-y-auto pr-2">
               <div className="space-y-1.5">
                 <Label
                   htmlFor="exec-name"
@@ -789,7 +789,7 @@ export default function SalesExecutivesAdminPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4 text-xs">
+            <div className="space-y-4 py-4 text-xs max-h-[60vh] overflow-y-auto pr-2">
               <div className="space-y-1.5">
                 <Label
                   htmlFor="edit-name"
