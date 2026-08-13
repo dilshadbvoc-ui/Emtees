@@ -69,7 +69,7 @@ export default function SalesReportsView() {
             <TableHeader className="bg-slate-100 dark:bg-slate-800">
               <TableRow>
                 <TableHead className="text-slate-700 dark:text-slate-300">
-                  {groupBy === 'ca' ? "CA ID" : groupBy === 'asm' ? "ASM ID" : "Group ID"}
+                  {groupBy === 'ca' ? "Sales Executive" : groupBy === 'asm' ? "ASM" : "Team / Group"}
                 </TableHead>
                 <TableHead className="text-slate-700 dark:text-slate-300 text-right">Total Closures</TableHead>
                 <TableHead className="text-slate-700 dark:text-slate-300 text-right">Collected Revenue</TableHead>

@@ -313,19 +313,31 @@ export const salesRouter = createRouter({
       
       const allClosures = await db.query.salesClosures.findMany({
         where: and(...filters),
-        with: {
-          // We'd ideally join to get CA names, etc.
-        }
       });
+
+      const allExecs = await db.query.salesExecutives.findMany();
+      const allGroups = await db.query.salesGroups.findMany();
+
+      const execMap = new Map(allExecs.map(e => [e.id?.toString(), e.name]));
+      const groupMap = new Map(allGroups.map(g => [g.id?.toString(), g.name]));
 
       // Simple aggregation in memory for now
       const report: Record<string, { totalClosures: number, totalFee: number, totalPoints: number, collected: number }> = {};
 
       for (const closure of allClosures) {
         let key = "Unknown";
-        if (input.groupBy === "ca") key = closure.caId?.toString() || "Unassigned";
-        if (input.groupBy === "asm") key = closure.asmId?.toString() || "Unassigned";
-        if (input.groupBy === "group") key = closure.groupId?.toString() || "Unassigned";
+        if (input.groupBy === "ca") {
+          const id = closure.caId?.toString();
+          key = id ? (execMap.get(id) || `CA #${id}`) : "Unassigned";
+        }
+        if (input.groupBy === "asm") {
+          const id = closure.asmId?.toString();
+          key = id ? (execMap.get(id) || `ASM #${id}`) : "Unassigned";
+        }
+        if (input.groupBy === "group") {
+          const id = closure.groupId?.toString();
+          key = id ? (groupMap.get(id) || `Group #${id}`) : "Unassigned";
+        }
 
         if (!report[key]) {
           report[key] = { totalClosures: 0, totalFee: 0, totalPoints: 0, collected: 0 };
