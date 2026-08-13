@@ -351,6 +351,70 @@ export const salesRouter = createRouter({
 
       return report;
     }),
+
+  generateDetailedReport: salesExecQuery
+    .input(z.object({
+      monthStr: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const db = getDb();
+      const filters = [eq(salesClosures.isDeleted, false)];
+
+      // if not admin, strict visibility
+      if (ctx.user.role === "sales_executive") {
+        const dbUser = await db.query.users.findFirst({
+          where: eq(users.id, ctx.user.id)
+        });
+        if (!dbUser?.salesExecutiveId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sales profile missing" });
+        }
+        const profile = await db.query.salesExecutives.findFirst({
+          where: eq(salesExecutives.id, dbUser.salesExecutiveId)
+        });
+        if (profile?.isASM && profile?.groupId) {
+          filters.push(eq(salesClosures.groupId, profile.groupId));
+        } else {
+          filters.push(eq(salesClosures.caId, dbUser.salesExecutiveId));
+        }
+      }
+
+      if (input.monthStr) {
+        filters.push(eq(salesClosures.monthStr, input.monthStr));
+      }
+      
+      const allClosures = await db.query.salesClosures.findMany({
+        where: and(...filters),
+        orderBy: (salesClosures: any, { asc }: any) => [asc(salesClosures.closingDate)],
+      });
+
+      const allExecs = await db.query.salesExecutives.findMany();
+      const execMap = new Map(allExecs.map((e: any) => [e.id?.toString(), e.name]));
+
+      const detailedReport = allClosures.map((c: any) => {
+        const caName = c.caId ? (execMap.get(c.caId.toString()) || "Unknown") : "Unknown";
+        return {
+          id: c.id,
+          closingDate: c.closingDate,
+          monthStr: c.monthStr || "",
+          caCategory: c.caCategory || "",
+          caName: caName,
+          courseName: c.courseName || "",
+          admNo: c.admNo || "",
+          closure: 1, // typically 1 per row
+          studentName: c.studentName || "",
+          totalFee: parseFloat(c.totalFee || "0"),
+          firstInst: parseFloat(c.firstInst || "0"),
+          secondInst: parseFloat(c.secondInst || "0"),
+          thirdInst: parseFloat(c.thirdInst || "0"),
+          balance: parseFloat(c.balance || "0"),
+          bank: c.bank || "",
+          isVerified: c.isVerified,
+          verificationStatus: c.verificationStatus || "",
+        };
+      });
+
+      return detailedReport;
+    }),
 });
 
 // Points Engine Utility Function

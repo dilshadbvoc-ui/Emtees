@@ -8,25 +8,40 @@ import { Download } from "lucide-react";
 import { exportToCSV } from "@/lib/exportUtils";
 
 export default function SalesReportsView() {
-  const [groupBy, setGroupBy] = useState<"ca" | "asm" | "group">("ca");
-  const [monthStr, setMonthStr] = useState<string>("August 2025"); // Mock default for now
+  const [monthStr, setMonthStr] = useState<string>("May 2025"); // default to May 2025 since we imported it
 
-  const { data: report, isLoading } = trpc.sales.generateReport.useQuery({
-    groupBy,
+  const { data: reportData, isLoading } = trpc.sales.generateDetailedReport.useQuery({
     monthStr: monthStr || undefined,
   });
 
   const handleExport = () => {
-    if (!report) return;
-    const headers = ["Identifier", "Total Closures", "Collected Revenue", "Total Fee", "Points Awarded"];
-    const rows = Object.entries(report).map(([key, stats]) => [
-      key,
-      stats.totalClosures,
-      stats.collected,
-      stats.totalFee,
-      stats.totalPoints
+    if (!reportData) return;
+    const headers = [
+      "Closing Date", "Month", "CA Category", "CA Name", "Course", 
+      "Adm. No", "Closure", "Name", "Total Fee", "First Inst", 
+      "Second Inst", "III Installment", "Balance", "Bank", 
+      "Verification", "V STATUS"
+    ];
+    
+    const rows = reportData.map((row: any) => [
+      row.closingDate ? new Date(row.closingDate).toLocaleDateString() : "",
+      row.monthStr,
+      row.caCategory,
+      row.caName,
+      row.courseName,
+      row.admNo,
+      row.closure,
+      row.studentName,
+      row.totalFee,
+      row.firstInst,
+      row.secondInst,
+      row.thirdInst,
+      row.balance,
+      row.bank,
+      row.isVerified ? "TRUE" : "FALSE",
+      row.verificationStatus
     ]);
-    exportToCSV(`sales_report_${groupBy}_${monthStr.replace(' ', '_')}`, headers, rows);
+    exportToCSV(`sales_detailed_report_${monthStr.replace(' ', '_')}`, headers, rows);
   };
 
   return (
@@ -39,19 +54,11 @@ export default function SalesReportsView() {
               <SelectValue placeholder="Select Month" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="May 2025">May 2025</SelectItem>
+              <SelectItem value="June 2025">June 2025</SelectItem>
+              <SelectItem value="July 2025">July 2025</SelectItem>
               <SelectItem value="August 2025">August 2025</SelectItem>
               <SelectItem value="September 2025">September 2025</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={groupBy} onValueChange={(val: any) => setGroupBy(val)}>
-            <SelectTrigger className="w-[180px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200">
-              <SelectValue placeholder="Group By" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ca">By Sales Executive (CA)</SelectItem>
-              <SelectItem value="asm">By ASM</SelectItem>
-              <SelectItem value="group">By Group / Team</SelectItem>
             </SelectContent>
           </Select>
 
@@ -65,36 +72,84 @@ export default function SalesReportsView() {
         {isLoading ? (
           <div className="text-slate-500 dark:text-slate-400 py-4">Generating report...</div>
         ) : (
-          <Table>
-            <TableHeader className="bg-slate-100 dark:bg-slate-800">
-              <TableRow>
-                <TableHead className="text-slate-700 dark:text-slate-300">
-                  {groupBy === 'ca' ? "Sales Executive" : groupBy === 'asm' ? "ASM" : "Team / Group"}
-                </TableHead>
-                <TableHead className="text-slate-700 dark:text-slate-300 text-right">Total Closures</TableHead>
-                <TableHead className="text-slate-700 dark:text-slate-300 text-right">Collected Revenue</TableHead>
-                <TableHead className="text-slate-700 dark:text-slate-300 text-right">Total Fee Value</TableHead>
-                <TableHead className="text-slate-700 dark:text-slate-300 text-right">Total Points</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {!report || Object.keys(report).length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table className="min-w-max text-xs">
+              <TableHeader className="bg-slate-100 dark:bg-slate-800">
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-slate-500 py-6">No data found for this period.</TableCell>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Closing Date</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Month</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">CA Category</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">CA Name</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Course</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Adm. No</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300 text-center">Closure</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Name</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300 text-right">Total Fee</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300 text-right">First Inst</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300 text-right">Second Inst</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300 text-right">III Inst</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300 text-right">Balance</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Bank</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300 text-center">Verification</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">V STATUS</TableHead>
                 </TableRow>
-              ) : (
-                Object.entries(report).map(([key, stats]) => (
-                  <TableRow key={key} className="border-slate-200 dark:border-slate-800">
-                    <TableCell className="text-slate-900 dark:text-slate-200 font-medium">{key}</TableCell>
-                    <TableCell className="text-right text-slate-700 dark:text-slate-300">{stats.totalClosures}</TableCell>
-                    <TableCell className="text-right text-emerald-400">₹{stats.collected}</TableCell>
-                    <TableCell className="text-right text-slate-500 dark:text-slate-400">₹{stats.totalFee}</TableCell>
-                    <TableCell className="text-right text-indigo-400 font-bold">{stats.totalPoints}</TableCell>
+              </TableHeader>
+              <TableBody>
+                {!reportData || reportData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={16} className="text-center text-slate-500 py-6">No data found for this period.</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  <>
+                    {reportData.map((row: any) => (
+                      <TableRow key={row.id} className="border-slate-200 dark:border-slate-800">
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.closingDate ? new Date(row.closingDate).toLocaleDateString() : ""}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.monthStr}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.caCategory}</TableCell>
+                        <TableCell className="text-slate-900 dark:text-slate-200 font-medium">{row.caName}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.courseName}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.admNo}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300 text-center">{row.closure}</TableCell>
+                        <TableCell className="text-slate-900 dark:text-slate-200">{row.studentName}</TableCell>
+                        <TableCell className="text-right text-slate-700 dark:text-slate-300">{row.totalFee}</TableCell>
+                        <TableCell className="text-right text-slate-700 dark:text-slate-300">{row.firstInst}</TableCell>
+                        <TableCell className="text-right text-slate-700 dark:text-slate-300">{row.secondInst}</TableCell>
+                        <TableCell className="text-right text-slate-700 dark:text-slate-300">{row.thirdInst}</TableCell>
+                        <TableCell className="text-right text-amber-500">{row.balance}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.bank}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300 text-center">{row.isVerified ? "TRUE" : "FALSE"}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.verificationStatus}</TableCell>
+                      </TableRow>
+                    ))}
+                    {/* Totals Row */}
+                    <TableRow className="border-t-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                      <TableCell colSpan={6} className="text-right font-bold text-slate-900 dark:text-slate-100">Totals:</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 dark:text-slate-100">
+                        {reportData.reduce((acc: number, val: any) => acc + (val.closure || 0), 0)}
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="text-right font-bold text-slate-900 dark:text-slate-100">
+                        {reportData.reduce((acc: number, val: any) => acc + (val.totalFee || 0), 0)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-slate-900 dark:text-slate-100">
+                        {reportData.reduce((acc: number, val: any) => acc + (val.firstInst || 0), 0)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-slate-900 dark:text-slate-100">
+                        {reportData.reduce((acc: number, val: any) => acc + (val.secondInst || 0), 0)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-slate-900 dark:text-slate-100">
+                        {reportData.reduce((acc: number, val: any) => acc + (val.thirdInst || 0), 0)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-amber-600 dark:text-amber-500">
+                        {reportData.reduce((acc: number, val: any) => acc + (val.balance || 0), 0)}
+                      </TableCell>
+                      <TableCell colSpan={3}></TableCell>
+                    </TableRow>
+                  </>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
