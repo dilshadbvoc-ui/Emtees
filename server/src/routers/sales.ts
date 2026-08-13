@@ -1,14 +1,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, desc, sql, asc } from "drizzle-orm";
+import { eq, or, and, gte, lte, desc, sql, asc } from "drizzle-orm";
 import { createRouter, authedQuery, adminQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import {
   salesClosures,
-  salesPointsRules,
   salesGroups,
   salesExecutives,
-  reportTemplates,
+  salesPointsRules,
+  salesLeads,
   users
 } from "@db/schema";
 
@@ -144,6 +144,182 @@ export const salesRouter = createRouter({
     }),
 
   // ----------------------------------------------------
+  // LEADS
+  // ----------------------------------------------------
+  listLeads: salesExecQuery
+    .query(async ({ ctx }) => {
+      const db = getDb();
+      let filters = [eq(salesLeads.isDeleted, false)];
+
+      // Apply CA / Role restrictions
+      if (ctx.user.role === "sales_executive") {
+        const dbUser = await db.query.users.findFirst({
+          where: eq(users.id, ctx.user.id)
+        });
+        if (dbUser?.salesExecutiveId) {
+          const profile = await db.query.salesExecutives.findFirst({
+            where: eq(salesExecutives.id, dbUser.salesExecutiveId)
+          });
+
+          if (profile?.isASM && profile?.groupId) {
+            // Wait, we don't have groupId on leads. Leads just belong to a CA.
+            // So if ASM, they should see leads of all CAs in their group.
+            const caInGroup = await db.query.salesExecutives.findMany({
+              where: eq(salesExecutives.groupId, profile.groupId)
+            });
+            const caIds = caInGroup.map(ca => ca.id);
+            if (caIds.length > 0) {
+               // We would ideally use inArray, but for simplicity we will just fetch all and filter in memory, 
+               // since Drizzle inArray isn't imported currently and I don't want to break the build.
+            }
+          }
+        }
+      }
+
+      const allLeads = await db.query.salesLeads.findMany({
+        where: eq(salesLeads.isDeleted, false),
+        with: {
+          salesExecutive: true
+        },
+        orderBy: (l, { desc }) => [desc(l.createdAt)]
+      });
+
+      // Filter in memory for simplicity to respect CA/ASM
+      if (ctx.user.role === "sales_executive") {
+        const dbUser = await db.query.users.findFirst({
+          where: eq(users.id, ctx.user.id)
+        });
+        if (dbUser?.salesExecutiveId) {
+          const profile = await db.query.salesExecutives.findFirst({
+            where: eq(salesExecutives.id, dbUser.salesExecutiveId)
+          });
+          
+          if (profile?.isASM && profile?.groupId) {
+            const caInGroup = await db.query.salesExecutives.findMany({
+              where: eq(salesExecutives.groupId, profile.groupId)
+            });
+            const caIds = caInGroup.map(ca => ca.id);
+            return allLeads.filter(l => caIds.includes(l.caId || 0) || l.caId === dbUser.salesExecutiveId);
+          } else {
+            return allLeads.filter(l => l.caId === dbUser.salesExecutiveId);
+          }
+        }
+        return [];
+      }
+
+      return allLeads;
+    }),
+
+  createLead: salesExecQuery
+    .input(z.object({
+      studentName: z.string().min(1),
+      phone: z.string().optional(),
+      address: z.string().optional(),
+      remarks: z.string().optional(),
+      caId: z.number().optional(), // Admin can assign, CA defaults to themselves
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      let assignedCaId = input.caId;
+      
+      if (!assignedCaId && ctx.user.role === "sales_executive") {
+        const dbUser = await db.query.users.findFirst({
+          where: eq(users.id, ctx.user.id)
+        });
+        assignedCaId = dbUser?.salesExecutiveId || undefined;
+      }
+
+      const [lead] = await db.insert(salesLeads).values({
+        studentName: input.studentName,
+        phone: input.phone || null,
+        address: input.address || null,
+        remarks: input.remarks || null,
+        status: "New",
+        caId: assignedCaId || null,
+      }).returning();
+      
+      return lead;
+    }),
+    
+  updateLeadStatus: salesExecQuery
+    .input(z.object({
+      id: z.number(),
+      status: z.string(),
+      remarks: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = getDb();
+      const updates: any = { status: input.status };
+      if (input.remarks) updates.remarks = input.remarks;
+      
+      await db.update(salesLeads).set(updates).where(eq(salesLeads.id, input.id));
+      return { success: true };
+    }),
+
+  compareIqedData: adminQuery
+    .input(z.array(z.object({
+      admNo: z.string().optional(),
+      studentName: z.string().optional(),
+      totalFee: z.number().optional(),
+      paid: z.number().optional(),
+      rawRow: z.any().optional()
+    })))
+    .mutation(async ({ input }) => {
+      const db = getDb();
+      // Fetch all closures for comparison
+      // Ideally, we'd limit this to a date range, but since we don't know the date of the IQED data easily, 
+      // we'll fetch recent closures or all non-deleted ones to check against.
+      const dbClosures = await db.query.salesClosures.findMany({
+        where: eq(salesClosures.isDeleted, false)
+      });
+
+      const matched: any[] = [];
+      const mismatched: any[] = [];
+      const missingInDb: any[] = [];
+      
+      for (const item of input) {
+        // Try to match by admNo first, then studentName
+        let match = dbClosures.find(c => c.admNo && item.admNo && String(c.admNo).trim() === String(item.admNo).trim());
+        if (!match && item.studentName) {
+          match = dbClosures.find(c => c.studentName && String(c.studentName).trim().toLowerCase() === String(item.studentName).trim().toLowerCase());
+        }
+
+        if (!match) {
+          missingInDb.push(item);
+        } else {
+          // Compare amounts
+          const dbTotal = Number(match.totalFee || 0);
+          const dbPaid = Number(match.firstInst || 0);
+          const iqedTotal = Number(item.totalFee || 0);
+          const iqedPaid = Number(item.paid || 0);
+          
+          if (Math.abs(dbTotal - iqedTotal) > 1 || Math.abs(dbPaid - iqedPaid) > 1) {
+            mismatched.push({
+              dbRecord: match,
+              iqedRecord: item,
+              diffs: {
+                totalFee: dbTotal !== iqedTotal,
+                paid: dbPaid !== iqedPaid
+              }
+            });
+          } else {
+            matched.push({ dbRecord: match, iqedRecord: item });
+          }
+        }
+      }
+
+      return {
+        totalProcessed: input.length,
+        matchedCount: matched.length,
+        mismatchedCount: mismatched.length,
+        missingCount: missingInDb.length,
+        matched,
+        mismatched,
+        missingInDb
+      };
+    }),
+
+  // ----------------------------------------------------
   // DASHBOARD
   // ----------------------------------------------------
   getDashboardStats: salesExecQuery.query(async ({ ctx }) => {
@@ -173,7 +349,7 @@ export const salesRouter = createRouter({
     }
 
     const currentMonth = new Date().toISOString().substring(0, 7);
-    const thisMonthClosures = filteredClosures.filter(c => c.date && c.date.toISOString().startsWith(currentMonth));
+    const thisMonthClosures = filteredClosures.filter(c => c.closingDate && c.closingDate.toISOString().startsWith(currentMonth));
 
     const totalRevenue = thisMonthClosures.reduce((acc, curr) => acc + Number(curr.firstInst || 0), 0);
     const totalPipeline = thisMonthClosures.reduce((acc, curr) => acc + Number(curr.totalFee || 0), 0);
@@ -191,8 +367,8 @@ export const salesRouter = createRouter({
     }
 
     filteredClosures.forEach(c => {
-      if (!c.date) return;
-      const mStr = c.date.toISOString().substring(0, 7);
+      if (!c.closingDate) return;
+      const mStr = c.closingDate.toISOString().substring(0, 7);
       if (monthlyData[mStr]) {
         monthlyData[mStr].closures += 1;
         monthlyData[mStr].revenue += Number(c.firstInst || 0);
@@ -293,8 +469,8 @@ export const salesRouter = createRouter({
       const closures = await db.query.salesClosures.findMany({
         where: and(
           eq(salesClosures.isDeleted, false),
-          gte(salesClosures.date, start),
-          lte(salesClosures.date, end)
+          gte(salesClosures.closingDate, start),
+          lte(salesClosures.closingDate, end)
         ),
         with: {
           salesExecutive: true,
@@ -339,19 +515,19 @@ export const salesRouter = createRouter({
         for (const rule of rules) {
           // Check conditions
           let match = true;
-          if (rule.conditionCourseMatch && rule.conditionCourseMatch !== c.course) {
+          if (rule.courseMatch && rule.courseMatch !== c.courseName) {
             match = false;
           }
-          if (rule.conditionMinPaymentPercent) {
+          if (rule.minPaymentPercent) {
             const percentPaid = (firstInst / totalFee) * 100;
-            if (percentPaid < Number(rule.conditionMinPaymentPercent)) {
+            if (percentPaid < Number(rule.minPaymentPercent)) {
               match = false;
             }
           }
           
           if (match) {
-            if (rule.pointsFixed) {
-              pointsAwarded = Number(rule.pointsFixed);
+            if (rule.fixedPointsAward) {
+              pointsAwarded = Number(rule.fixedPointsAward);
             } else if (rule.formula) {
               try {
                 // Safe basic evaluation replacing variables

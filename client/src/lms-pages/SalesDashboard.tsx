@@ -12,6 +12,8 @@ import HierarchyManager from "@/components/Sales/HierarchyManager";
 import DashboardView from "@/components/Sales/DashboardView";
 import AsmPerformanceReport from "@/components/Sales/AsmPerformanceReport";
 import WeeklyLeaderboard from "@/components/Sales/WeeklyLeaderboard";
+import LeadsManager from "@/components/Sales/LeadsManager";
+import ReconciliationUpload from "@/components/Sales/ReconciliationUpload";
 
 export default function SalesDashboard() {
   const { user } = useAuth();
@@ -29,8 +31,10 @@ export default function SalesDashboard() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
           <TabsTrigger value="dashboard" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Dashboard</TabsTrigger>
+          <TabsTrigger value="leads" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Leads</TabsTrigger>
           <TabsTrigger value="leaderboard" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Leaderboard</TabsTrigger>
           <TabsTrigger value="closures" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Closures</TabsTrigger>
+          <TabsTrigger value="reconciliation" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Reconciliation (IQED)</TabsTrigger>
           <TabsTrigger value="new-closure" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">New Closure (Data Entry)</TabsTrigger>
           <TabsTrigger value="reports" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Closures List</TabsTrigger>
           <TabsTrigger value="asm-report" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">ASM Report</TabsTrigger>
@@ -46,12 +50,20 @@ export default function SalesDashboard() {
           <DashboardView />
         </TabsContent>
 
+        <TabsContent value="leads" className="mt-6">
+          <LeadsManager />
+        </TabsContent>
+
         <TabsContent value="leaderboard" className="mt-6">
           <WeeklyLeaderboard />
         </TabsContent>
 
         <TabsContent value="closures" className="mt-6">
           <ClosuresList />
+        </TabsContent>
+
+        <TabsContent value="reconciliation" className="mt-6">
+          <ReconciliationUpload />
         </TabsContent>
 
         <TabsContent value="new-closure" className="mt-6">

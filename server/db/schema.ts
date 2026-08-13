@@ -13,6 +13,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 // Enums
 export const roleEnum = pgEnum("role", ["super_admin", "admin", "academic_head", "teacher", "student", "sales_executive"]);
@@ -1301,6 +1302,29 @@ export const salesClosures = pgTable("sales_closures", {
 export type SalesClosure = typeof salesClosures.$inferSelect;
 export type InsertSalesClosure = typeof salesClosures.$inferInsert;
 
+export const salesClosuresRelations = relations(salesClosures, ({ one }) => ({
+  salesExecutive: one(salesExecutives, {
+    fields: [salesClosures.caId],
+    references: [salesExecutives.id],
+  }),
+  asm: one(salesExecutives, {
+    fields: [salesClosures.asmId],
+    references: [salesExecutives.id],
+  }),
+  group: one(salesGroups, {
+    fields: [salesClosures.groupId],
+    references: [salesGroups.id],
+  }),
+  student: one(users, {
+    fields: [salesClosures.studentId],
+    references: [users.id],
+  }),
+  creator: one(users, {
+    fields: [salesClosures.createdBy],
+    references: [users.id],
+  }),
+}));
+
 // Sales Points Engine Rules
 export const salesPointsRules = pgTable("sales_points_rules", {
   id: serial("id").primaryKey(),
@@ -1319,6 +1343,29 @@ export const salesPointsRules = pgTable("sales_points_rules", {
 });
 export type SalesPointsRule = typeof salesPointsRules.$inferSelect;
 export type InsertSalesPointsRule = typeof salesPointsRules.$inferInsert;
+
+// Sales Leads
+export const salesLeads = pgTable("sales_leads", {
+  id: serial("id").primaryKey(),
+  studentName: varchar("student_name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 50 }),
+  address: text("address"),
+  remarks: text("remarks"),
+  status: varchar("status", { length: 50 }).default("New").notNull(), // New, Contacted, Converted, Dead
+  caId: bigint("ca_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type SalesLead = typeof salesLeads.$inferSelect;
+export type InsertSalesLead = typeof salesLeads.$inferInsert;
+
+export const salesLeadsRelations = relations(salesLeads, ({ one }) => ({
+  salesExecutive: one(salesExecutives, {
+    fields: [salesLeads.caId],
+    references: [salesExecutives.id],
+  }),
+}));
 
 // Custom Report Templates / Configs
 export const reportTemplates = pgTable("report_templates", {
