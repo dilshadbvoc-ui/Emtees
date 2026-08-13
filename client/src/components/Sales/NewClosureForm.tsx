@@ -23,6 +23,10 @@ export default function NewClosureForm({ onSuccess }: Props) {
   const [studentName, setStudentName] = useState("");
   const [totalFee, setTotalFee] = useState("");
   const [firstInst, setFirstInst] = useState("");
+  const [secondInst, setSecondInst] = useState("");
+  const [thirdInst, setThirdInst] = useState("");
+  const [bank, setBank] = useState("");
+  const [verificationStatus, setVerificationStatus] = useState("");
   const [caId, setCaId] = useState<string>("");
 
   const utils = trpc.useUtils();
@@ -33,6 +37,7 @@ export default function NewClosureForm({ onSuccess }: Props) {
       if (onSuccess) onSuccess();
       // Reset form
       setCourse(""); setAdmNo(""); setStudentName(""); setTotalFee(""); setFirstInst("");
+      setSecondInst(""); setThirdInst(""); setBank(""); setVerificationStatus("");
     },
     onError: (err) => {
       toast.error(err.message);
@@ -58,11 +63,15 @@ export default function NewClosureForm({ onSuccess }: Props) {
       studentName,
       totalFee: parseFloat(totalFee),
       firstInst: parseFloat(firstInst) || 0,
+      secondInst: parseFloat(secondInst) || 0,
+      thirdInst: parseFloat(thirdInst) || 0,
+      bank,
+      verificationStatus,
       caId: isAdmin && caId ? parseInt(caId) : undefined,
     });
   };
 
-  const previewBalance = parseFloat(totalFee || "0") - parseFloat(firstInst || "0");
+  const previewBalance = parseFloat(totalFee || "0") - (parseFloat(firstInst || "0") + parseFloat(secondInst || "0") + parseFloat(thirdInst || "0"));
 
   return (
     <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 max-w-2xl mx-auto">
@@ -148,7 +157,7 @@ export default function NewClosureForm({ onSuccess }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
             <div className="space-y-2">
               <Label className="text-slate-700 dark:text-slate-300">Total Fee</Label>
               <Input 
@@ -160,7 +169,7 @@ export default function NewClosureForm({ onSuccess }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-700 dark:text-slate-300">Amount Paid (1st Inst)</Label>
+              <Label className="text-slate-700 dark:text-slate-300">First Inst</Label>
               <Input 
                 type="number" 
                 value={firstInst} 
@@ -169,8 +178,47 @@ export default function NewClosureForm({ onSuccess }: Props) {
               />
             </div>
             <div className="space-y-2">
+              <Label className="text-slate-700 dark:text-slate-300">Second Inst</Label>
+              <Input 
+                type="number" 
+                value={secondInst} 
+                onChange={e => setSecondInst(e.target.value)}
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-700 dark:text-slate-300">Third Inst</Label>
+              <Input 
+                type="number" 
+                value={thirdInst} 
+                onChange={e => setThirdInst(e.target.value)}
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-slate-700 dark:text-slate-300">Bank</Label>
+              <Input 
+                placeholder="e.g. Federal, UPI"
+                value={bank} 
+                onChange={e => setBank(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-700 dark:text-slate-300">Verification Status</Label>
+              <Input 
+                placeholder="e.g. NOT VERIFIED"
+                value={verificationStatus} 
+                onChange={e => setVerificationStatus(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200"
+              />
+            </div>
+            <div className="space-y-2">
               <Label className="text-slate-700 dark:text-slate-300">Balance Preview</Label>
-              <div className="h-10 flex items-center px-3 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-700 text-amber-400 font-bold">
+              <div className="h-10 flex items-center px-3 bg-slate-50 dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-700 text-amber-500 font-bold">
                 ₹{previewBalance > 0 ? previewBalance : 0}
               </div>
             </div>
