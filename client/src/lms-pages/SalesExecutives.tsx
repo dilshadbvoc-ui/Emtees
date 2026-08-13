@@ -58,6 +58,10 @@ export default function SalesExecutivesAdminPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"active" | "inactive">("active");
+  const [groupId, setGroupId] = useState<number | null>(null);
+  const [isASM, setIsASM] = useState(false);
+
+  const groupsQuery = trpc.sales.listGroups.useQuery();
 
   const execsQuery = trpc.salesExecutive.listExecutives.useQuery({
     search: search || undefined,
@@ -154,6 +158,8 @@ export default function SalesExecutivesAdminPage() {
     setUsername("");
     setPassword("");
     setStatus("active");
+    setGroupId(null);
+    setIsASM(false);
   };
 
   const handleAddSubmit = (e: React.FormEvent) => {
@@ -163,14 +169,14 @@ export default function SalesExecutivesAdminPage() {
       toast.error("Please fill in all fields.");
       return;
     }
-    createMutation.mutate({ name, email, phone, username, password, status });
+    createMutation.mutate({ name, email, phone, username, password, status, groupId, isASM });
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const phone = `${countryCode}${phoneNumber}`.replace(/\s+/g, "");
     if (!selectedId || !name || !email || !phoneNumber) return;
-    editMutation.mutate({ id: selectedId, name, email, phone, status });
+    editMutation.mutate({ id: selectedId, name, email, phone, status, groupId, isASM });
   };
 
   const handleResetPasswordSubmit = (e: React.FormEvent) => {
@@ -189,6 +195,8 @@ export default function SalesExecutivesAdminPage() {
     setCountryISO(exec.countryISO || "IN");
     setPhoneNumber(exec.phoneNumber || rawPhone);
     setStatus(exec.status);
+    setGroupId(exec.groupId);
+    setIsASM(exec.isASM);
     setEditModalOpen(true);
   };
 
@@ -304,8 +312,14 @@ export default function SalesExecutivesAdminPage() {
                               : "bg-red-50 text-red-700 border-red-100"
                           }
                         >
-                          {exec.status}
+                          {exec.status === "active" ? "Active" : "Inactive"}
                         </Badge>
+                        {exec.isASM && <Badge variant="secondary" className="ml-1 text-[10px] bg-purple-100 text-purple-700">ASM</Badge>}
+                        {exec.groupId && (
+                          <Badge variant="outline" className="ml-1 text-[10px] bg-slate-100 text-slate-700">
+                            {groupsQuery.data?.find(g => g.id === exec.groupId)?.name || "Team"}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs text-right space-x-1">
                         {/* Students Button */}
@@ -466,6 +480,37 @@ export default function SalesExecutivesAdminPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-semibold text-gray-600">Assign to Team (Optional)</Label>
+                <Select value={groupId?.toString() || "none"} onValueChange={(val: any) => setGroupId(val === "none" ? null : parseInt(val))}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="No Team" />
+                  </SelectTrigger>
+                  <SelectContent className="text-xs">
+                    <SelectItem value="none">No Team</SelectItem>
+                    {groupsQuery.data?.map(g => (
+                      <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5 flex items-center justify-between border p-3 rounded-lg bg-gray-50/50">
+                <div>
+                  <Label className="font-semibold text-gray-600">Is Area Sales Manager (ASM)?</Label>
+                  <p className="text-[10px] text-gray-500">ASMs can manage and view their team's data.</p>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsASM(!isASM)}
+                  className={`hover:bg-transparent ${isASM ? 'text-emerald-600' : 'text-gray-400'}`}
+                >
+                  {isASM ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
+                </Button>
+              </div>
             </div>
 
             <DialogFooter className="gap-2">
@@ -526,6 +571,37 @@ export default function SalesExecutivesAdminPage() {
                     <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-semibold text-gray-600">Assign to Team (Optional)</Label>
+                <Select value={groupId?.toString() || "none"} onValueChange={(val: any) => setGroupId(val === "none" ? null : parseInt(val))}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="No Team" />
+                  </SelectTrigger>
+                  <SelectContent className="text-xs">
+                    <SelectItem value="none">No Team</SelectItem>
+                    {groupsQuery.data?.map(g => (
+                      <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5 flex items-center justify-between border p-3 rounded-lg bg-gray-50/50">
+                <div>
+                  <Label className="font-semibold text-gray-600">Is Area Sales Manager (ASM)?</Label>
+                  <p className="text-[10px] text-gray-500">ASMs can manage and view their team's data.</p>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsASM(!isASM)}
+                  className={`hover:bg-transparent ${isASM ? 'text-emerald-600' : 'text-gray-400'}`}
+                >
+                  {isASM ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
+                </Button>
               </div>
             </div>
 

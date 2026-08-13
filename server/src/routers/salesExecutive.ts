@@ -86,6 +86,8 @@ export const salesExecutiveRouter = createRouter({
         username: z.string().min(3),
         password: z.string().min(6),
         status: z.enum(["active", "inactive"]).default("active"),
+        groupId: z.number().nullable().optional(),
+        isASM: z.boolean().default(false),
       })
     )
     .mutation(async ({ input }) => {
@@ -190,6 +192,8 @@ export const salesExecutiveRouter = createRouter({
         password: hashedPassword,
         referralCode,
         status: input.status,
+        groupId: input.groupId,
+        isASM: input.isASM,
       }).returning();
 
       return execResult[0];
@@ -204,6 +208,8 @@ export const salesExecutiveRouter = createRouter({
         email: z.string().email(),
         phone: z.string().min(6),
         status: z.enum(["active", "inactive"]),
+        groupId: z.number().nullable().optional(),
+        isASM: z.boolean().default(false),
       })
     )
     .mutation(async ({ input }) => {
@@ -286,6 +292,8 @@ export const salesExecutiveRouter = createRouter({
           phoneNumber: parsedPhone.phoneNumber,
           fullInternationalNumber: fullIntNum,
           status: input.status,
+          groupId: input.groupId,
+          isASM: input.isASM,
         })
         .where(eq(salesExecutives.id, input.id))
         .returning();
