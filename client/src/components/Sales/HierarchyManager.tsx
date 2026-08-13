@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export default function HierarchyManager() {
@@ -17,6 +18,12 @@ export default function HierarchyManager() {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [asmId, setAsmId] = useState<number | null>(null);
+  const [managerId, setManagerId] = useState<number | null>(null);
+
+  const { data: execs } = trpc.salesExecutive.listExecutives.useQuery({});
+  const asms = execs?.filter(e => e.designation === "Assistant Sales Manager (ASM)") || [];
+  const managers = execs?.filter(e => e.designation === "Manager") || [];
 
   const createGroup = trpc.sales.createGroup.useMutation({
     onSuccess: () => {
@@ -24,6 +31,8 @@ export default function HierarchyManager() {
       setIsOpen(false);
       setName("");
       setDescription("");
+      setAsmId(null);
+      setManagerId(null);
       utils.sales.listGroups.invalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -31,7 +40,7 @@ export default function HierarchyManager() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    createGroup.mutate({ name, description });
+    createGroup.mutate({ name, description, asmId: asmId || undefined, managerId: managerId || undefined });
   };
 
   return (
@@ -75,6 +84,34 @@ export default function HierarchyManager() {
                     className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Manager (Optional)</Label>
+                  <Select value={managerId?.toString() || "none"} onValueChange={(val) => setManagerId(val === "none" ? null : parseInt(val))}>
+                    <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                      <SelectValue placeholder="Select a manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {managers.map(m => (
+                        <SelectItem key={m.id} value={m.id.toString()}>{m.name} ({m.employeeId})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Assistant Sales Manager (ASM) (Optional)</Label>
+                  <Select value={asmId?.toString() || "none"} onValueChange={(val) => setAsmId(val === "none" ? null : parseInt(val))}>
+                    <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                      <SelectValue placeholder="Select an ASM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {asms.map(a => (
+                        <SelectItem key={a.id} value={a.id.toString()}>{a.name} ({a.employeeId})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex justify-end pt-4">
                   <Button type="submit" disabled={createGroup.isPending} className="bg-indigo-600 hover:bg-indigo-700">
                     {createGroup.isPending ? "Saving..." : "Create Team"}
@@ -92,6 +129,8 @@ export default function HierarchyManager() {
               <TableHeader className="bg-slate-100 dark:bg-slate-800">
                 <TableRow>
                   <TableHead className="text-slate-700 dark:text-slate-300">Team Name</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Manager</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">ASM</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300">Description</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300">Status</TableHead>
                 </TableRow>
@@ -107,6 +146,12 @@ export default function HierarchyManager() {
                 {groups?.map((group) => (
                   <TableRow key={group.id} className="border-slate-200 dark:border-slate-800">
                     <TableCell className="text-slate-900 dark:text-slate-200 font-medium">{group.name}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300">
+                      {execs?.find(e => e.id === group.managerId)?.name || "—"}
+                    </TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300">
+                      {execs?.find(e => e.id === group.asmId)?.name || "—"}
+                    </TableCell>
                     <TableCell className="text-slate-700 dark:text-slate-300">{group.description || "—"}</TableCell>
                     <TableCell className="text-emerald-400">
                       {group.isActive ? "Active" : "Inactive"}

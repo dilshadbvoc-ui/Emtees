@@ -1153,6 +1153,7 @@ export const salesExecutives = pgTable(
     status: varchar("status", { length: 50 }).notNull().default("active"),
     groupId: bigint("group_id", { mode: "number" }), // references salesGroups.id (added below)
     isASM: boolean("is_asm").default(false).notNull(),
+    designation: varchar("designation", { length: 50 }).default("Sales User").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -1167,6 +1168,7 @@ export const salesGroups = pgTable("sales_groups", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull().unique(),
   asmId: bigint("asm_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
+  managerId: bigint("manager_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
   description: text("description"),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

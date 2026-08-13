@@ -59,7 +59,7 @@ export default function SalesExecutivesAdminPage() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [groupId, setGroupId] = useState<number | null>(null);
-  const [isASM, setIsASM] = useState(false);
+  const [designation, setDesignation] = useState("Sales User");
 
   const groupsQuery = trpc.sales.listGroups.useQuery();
 
@@ -159,7 +159,7 @@ export default function SalesExecutivesAdminPage() {
     setPassword("");
     setStatus("active");
     setGroupId(null);
-    setIsASM(false);
+    setDesignation("Sales User");
   };
 
   const handleAddSubmit = (e: React.FormEvent) => {
@@ -169,14 +169,16 @@ export default function SalesExecutivesAdminPage() {
       toast.error("Please fill in all fields.");
       return;
     }
-    createMutation.mutate({ name, email, phone, username, password, status, groupId, isASM });
+    const isASM = designation === "Assistant Sales Manager (ASM)" || designation === "Manager";
+    createMutation.mutate({ name, email, phone, username, password, status, groupId, isASM, designation });
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const phone = `${countryCode}${phoneNumber}`.replace(/\s+/g, "");
     if (!selectedId || !name || !email || !phoneNumber) return;
-    editMutation.mutate({ id: selectedId, name, email, phone, status, groupId, isASM });
+    const isASM = designation === "Assistant Sales Manager (ASM)" || designation === "Manager";
+    editMutation.mutate({ id: selectedId, name, email, phone, status, groupId, isASM, designation });
   };
 
   const handleResetPasswordSubmit = (e: React.FormEvent) => {
@@ -196,7 +198,7 @@ export default function SalesExecutivesAdminPage() {
     setPhoneNumber(exec.phoneNumber || rawPhone);
     setStatus(exec.status);
     setGroupId(exec.groupId);
-    setIsASM(exec.isASM);
+    setDesignation(exec.designation || "Sales User");
     setEditModalOpen(true);
   };
 
@@ -314,7 +316,7 @@ export default function SalesExecutivesAdminPage() {
                         >
                           {exec.status === "active" ? "Active" : "Inactive"}
                         </Badge>
-                        {exec.isASM && <Badge variant="secondary" className="ml-1 text-[10px] bg-purple-100 text-purple-700">ASM</Badge>}
+                        {exec.designation !== "Sales User" && <Badge variant="secondary" className="ml-1 text-[10px] bg-purple-100 text-purple-700">{exec.designation}</Badge>}
                         {exec.groupId && (
                           <Badge variant="outline" className="ml-1 text-[10px] bg-slate-100 text-slate-700">
                             {groupsQuery.data?.find(g => g.id === exec.groupId)?.name || "Team"}
@@ -496,20 +498,18 @@ export default function SalesExecutivesAdminPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5 flex items-center justify-between border p-3 rounded-lg bg-gray-50/50">
-                <div>
-                  <Label className="font-semibold text-gray-600">Is Area Sales Manager (ASM)?</Label>
-                  <p className="text-[10px] text-gray-500">ASMs can manage and view their team's data.</p>
-                </div>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setIsASM(!isASM)}
-                  className={`hover:bg-transparent ${isASM ? 'text-emerald-600' : 'text-gray-400'}`}
-                >
-                  {isASM ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
-                </Button>
+              <div className="space-y-2">
+                <Label>Designation</Label>
+                <Select value={designation} onValueChange={setDesignation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select designation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Manager">Manager</SelectItem>
+                    <SelectItem value="Assistant Sales Manager (ASM)">Assistant Sales Manager (ASM)</SelectItem>
+                    <SelectItem value="Sales User">Sales User</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -588,20 +588,18 @@ export default function SalesExecutivesAdminPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5 flex items-center justify-between border p-3 rounded-lg bg-gray-50/50">
-                <div>
-                  <Label className="font-semibold text-gray-600">Is Area Sales Manager (ASM)?</Label>
-                  <p className="text-[10px] text-gray-500">ASMs can manage and view their team's data.</p>
-                </div>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setIsASM(!isASM)}
-                  className={`hover:bg-transparent ${isASM ? 'text-emerald-600' : 'text-gray-400'}`}
-                >
-                  {isASM ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
-                </Button>
+              <div className="space-y-2">
+                <Label>Designation</Label>
+                <Select value={designation} onValueChange={setDesignation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select designation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Manager">Manager</SelectItem>
+                    <SelectItem value="Assistant Sales Manager (ASM)">Assistant Sales Manager (ASM)</SelectItem>
+                    <SelectItem value="Sales User">Sales User</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

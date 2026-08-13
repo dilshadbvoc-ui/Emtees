@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, or, and, gte, lte, desc, sql, asc } from "drizzle-orm";
+import { eq, or, and, gte, lte, desc, sql, asc, inArray } from "drizzle-orm";
 import { createRouter, authedQuery, adminQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import {
@@ -36,24 +36,26 @@ export const salesRouter = createRouter({
   }),
 
   createGroup: adminQuery
-    .input(z.object({ name: z.string().min(1), asmId: z.number().optional(), description: z.string().optional() }))
+    .input(z.object({ name: z.string().min(1), asmId: z.number().optional(), managerId: z.number().optional(), description: z.string().optional() }))
     .mutation(async ({ input }) => {
       const db = getDb();
       return db.insert(salesGroups).values({
         name: input.name,
         asmId: input.asmId,
+        managerId: input.managerId,
         description: input.description,
       }).returning();
     }),
 
   updateGroup: adminQuery
-    .input(z.object({ id: z.number(), name: z.string(), asmId: z.number().nullable().optional(), description: z.string().optional(), isActive: z.boolean().optional() }))
+    .input(z.object({ id: z.number(), name: z.string(), asmId: z.number().nullable().optional(), managerId: z.number().nullable().optional(), description: z.string().optional(), isActive: z.boolean().optional() }))
     .mutation(async ({ input }) => {
       const db = getDb();
       return db.update(salesGroups)
         .set({
           name: input.name,
           asmId: input.asmId,
+          managerId: input.managerId,
           description: input.description,
           isActive: input.isActive,
           updatedAt: new Date(),
@@ -151,30 +153,7 @@ export const salesRouter = createRouter({
       const db = getDb();
       let filters = [eq(salesLeads.isDeleted, false)];
 
-      // Apply CA / Role restrictions
-      if (ctx.user.role === "sales_executive") {
-        const dbUser = await db.query.users.findFirst({
-          where: eq(users.id, ctx.user.id)
-        });
-        if (dbUser?.salesExecutiveId) {
-          const profile = await db.query.salesExecutives.findFirst({
-            where: eq(salesExecutives.id, dbUser.salesExecutiveId)
-          });
-
-          if (profile?.isASM && profile?.groupId) {
-            // Wait, we don't have groupId on leads. Leads just belong to a CA.
-            // So if ASM, they should see leads of all CAs in their group.
-            const caInGroup = await db.query.salesExecutives.findMany({
-              where: eq(salesExecutives.groupId, profile.groupId)
-            });
-            const caIds = caInGroup.map(ca => ca.id);
-            if (caIds.length > 0) {
-               // We would ideally use inArray, but for simplicity we will just fetch all and filter in memory, 
-               // since Drizzle inArray isn't imported currently and I don't want to break the build.
-            }
-          }
-        }
-      }
+      // Dead code removed for clarity
 
       const allLeads = await db.query.salesLeads.findMany({
         where: eq(salesLeads.isDeleted, false),
@@ -194,7 +173,20 @@ export const salesRouter = createRouter({
             where: eq(salesExecutives.id, dbUser.salesExecutiveId)
           });
           
-          if (profile?.isASM && profile?.groupId) {
+          if (profile?.designation === "Manager") {
+            const managedGroups = await db.query.salesGroups.findMany({
+              where: eq(salesGroups.managerId, profile.id)
+            });
+            const groupIds = managedGroups.map(g => g.id);
+            if (groupIds.length > 0) {
+              const caInManagedGroups = await db.query.salesExecutives.findMany({
+                where: inArray(salesExecutives.groupId, groupIds)
+              });
+              const caIds = caInManagedGroups.map(ca => ca.id);
+              return allLeads.filter(l => caIds.includes(l.caId || 0) || l.caId === dbUser.salesExecutiveId);
+            }
+            return allLeads.filter(l => l.caId === dbUser.salesExecutiveId);
+          } else if (profile?.isASM && profile?.groupId) {
             const caInGroup = await db.query.salesExecutives.findMany({
               where: eq(salesExecutives.groupId, profile.groupId)
             });
@@ -340,7 +332,13 @@ export const salesRouter = createRouter({
           where: eq(salesExecutives.id, dbUser.salesExecutiveId)
         });
 
-        if (profile?.isASM && profile?.groupId) {
+        if (profile?.designation === "Manager") {
+          const managedGroups = await db.query.salesGroups.findMany({
+            where: eq(salesGroups.managerId, profile.id)
+          });
+          const groupIds = managedGroups.map(g => g.id);
+          filteredClosures = allClosures.filter(c => c.groupId && groupIds.includes(c.groupId));
+        } else if (profile?.isASM && profile?.groupId) {
           filteredClosures = allClosures.filter(c => c.groupId === profile.groupId);
         } else {
           filteredClosures = allClosures.filter(c => c.caId === dbUser.salesExecutiveId);
@@ -407,6 +405,9 @@ export const salesRouter = createRouter({
         }
       });
 
+      const execs = await db.query.salesExecutives.findMany();
+      const execMap = Object.fromEntries(execs.map(e => [e.id, e.name]));
+
       // Group by groupId
       const grouped: Record<number, any> = {};
 
@@ -417,6 +418,7 @@ export const salesRouter = createRouter({
             groupId: gid,
             groupName: c.group?.name || "Unassigned",
             asmName: c.asm?.name || "N/A",
+            managerName: c.group?.managerId ? (execMap[c.group.managerId] || "N/A") : "N/A",
             closures: 0,
             firstPayment: 0,
             oldBalance: 0,
@@ -580,7 +582,17 @@ export const salesRouter = createRouter({
           where: eq(salesExecutives.id, dbUser.salesExecutiveId)
         });
 
-        if (profile?.isASM && profile?.groupId) {
+        if (profile?.designation === "Manager") {
+          const managedGroups = await db.query.salesGroups.findMany({
+            where: eq(salesGroups.managerId, profile.id)
+          });
+          const groupIds = managedGroups.map(g => g.id);
+          if (groupIds.length > 0) {
+            filters.push(inArray(salesClosures.groupId, groupIds));
+          } else {
+            filters.push(eq(salesClosures.id, -1)); // impossible condition to return nothing
+          }
+        } else if (profile?.isASM && profile?.groupId) {
           // ASM sees their group
           filters.push(eq(salesClosures.groupId, profile.groupId));
         } else {
@@ -709,7 +721,17 @@ export const salesRouter = createRouter({
         const profile = await db.query.salesExecutives.findFirst({
           where: eq(salesExecutives.id, dbUser.salesExecutiveId)
         });
-        if (profile?.isASM && profile?.groupId) {
+        if (profile?.designation === "Manager") {
+          const managedGroups = await db.query.salesGroups.findMany({
+            where: eq(salesGroups.managerId, profile.id)
+          });
+          const groupIds = managedGroups.map(g => g.id);
+          if (groupIds.length > 0) {
+            filters.push(inArray(salesClosures.groupId, groupIds));
+          } else {
+            filters.push(eq(salesClosures.id, -1));
+          }
+        } else if (profile?.isASM && profile?.groupId) {
           filters.push(eq(salesClosures.groupId, profile.groupId));
         } else {
           filters.push(eq(salesClosures.caId, dbUser.salesExecutiveId));
@@ -780,7 +802,17 @@ export const salesRouter = createRouter({
         const profile = await db.query.salesExecutives.findFirst({
           where: eq(salesExecutives.id, dbUser.salesExecutiveId)
         });
-        if (profile?.isASM && profile?.groupId) {
+        if (profile?.designation === "Manager") {
+          const managedGroups = await db.query.salesGroups.findMany({
+            where: eq(salesGroups.managerId, profile.id)
+          });
+          const groupIds = managedGroups.map(g => g.id);
+          if (groupIds.length > 0) {
+            filters.push(inArray(salesClosures.groupId, groupIds));
+          } else {
+            filters.push(eq(salesClosures.id, -1));
+          }
+        } else if (profile?.isASM && profile?.groupId) {
           filters.push(eq(salesClosures.groupId, profile.groupId));
         } else {
           filters.push(eq(salesClosures.caId, dbUser.salesExecutiveId));
@@ -799,12 +831,23 @@ export const salesRouter = createRouter({
       const allExecs = await db.query.salesExecutives.findMany();
       const execMap = new Map(allExecs.map((e: any) => [e.id?.toString(), e.name]));
 
+      const allGroups = await db.query.salesGroups.findMany();
+      const groupMap = new Map(allGroups.map((g: any) => [g.id?.toString(), g]));
+
       const detailedReport = allClosures.map((c: any) => {
         const caName = c.caId ? (execMap.get(c.caId.toString()) || "Unknown") : "Unknown";
+        const group = c.groupId ? groupMap.get(c.groupId.toString()) : null;
+        const teamName = group ? group.name : "Unassigned";
+        const asmName = group?.asmId ? (execMap.get(group.asmId.toString()) || "N/A") : "N/A";
+        const managerName = group?.managerId ? (execMap.get(group.managerId.toString()) || "N/A") : "N/A";
+        
         return {
           id: c.id,
           closingDate: c.closingDate,
           monthStr: c.monthStr || "",
+          managerName: managerName,
+          asmName: asmName,
+          teamName: teamName,
           caCategory: c.caCategory || "",
           caName: caName,
           courseName: c.courseName || "",

@@ -13,13 +13,14 @@ export default function AsmPerformanceReport() {
 
   const handleExport = () => {
     if (!asmData || asmData.length === 0) return;
-    const headers = ["CA List", "Team Leader", "ASM", "New Closure", "Old Balance", "Renewal", "Total Amount", "Closures Count"];
+    const headers = ["CA List", "Team Leader", "Manager", "ASM", "New Closure", "Old Balance", "Renewal", "Total Amount", "Closures Count"];
     const csvRows = [headers.join(",")];
     
     asmData.forEach(row => {
       csvRows.push([
         `"${row.caList}"`,
         `"${row.groupName}"`,
+        `"${row.managerName || "N/A"}"`,
         `"${row.asmName}"`,
         row.firstPayment,
         row.oldBalance,
@@ -79,6 +80,7 @@ export default function AsmPerformanceReport() {
                 <TableRow>
                   <TableHead className="text-slate-700 dark:text-slate-300">CA List</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300">Team Name</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Manager</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300">ASM</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300 text-right">New Closure</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300 text-right">Old Balance</TableHead>
@@ -90,11 +92,11 @@ export default function AsmPerformanceReport() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-slate-500">Loading...</TableCell>
+                    <TableCell colSpan={9} className="text-center py-8 text-slate-500">Loading...</TableCell>
                   </TableRow>
                 ) : asmData?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-slate-500">No data for this month.</TableCell>
+                    <TableCell colSpan={9} className="text-center py-8 text-slate-500">No data for this month.</TableCell>
                   </TableRow>
                 ) : (
                   asmData?.map((row, idx) => {
@@ -103,6 +105,7 @@ export default function AsmPerformanceReport() {
                       <TableRow key={idx} className="border-slate-200 dark:border-slate-800">
                         <TableCell className="text-xs text-slate-600 max-w-[200px] truncate" title={row.caList}>{row.caList || "—"}</TableCell>
                         <TableCell className="font-medium text-indigo-600">{row.groupName}</TableCell>
+                        <TableCell className="font-medium text-slate-700">{row.managerName}</TableCell>
                         <TableCell className="font-semibold text-slate-800">{row.asmName}</TableCell>
                         <TableCell className="text-right">₹{row.firstPayment.toLocaleString()}</TableCell>
                         <TableCell className="text-right text-rose-600">₹{row.oldBalance.toLocaleString()}</TableCell>

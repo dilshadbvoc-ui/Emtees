@@ -17,7 +17,7 @@ export default function SalesReportsView() {
   const handleExport = () => {
     if (!reportData) return;
     const headers = [
-      "Closing Date", "Month", "CA Category", "CA Name", "Course", 
+      "Closing Date", "Month", "Manager", "ASM", "Team", "CA Category", "CA Name", "Course", 
       "Adm. No", "Closure", "Name", "Total Fee", "First Inst", 
       "Second Inst", "III Installment", "Balance", "Bank", 
       "Verification", "V STATUS"
@@ -26,6 +26,9 @@ export default function SalesReportsView() {
     const rows = reportData.map((row: any) => [
       row.closingDate ? new Date(row.closingDate).toLocaleDateString() : "",
       row.monthStr,
+      row.managerName || "N/A",
+      row.asmName || "N/A",
+      row.teamName || "N/A",
       row.caCategory,
       row.caName,
       row.courseName,
@@ -78,6 +81,9 @@ export default function SalesReportsView() {
                 <TableRow>
                   <TableHead className="text-slate-700 dark:text-slate-300">Closing Date</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300">Month</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Manager</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">ASM</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300">Team</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300">CA Category</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300">CA Name</TableHead>
                   <TableHead className="text-slate-700 dark:text-slate-300">Course</TableHead>
@@ -97,16 +103,19 @@ export default function SalesReportsView() {
               <TableBody>
                 {!reportData || reportData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={16} className="text-center text-slate-500 py-6">No data found for this period.</TableCell>
+                    <TableCell colSpan={19} className="text-center text-slate-500 py-6">No data found for this period.</TableCell>
                   </TableRow>
                 ) : (
                   <>
-                    {reportData.map((row: any) => (
-                      <TableRow key={row.id} className="border-slate-200 dark:border-slate-800">
-                        <TableCell className="text-slate-700 dark:text-slate-300">{row.closingDate ? new Date(row.closingDate).toLocaleDateString() : ""}</TableCell>
+                    {reportData.map((row: any, idx: number) => (
+                      <TableRow key={idx} className="border-slate-200 dark:border-slate-800">
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.closingDate ? new Date(row.closingDate).toLocaleDateString() : "—"}</TableCell>
                         <TableCell className="text-slate-700 dark:text-slate-300">{row.monthStr}</TableCell>
-                        <TableCell className="text-slate-700 dark:text-slate-300">{row.caCategory}</TableCell>
-                        <TableCell className="text-slate-900 dark:text-slate-200 font-medium">{row.caName}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.managerName || "N/A"}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.asmName || "N/A"}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.teamName || "N/A"}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{row.caCategory || "—"}</TableCell>
+                        <TableCell className="text-slate-900 dark:text-slate-200 font-medium">{row.caName || "—"}</TableCell>
                         <TableCell className="text-slate-700 dark:text-slate-300">{row.courseName}</TableCell>
                         <TableCell className="text-slate-700 dark:text-slate-300">{row.admNo}</TableCell>
                         <TableCell className="text-slate-700 dark:text-slate-300 text-center">{row.closure}</TableCell>

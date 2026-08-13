@@ -88,6 +88,7 @@ export const salesExecutiveRouter = createRouter({
         status: z.enum(["active", "inactive"]).default("active"),
         groupId: z.number().nullable().optional(),
         isASM: z.boolean().default(false),
+        designation: z.string().default("Sales User"),
       })
     )
     .mutation(async ({ input }) => {
@@ -194,6 +195,7 @@ export const salesExecutiveRouter = createRouter({
         status: input.status,
         groupId: input.groupId,
         isASM: input.isASM,
+        designation: input.designation,
       }).returning();
 
       return execResult[0];
@@ -210,6 +212,7 @@ export const salesExecutiveRouter = createRouter({
         status: z.enum(["active", "inactive"]),
         groupId: z.number().nullable().optional(),
         isASM: z.boolean().default(false),
+        designation: z.string().default("Sales User"),
       })
     )
     .mutation(async ({ input }) => {
@@ -294,6 +297,7 @@ export const salesExecutiveRouter = createRouter({
           status: input.status,
           groupId: input.groupId,
           isASM: input.isASM,
+          designation: input.designation,
         })
         .where(eq(salesExecutives.id, input.id))
         .returning();

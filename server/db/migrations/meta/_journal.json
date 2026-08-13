@@ -36,6 +36,20 @@
       "when": 1786624666974,
       "tag": "0004_overrated_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786649455150,
+      "tag": "0005_hard_tenebrous",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786650096193,
+      "tag": "0006_worthless_purifiers",
+      "breakpoints": true
     }
   ]
 }

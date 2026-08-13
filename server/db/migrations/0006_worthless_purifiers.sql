@@ -1,0 +1,2 @@
+ALTER TABLE "sales_groups" ADD COLUMN "manager_id" bigint;--> statement-breakpoint
+ALTER TABLE "sales_groups" ADD CONSTRAINT "sales_groups_manager_id_sales_executives_id_fk" FOREIGN KEY ("manager_id") REFERENCES "public"."sales_executives"("id") ON DELETE set null ON UPDATE no action;
