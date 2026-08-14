@@ -108,7 +108,7 @@ export default function LeadCampaigns() {
     }
 
     return true;
-  });
+  }).sort((a: any, b: any) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
 
   return (
     <div className="space-y-6">
@@ -158,12 +158,18 @@ export default function LeadCampaigns() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-medium text-gray-700">Month *</label>
-                    <Input 
-                      value={newCampaign.month}
-                      onChange={e => setNewCampaign({...newCampaign, month: e.target.value})}
-                      placeholder="e.g. June 2024"
-                      className="mt-1"
-                    />
+                    <Select value={newCampaign.month} onValueChange={v => setNewCampaign({...newCampaign, month: v})}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select Month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map((m) => (
+                          <SelectItem key={m} value={m}>
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-700">Course *</label>
