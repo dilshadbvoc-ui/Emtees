@@ -313,7 +313,7 @@ export default function LeadCampaigns() {
                     </TableCell>
                     {isAdmin && (
                       <TableCell className="text-xs text-gray-600">
-                        {campaign.courseAdvisor?.user?.name || "-"}
+                        {campaign.courseAdvisor?.name || "-"}
                       </TableCell>
                     )}
                     <TableCell className="text-xs text-gray-900 text-right font-medium">

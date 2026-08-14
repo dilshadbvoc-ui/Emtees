@@ -256,7 +256,7 @@ export const salesRouter = createRouter({
         where: eq(salesExecutives.status, "active")
       });
       const execMap = new Map();
-      execs.forEach(e => execMap.set(e.id, { id: e.id, name: e.name, leads: 0, closures: 0 }));
+      execs.forEach(e => execMap.set(e.id, { id: e.id, name: e.name, leads: 0, closures: 0, campaignsList: [], closuresList: [] }));
 
       const leadFilters = [];
       if (input.startDate) leadFilters.push(gte(leadCampaigns.createdAt, new Date(input.startDate)));
@@ -268,7 +268,9 @@ export const salesRouter = createRouter({
 
       campaigns.forEach(c => {
         if (c.caId && execMap.has(c.caId)) {
-          execMap.get(c.caId).leads += c.noOfLeads;
+          const exec = execMap.get(c.caId);
+          exec.leads += c.noOfLeads;
+          exec.campaignsList.push(c);
         }
       });
 
@@ -282,7 +284,9 @@ export const salesRouter = createRouter({
 
       closures.forEach(c => {
         if (c.caId && execMap.has(c.caId)) {
-          execMap.get(c.caId).closures += 1;
+          const exec = execMap.get(c.caId);
+          exec.closures += 1;
+          exec.closuresList.push(c);
         }
       });
 

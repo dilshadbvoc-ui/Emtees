@@ -5,11 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Download, RefreshCw, Calendar as CalendarIcon } from "lucide-react";
+import { Download, RefreshCw, Calendar as CalendarIcon, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function SalesPerformanceReport() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   const reportQuery = trpc.sales.getSalesPerformanceReport.useQuery({
     startDate: startDate || undefined,
@@ -142,10 +144,14 @@ export default function SalesPerformanceReport() {
                     <TableRow><TableCell colSpan={4} className="text-center text-slate-400 py-8">No records found.</TableCell></TableRow>
                   ) : (
                     data.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="text-xs font-medium">{row.name}</TableCell>
-                        <TableCell className="text-xs text-right text-indigo-600 dark:text-indigo-400 font-semibold">{row.leads}</TableCell>
-                        <TableCell className="text-xs text-right text-emerald-600 dark:text-emerald-400 font-semibold">{row.closures}</TableCell>
+                      <TableRow 
+                        key={row.id} 
+                        className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        onClick={() => setSelectedUser(row)}
+                      >
+                        <TableCell className="text-xs font-medium text-indigo-600 dark:text-indigo-400">{row.name}</TableCell>
+                        <TableCell className="text-xs text-right font-semibold">{row.leads}</TableCell>
+                        <TableCell className="text-xs text-right font-semibold">{row.closures}</TableCell>
                         <TableCell className="text-xs text-right">
                           <span className={`px-2 py-0.5 rounded-full ${
                             row.percentage >= 15 ? 'bg-emerald-100 text-emerald-700' :
@@ -164,6 +170,80 @@ export default function SalesPerformanceReport() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Performance Details: {selectedUser?.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            {/* Campaigns Table */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Leads Given (Campaigns)</h3>
+              <div className="border rounded-md max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50 sticky top-0 z-10">
+                    <TableRow>
+                      <TableHead className="text-xs">Date</TableHead>
+                      <TableHead className="text-xs">Course/Month</TableHead>
+                      <TableHead className="text-xs text-right">Leads</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedUser?.campaignsList?.length === 0 ? (
+                      <TableRow><TableCell colSpan={3} className="text-center text-xs text-slate-400 py-4">No campaigns found.</TableCell></TableRow>
+                    ) : (
+                      selectedUser?.campaignsList
+                        ?.slice()
+                        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .map((c: any) => (
+                          <TableRow key={c.id}>
+                            <TableCell className="text-xs">{new Date(c.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-xs">{c.course} <br/><span className="text-[10px] text-slate-400">{c.month}</span></TableCell>
+                            <TableCell className="text-xs text-right font-medium">{c.noOfLeads}</TableCell>
+                          </TableRow>
+                        ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Closures Table */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Closures Achieved</h3>
+              <div className="border rounded-md max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50 sticky top-0 z-10">
+                    <TableRow>
+                      <TableHead className="text-xs">Date</TableHead>
+                      <TableHead className="text-xs">Student</TableHead>
+                      <TableHead className="text-xs">Course</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedUser?.closuresList?.length === 0 ? (
+                      <TableRow><TableCell colSpan={3} className="text-center text-xs text-slate-400 py-4">No closures found.</TableCell></TableRow>
+                    ) : (
+                      selectedUser?.closuresList
+                        ?.slice()
+                        .sort((a: any, b: any) => new Date(b.closingDate).getTime() - new Date(a.closingDate).getTime())
+                        .map((c: any) => (
+                          <TableRow key={c.id}>
+                            <TableCell className="text-xs">{c.closingDate ? new Date(c.closingDate).toLocaleDateString() : "-"}</TableCell>
+                            <TableCell className="text-xs">{c.studentName || "Unknown"}</TableCell>
+                            <TableCell className="text-xs">{c.course || "-"}</TableCell>
+                          </TableRow>
+                        ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
