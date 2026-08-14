@@ -273,7 +273,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex h-[100dvh] bg-gray-50 overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-60 bg-white border-r flex-col shrink-0">
-        <SidebarContent />
+        {SidebarContent()}
       </aside>
 
       {/* Mobile sidebar overlay & drawer with smooth CSS animation */}
@@ -289,7 +289,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
-          <SidebarContent />
+          {SidebarContent()}
         </aside>
       </div>
 
