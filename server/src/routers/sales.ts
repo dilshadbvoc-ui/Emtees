@@ -433,75 +433,6 @@ export const salesRouter = createRouter({
   }),
 
   // ----------------------------------------------------
-  // ASM WISE REPORT
-  // ----------------------------------------------------
-  getAsmPerformance: adminQuery
-    .input(z.object({
-      monthStr: z.string().optional()
-    }))
-    .query(async ({ input }) => {
-      const db = getDb();
-      const targetMonth = input.monthStr || new Date().toISOString().substring(0, 7);
-
-      const closures = await db.query.salesClosures.findMany({
-        where: and(
-          eq(salesClosures.isDeleted, false),
-          eq(salesClosures.monthStr, targetMonth)
-        ),
-        with: {
-          salesExecutive: true,
-          asm: true,
-          group: true,
-        }
-      });
-
-      const execs = await db.query.salesExecutives.findMany();
-      const execMap = Object.fromEntries(execs.map(e => [e.id, e.name]));
-
-      // Group by groupId
-      const grouped: Record<number, any> = {};
-
-      closures.forEach(c => {
-        const gid = c.groupId || 0;
-        if (!grouped[gid]) {
-          grouped[gid] = {
-            groupId: gid,
-            groupName: c.group?.name || "Unassigned",
-            asmName: c.asm?.name || "N/A",
-            managerName: c.group?.managerId ? (execMap[c.group.managerId] || "N/A") : "N/A",
-            closures: 0,
-            firstPayment: 0,
-            oldBalance: 0,
-            renewal: 0,
-            totalFee: 0,
-            caList: new Set()
-          };
-        }
-
-        grouped[gid].closures += 1;
-        grouped[gid].firstPayment += Number(c.firstInst || 0);
-        
-        // Simple heuristic for type of payment based on UI form (assuming secondInst/thirdInst count as old balance for reporting purposes, or use type if available)
-        // If they add custom "Type" we should use it. For now sum it up.
-        if (c.type === "renewal") {
-          grouped[gid].renewal += Number(c.firstInst || 0);
-        } else if (c.type === "old_balance") {
-          grouped[gid].oldBalance += Number(c.firstInst || 0);
-        }
-
-        grouped[gid].totalFee += Number(c.totalFee || 0);
-        if (c.salesExecutive) {
-          grouped[gid].caList.add(c.salesExecutive.name);
-        }
-      });
-
-      return Object.values(grouped).map(g => ({
-        ...g,
-        caList: Array.from(g.caList).join(", ")
-      }));
-    }),
-
-  // ----------------------------------------------------
   // WEEKLY LEADERBOARD (Points Engine)
   // ----------------------------------------------------
   getWeeklyLeaderboard: salesExecQuery
@@ -831,6 +762,120 @@ export const salesRouter = createRouter({
       }
 
       return report;
+    }),
+
+  getAsmPerformance: salesExecQuery
+    .input(z.object({
+      monthStr: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const db = getDb();
+      const filters = [eq(salesClosures.isDeleted, false)];
+
+      if (input.monthStr) {
+        filters.push(eq(salesClosures.monthStr, input.monthStr));
+      }
+
+      // 1. Fetch all closures for the given month
+      const allClosures = await db.query.salesClosures.findMany({
+        where: and(...filters),
+      });
+
+      // 2. Fetch required entities for mapping
+      const allExecs = await db.query.salesExecutives.findMany();
+      const execMap = new Map(allExecs.map(e => [e.id?.toString(), e.name]));
+
+      const allGroups = await db.query.salesGroups.findMany();
+
+      // 3. Group by GroupId
+      // Result structure: map of groupId -> data
+      const groupStats = new Map<string, {
+        caSet: Set<string>;
+        groupName: string;
+        managerName: string | null;
+        asmName: string;
+        firstPayment: number;
+        oldBalance: number;
+        renewal: number;
+        closures: number;
+      }>();
+
+      for (const group of allGroups) {
+        if (!group.id) continue;
+        groupStats.set(group.id.toString(), {
+          caSet: new Set<string>(),
+          groupName: group.name,
+          managerName: group.managerId ? (execMap.get(group.managerId.toString()) || null) : null,
+          asmName: group.asmId ? (execMap.get(group.asmId.toString()) || "N/A") : "N/A",
+          firstPayment: 0,
+          oldBalance: 0,
+          renewal: 0,
+          closures: 0,
+        });
+      }
+
+      // Add a fallback group for unassigned closures
+      groupStats.set("unassigned", {
+        caSet: new Set<string>(),
+        groupName: "Unassigned",
+        managerName: null,
+        asmName: "N/A",
+        firstPayment: 0,
+        oldBalance: 0,
+        renewal: 0,
+        closures: 0,
+      });
+
+      // 4. Process closures
+      for (const closure of allClosures) {
+        const groupId = closure.groupId?.toString() || "unassigned";
+        let stats = groupStats.get(groupId);
+        if (!stats) {
+          stats = {
+            caSet: new Set<string>(),
+            groupName: `Group #${groupId}`,
+            managerName: null,
+            asmName: "N/A",
+            firstPayment: 0,
+            oldBalance: 0,
+            renewal: 0,
+            closures: 0,
+          };
+          groupStats.set(groupId, stats);
+        }
+
+        if (closure.caId) {
+          const caName = execMap.get(closure.caId.toString());
+          if (caName) stats.caSet.add(caName);
+        }
+
+        const collected = parseFloat(closure.firstInst || "0") + parseFloat(closure.secondInst || "0") + parseFloat(closure.thirdInst || "0");
+        const type = closure.type || "New Closure";
+
+        if (type === "New Closure") {
+          stats.firstPayment += collected;
+          stats.closures += 1;
+        } else if (type === "Old Balance") {
+          stats.oldBalance += collected;
+        } else if (type === "Renewal") {
+          stats.renewal += collected;
+        } else {
+          // fallback to firstPayment if unknown
+          stats.firstPayment += collected;
+        }
+      }
+
+      // 5. Convert to array and format caList
+      const result = Array.from(groupStats.values())
+        .filter(s => s.firstPayment > 0 || s.oldBalance > 0 || s.renewal > 0 || s.closures > 0)
+        .map(s => ({
+          ...s,
+          caList: s.caSet.size > 0 ? Array.from(s.caSet).join(", ") : "—",
+        }))
+        // Filter out the Set so it's clean for tRPC
+        .map(({ caSet, ...rest }) => rest);
+
+      return result;
     }),
 
   generateDetailedReport: salesExecQuery

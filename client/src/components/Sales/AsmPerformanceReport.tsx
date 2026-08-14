@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 
 export default function AsmPerformanceReport() {
-  const [monthStr, setMonthStr] = useState(format(new Date(), "yyyy-MM"));
+  const [monthStr, setMonthStr] = useState(format(new Date(), "MMMM yyyy"));
   const { data: asmData, isLoading } = trpc.sales.getAsmPerformance.useQuery({ monthStr });
 
   const handleExport = () => {
@@ -45,7 +45,7 @@ export default function AsmPerformanceReport() {
   for (let i = 0; i < 12; i++) {
     const d = new Date();
     d.setMonth(d.getMonth() - i);
-    months.push(format(d, "yyyy-MM"));
+    months.push(format(d, "MMMM yyyy"));
   }
 
   return (
@@ -63,7 +63,7 @@ export default function AsmPerformanceReport() {
               </SelectTrigger>
               <SelectContent>
                 {months.map(m => (
-                  <SelectItem key={m} value={m}>{format(new Date(m + "-01"), "MMMM yyyy")}</SelectItem>
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
