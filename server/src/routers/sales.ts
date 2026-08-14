@@ -244,6 +244,56 @@ export const salesRouter = createRouter({
       return { success: true };
     }),
 
+  getSalesPerformanceReport: salesExecQuery
+    .input(z.object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      
+      const execs = await db.query.salesExecutives.findMany({
+        where: eq(salesExecutives.status, "active")
+      });
+      const execMap = new Map();
+      execs.forEach(e => execMap.set(e.id, { id: e.id, name: e.name, leads: 0, closures: 0 }));
+
+      const leadFilters = [];
+      if (input.startDate) leadFilters.push(gte(leadCampaigns.createdAt, new Date(input.startDate)));
+      if (input.endDate) leadFilters.push(lte(leadCampaigns.createdAt, new Date(input.endDate)));
+      
+      const campaigns = await db.query.leadCampaigns.findMany({
+        where: leadFilters.length > 0 ? and(...leadFilters) : undefined,
+      });
+
+      campaigns.forEach(c => {
+        if (c.caId && execMap.has(c.caId)) {
+          execMap.get(c.caId).leads += c.noOfLeads;
+        }
+      });
+
+      const closureFilters = [eq(salesClosures.isDeleted, false)];
+      if (input.startDate) closureFilters.push(gte(salesClosures.closingDate, new Date(input.startDate)));
+      if (input.endDate) closureFilters.push(lte(salesClosures.closingDate, new Date(input.endDate)));
+
+      const closures = await db.query.salesClosures.findMany({
+        where: and(...closureFilters)
+      });
+
+      closures.forEach(c => {
+        if (c.caId && execMap.has(c.caId)) {
+          execMap.get(c.caId).closures += 1;
+        }
+      });
+
+      const report = Array.from(execMap.values()).map(e => ({
+        ...e,
+        percentage: e.leads > 0 ? Number(((e.closures / e.leads) * 100).toFixed(2)) : 0
+      }));
+      
+      return report.filter(e => e.leads > 0 || e.closures > 0).sort((a, b) => b.closures - a.closures);
+    }),
+
   compareIqedData: adminQuery
     .input(z.array(z.object({
       admNo: z.string().optional(),

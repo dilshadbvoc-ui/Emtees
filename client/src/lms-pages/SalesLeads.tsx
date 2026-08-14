@@ -35,8 +35,11 @@ export default function LeadCampaigns() {
 
   const campaignsQuery = trpc.sales.listLeadCampaigns.useQuery(undefined);
   const execsQuery = trpc.salesExecutive.listExecutives.useQuery(undefined, { enabled: isAdmin });
+  const activeCoursesQuery = trpc.learning.listModules.useQuery();
   const createCampaignMutation = trpc.sales.createLeadCampaign.useMutation();
   const updateStatusMutation = trpc.sales.updateLeadCampaignStatus.useMutation();
+
+  const activeCourses = activeCoursesQuery.data?.filter((m) => m.status === "active") || [];
 
   const handleRefresh = () => {
     campaignsQuery.refetch();
@@ -169,10 +172,11 @@ export default function LeadCampaigns() {
                         <SelectValue placeholder="Select Course" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Spoken English">Spoken English</SelectItem>
-                        <SelectItem value="Arabic">Arabic</SelectItem>
-                        <SelectItem value="IELTS">IELTS</SelectItem>
-                        <SelectItem value="OET">OET</SelectItem>
+                        {activeCourses.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
