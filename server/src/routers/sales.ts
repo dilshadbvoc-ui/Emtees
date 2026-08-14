@@ -8,7 +8,7 @@ import {
   salesGroups,
   salesExecutives,
   salesPointsRules,
-  salesLeads,
+  leadCampaigns,
   users
 } from "@db/schema";
 
@@ -146,24 +146,21 @@ export const salesRouter = createRouter({
     }),
 
   // ----------------------------------------------------
-  // LEADS
+  // LEAD CAMPAIGNS
   // ----------------------------------------------------
-  listLeads: salesExecQuery
+  listLeadCampaigns: salesExecQuery
     .query(async ({ ctx }) => {
       const db = getDb();
-      let filters = [eq(salesLeads.isDeleted, false)];
 
-      // Dead code removed for clarity
-
-      const allLeads = await db.query.salesLeads.findMany({
-        where: eq(salesLeads.isDeleted, false),
+      const allCampaigns = await db.query.leadCampaigns.findMany({
         with: {
-          salesExecutive: true
+          courseAdvisor: true,
+          asm: true,
         },
-        orderBy: (l, { desc }) => [desc(l.createdAt)]
+        orderBy: (c, { desc }) => [desc(c.createdAt)]
       });
 
-      // Filter in memory for simplicity to respect CA/ASM
+      // Filter in memory for simplicity to respect CA/ASM hierarchy
       if (ctx.user.role === "sales_executive") {
         const dbUser = await db.query.users.findFirst({
           where: eq(users.id, ctx.user.id)
@@ -173,42 +170,37 @@ export const salesRouter = createRouter({
             where: eq(salesExecutives.id, dbUser.salesExecutiveId)
           });
           
-          if (profile?.designation === "Manager") {
-            const managedGroups = await db.query.salesGroups.findMany({
-              where: eq(salesGroups.managerId, profile.id)
-            });
-            const groupIds = managedGroups.map(g => g.id);
-            if (groupIds.length > 0) {
-              const caInManagedGroups = await db.query.salesExecutives.findMany({
-                where: inArray(salesExecutives.groupId, groupIds)
+          if (profile?.designation === "Manager" || profile?.isASM) {
+            // Managers see their own and their group's campaigns
+            if (profile.groupId) {
+              const caInGroup = await db.query.salesExecutives.findMany({
+                where: eq(salesExecutives.groupId, profile.groupId)
               });
-              const caIds = caInManagedGroups.map(ca => ca.id);
-              return allLeads.filter(l => caIds.includes(l.caId || 0) || l.caId === dbUser.salesExecutiveId);
+              const caIds = caInGroup.map(ca => ca.id);
+              return allCampaigns.filter(c => caIds.includes(c.caId || 0) || c.caId === dbUser.salesExecutiveId || c.asmId === dbUser.salesExecutiveId);
             }
-            return allLeads.filter(l => l.caId === dbUser.salesExecutiveId);
-          } else if (profile?.isASM && profile?.groupId) {
-            const caInGroup = await db.query.salesExecutives.findMany({
-              where: eq(salesExecutives.groupId, profile.groupId)
-            });
-            const caIds = caInGroup.map(ca => ca.id);
-            return allLeads.filter(l => caIds.includes(l.caId || 0) || l.caId === dbUser.salesExecutiveId);
-          } else {
-            return allLeads.filter(l => l.caId === dbUser.salesExecutiveId);
           }
+          // Normal CA sees only their own
+          return allCampaigns.filter(c => c.caId === dbUser.salesExecutiveId);
         }
         return [];
       }
 
-      return allLeads;
+      return allCampaigns;
     }),
 
-  createLead: salesExecQuery
+  createLeadCampaign: salesExecQuery
     .input(z.object({
-      studentName: z.string().min(1),
-      phone: z.string().optional(),
-      address: z.string().optional(),
-      remarks: z.string().optional(),
-      caId: z.number().optional(), // Admin can assign, CA defaults to themselves
+      startDate: z.string(),
+      endDate: z.string(),
+      month: z.string(),
+      caId: z.number().optional(),
+      asmId: z.number().optional().nullable(),
+      course: z.string(),
+      noOfLeads: z.number(),
+      amountSpent: z.number(),
+      dailyBudget: z.number(),
+      isActive: z.boolean(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -221,30 +213,34 @@ export const salesRouter = createRouter({
         assignedCaId = dbUser?.salesExecutiveId || undefined;
       }
 
-      const [lead] = await db.insert(salesLeads).values({
-        studentName: input.studentName,
-        phone: input.phone || null,
-        address: input.address || null,
-        remarks: input.remarks || null,
-        status: "New",
-        caId: assignedCaId || null,
+      if (!assignedCaId) {
+         throw new TRPCError({ code: "BAD_REQUEST", message: "Sales Executive ID is required" });
+      }
+      
+      const [campaign] = await db.insert(leadCampaigns).values({
+        startDate: new Date(input.startDate),
+        endDate: new Date(input.endDate),
+        month: input.month,
+        caId: assignedCaId,
+        asmId: input.asmId || null,
+        course: input.course,
+        noOfLeads: input.noOfLeads,
+        amountSpent: input.amountSpent.toString(),
+        dailyBudget: input.dailyBudget.toString(),
+        isActive: input.isActive,
       }).returning();
       
-      return lead;
+      return campaign;
     }),
     
-  updateLeadStatus: salesExecQuery
+  updateLeadCampaignStatus: salesExecQuery
     .input(z.object({
       id: z.number(),
-      status: z.string(),
-      remarks: z.string().optional(),
+      isActive: z.boolean(),
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const updates: any = { status: input.status };
-      if (input.remarks) updates.remarks = input.remarks;
-      
-      await db.update(salesLeads).set(updates).where(eq(salesLeads.id, input.id));
+      await db.update(leadCampaigns).set({ isActive: input.isActive, updatedAt: new Date() }).where(eq(leadCampaigns.id, input.id));
       return { success: true };
     }),
 

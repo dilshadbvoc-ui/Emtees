@@ -9,165 +9,234 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Filter, RefreshCw } from "lucide-react";
+import { Search, Plus, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
-export default function SalesLeads() {
+export default function LeadCampaigns() {
   const { user } = useAuth();
   const isAdmin = ["super_admin", "admin", "sales_manager"].includes(user?.role || "");
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [execFilter, setExecFilter] = useState("all");
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newLead, setNewLead] = useState({
-    studentName: "",
-    phone: "",
-    address: "",
-    remarks: "",
+  const [newCampaign, setNewCampaign] = useState({
+    startDate: "",
+    endDate: "",
+    month: "",
+    course: "",
+    noOfLeads: "",
+    amountSpent: "",
+    dailyBudget: "",
+    caId: "",
   });
 
-  const leadsQuery = trpc.sales.listLeads.useQuery(undefined);
-  
+  const campaignsQuery = trpc.sales.listLeadCampaigns.useQuery(undefined);
   const execsQuery = trpc.salesExecutive.listExecutives.useQuery(undefined, { enabled: isAdmin });
-  const createLeadMutation = trpc.sales.createLead.useMutation();
-  const updateStatusMutation = trpc.sales.updateLeadStatus.useMutation();
+  const createCampaignMutation = trpc.sales.createLeadCampaign.useMutation();
+  const updateStatusMutation = trpc.sales.updateLeadCampaignStatus.useMutation();
 
   const handleRefresh = () => {
-    leadsQuery.refetch();
+    campaignsQuery.refetch();
   };
 
-  const handleCreateLead = async (e: React.FormEvent) => {
+  const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLead.studentName) {
-      toast.error("Student name is required");
+    if (!newCampaign.startDate || !newCampaign.endDate || !newCampaign.course || !newCampaign.month) {
+      toast.error("Please fill in all required fields (Dates, Month, Course)");
       return;
     }
     
+    const noOfLeads = parseInt(newCampaign.noOfLeads) || 0;
+    const amountSpent = parseFloat(newCampaign.amountSpent) || 0;
+    const dailyBudget = parseFloat(newCampaign.dailyBudget) || 0;
+    const caId = parseInt(newCampaign.caId) || undefined;
+
+    if (!caId && isAdmin) {
+      toast.error("Please assign a Sales Executive");
+      return;
+    }
+
     try {
-      await createLeadMutation.mutateAsync({
-        studentName: newLead.studentName,
-        phone: newLead.phone,
-        address: newLead.address,
-        remarks: newLead.remarks,
+      await createCampaignMutation.mutateAsync({
+        startDate: new Date(newCampaign.startDate).toISOString(),
+        endDate: new Date(newCampaign.endDate).toISOString(),
+        month: newCampaign.month,
+        course: newCampaign.course,
+        noOfLeads,
+        amountSpent,
+        dailyBudget,
+        caId,
+        isActive: true,
       });
-      toast.success("Lead created successfully");
+      toast.success("Campaign created successfully");
       setIsCreateOpen(false);
-      setNewLead({ studentName: "", phone: "", address: "", remarks: "" });
+      setNewCampaign({ startDate: "", endDate: "", month: "", course: "", noOfLeads: "", amountSpent: "", dailyBudget: "", caId: "" });
       handleRefresh();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create lead");
+      toast.error(err.message || "Failed to create campaign");
     }
   };
 
-  const handleStatusChange = async (id: number, status: string) => {
+  const handleStatusChange = async (id: number, isActive: boolean) => {
     try {
-      await updateStatusMutation.mutateAsync({ id, status });
-      toast.success("Lead status updated");
+      await updateStatusMutation.mutateAsync({ id, isActive });
+      toast.success("Campaign status updated");
       handleRefresh();
     } catch (err: any) {
       toast.error("Failed to update status");
     }
   };
 
-  const rawLeads = leadsQuery.data || [];
+  const rawCampaigns = campaignsQuery.data || [];
 
-  const filteredLeads = rawLeads.filter((lead: any) => {
+  const filteredCampaigns = rawCampaigns.filter((campaign: any) => {
     if (search) {
       const searchLower = search.toLowerCase();
-      const matchName = lead.studentName.toLowerCase().includes(searchLower);
-      const matchPhone = lead.phone?.toLowerCase().includes(searchLower) || false;
-      if (!matchName && !matchPhone) return false;
+      const matchCourse = campaign.course.toLowerCase().includes(searchLower);
+      const matchMonth = campaign.month.toLowerCase().includes(searchLower);
+      if (!matchCourse && !matchMonth) return false;
     }
 
-    if (statusFilter !== "all" && lead.status !== statusFilter) {
-      return false;
-    }
-
-    if (isAdmin && execFilter !== "all" && lead.caId?.toString() !== execFilter) {
+    if (isAdmin && execFilter !== "all" && campaign.caId?.toString() !== execFilter) {
       return false;
     }
 
     return true;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "New": return "bg-blue-100 text-blue-800";
-      case "Contacted": return "bg-yellow-100 text-yellow-800";
-      case "Converted": return "bg-emerald-100 text-emerald-800";
-      case "Dead": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-gray-900">Sales Leads</h1>
-          <p className="text-xs text-gray-500 mt-1">Manage and track your student leads</p>
+          <h1 className="text-xl font-bold tracking-tight text-gray-900">Lead Campaigns</h1>
+          <p className="text-xs text-gray-500 mt-1">Manage ad campaigns and budgets</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={leadsQuery.isFetching}>
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${leadsQuery.isFetching ? "animate-spin" : ""}`} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={campaignsQuery.isFetching}>
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${campaignsQuery.isFetching ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
                 <Plus className="w-4 h-4 mr-1.5" />
-                Add Lead
+                Add Campaign
               </Button>
             </DialogTrigger>
             <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Lead</DialogTitle>
+                <DialogTitle>Add Lead Campaign</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreateLead} className="space-y-4 pt-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Student Name *</label>
-                  <Input 
-                    value={newLead.studentName}
-                    onChange={e => setNewLead({...newLead, studentName: e.target.value})}
-                    placeholder="Enter full name"
-                    className="mt-1"
-                  />
+              <form onSubmit={handleCreateCampaign} className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Start Date *</label>
+                    <Input 
+                      type="date"
+                      value={newCampaign.startDate}
+                      onChange={e => setNewCampaign({...newCampaign, startDate: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">End Date *</label>
+                    <Input 
+                      type="date"
+                      value={newCampaign.endDate}
+                      onChange={e => setNewCampaign({...newCampaign, endDate: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Phone</label>
-                  <Input 
-                    value={newLead.phone}
-                    onChange={e => setNewLead({...newLead, phone: e.target.value})}
-                    placeholder="Enter phone number"
-                    className="mt-1"
-                  />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Month *</label>
+                    <Input 
+                      value={newCampaign.month}
+                      onChange={e => setNewCampaign({...newCampaign, month: e.target.value})}
+                      placeholder="e.g. June 2024"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Course *</label>
+                    <Select value={newCampaign.course} onValueChange={v => setNewCampaign({...newCampaign, course: v})}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select Course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Spoken English">Spoken English</SelectItem>
+                        <SelectItem value="Arabic">Arabic</SelectItem>
+                        <SelectItem value="IELTS">IELTS</SelectItem>
+                        <SelectItem value="OET">OET</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Address</label>
-                  <Input 
-                    value={newLead.address}
-                    onChange={e => setNewLead({...newLead, address: e.target.value})}
-                    placeholder="Enter address"
-                    className="mt-1"
-                  />
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">No of Leads</label>
+                    <Input 
+                      type="number"
+                      min="0"
+                      value={newCampaign.noOfLeads}
+                      onChange={e => setNewCampaign({...newCampaign, noOfLeads: e.target.value})}
+                      placeholder="0"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Amount Spent</label>
+                    <Input 
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newCampaign.amountSpent}
+                      onChange={e => setNewCampaign({...newCampaign, amountSpent: e.target.value})}
+                      placeholder="0.00"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Daily Budget</label>
+                    <Input 
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newCampaign.dailyBudget}
+                      onChange={e => setNewCampaign({...newCampaign, dailyBudget: e.target.value})}
+                      placeholder="0.00"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Remarks</label>
-                  <Textarea 
-                    value={newLead.remarks}
-                    onChange={e => setNewLead({...newLead, remarks: e.target.value})}
-                    placeholder="Add initial notes..."
-                    className="mt-1 resize-none"
-                    rows={3}
-                  />
-                </div>
+
+                {isAdmin && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Sales Executive *</label>
+                    <Select value={newCampaign.caId} onValueChange={v => setNewCampaign({...newCampaign, caId: v})}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select Executive" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {execsQuery.data?.map(exec => (
+                          <SelectItem key={exec.id} value={exec.id.toString()}>
+                            {exec.name || `Exec #${exec.id}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={createLeadMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700">
-                    {createLeadMutation.isPending ? "Creating..." : "Save Lead"}
+                  <Button type="submit" disabled={createCampaignMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700">
+                    {createCampaignMutation.isPending ? "Creating..." : "Save Campaign"}
                   </Button>
                 </div>
               </form>
@@ -177,29 +246,16 @@ export default function SalesLeads() {
       </div>
 
       <Card className="border-gray-100 shadow-sm">
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search leads..."
+              placeholder="Search by course or month..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 text-xs rounded-lg border-gray-200"
             />
           </div>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="text-xs rounded-lg border-gray-200 bg-white">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent className="text-xs">
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="New">New</SelectItem>
-              <SelectItem value="Contacted">Contacted</SelectItem>
-              <SelectItem value="Converted">Converted</SelectItem>
-              <SelectItem value="Dead">Dead</SelectItem>
-            </SelectContent>
-          </Select>
 
           {isAdmin && (
             <Select value={execFilter} onValueChange={setExecFilter}>
@@ -224,63 +280,54 @@ export default function SalesLeads() {
           <Table>
             <TableHeader className="bg-gray-50/50">
               <TableRow>
-                <TableHead className="text-xs font-medium text-gray-500">Student</TableHead>
-                <TableHead className="text-xs font-medium text-gray-500">Contact</TableHead>
-                {isAdmin && <TableHead className="text-xs font-medium text-gray-500">Sales Exec</TableHead>}
-                <TableHead className="text-xs font-medium text-gray-500">Remarks</TableHead>
-                <TableHead className="text-xs font-medium text-gray-500">Status</TableHead>
-                <TableHead className="text-xs font-medium text-gray-500">Created</TableHead>
-                <TableHead className="text-xs font-medium text-gray-500 text-right">Actions</TableHead>
+                <TableHead className="text-xs font-medium text-gray-500">Date Range</TableHead>
+                <TableHead className="text-xs font-medium text-gray-500">Month / Course</TableHead>
+                {isAdmin && <TableHead className="text-xs font-medium text-gray-500">Executive</TableHead>}
+                <TableHead className="text-xs font-medium text-gray-500 text-right">Leads</TableHead>
+                <TableHead className="text-xs font-medium text-gray-500 text-right">Spent</TableHead>
+                <TableHead className="text-xs font-medium text-gray-500 text-right">Daily Limit</TableHead>
+                <TableHead className="text-xs font-medium text-gray-500 text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLeads.length === 0 ? (
+              {filteredCampaigns.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isAdmin ? 7 : 6} className="h-32 text-center text-gray-500 text-xs">
-                    {leadsQuery.isLoading ? "Loading leads..." : "No leads found."}
+                    {campaignsQuery.isLoading ? "Loading campaigns..." : "No campaigns found."}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredLeads.map((lead: any) => (
-                  <TableRow key={lead.id} className="hover:bg-gray-50/50">
-                    <TableCell className="text-xs font-medium text-gray-900">
-                      {lead.studentName}
-                    </TableCell>
+                filteredCampaigns.map((campaign: any) => (
+                  <TableRow key={campaign.id} className="hover:bg-gray-50/50">
                     <TableCell className="text-xs text-gray-600">
-                      <div>{lead.phone || "-"}</div>
-                      {lead.address && <div className="text-[10px] text-gray-400 mt-0.5">{lead.address}</div>}
+                      <div>{new Date(campaign.startDate).toLocaleDateString()}</div>
+                      <div className="text-gray-400">to {new Date(campaign.endDate).toLocaleDateString()}</div>
+                    </TableCell>
+                    <TableCell className="text-xs font-medium text-gray-900">
+                      {campaign.month}
+                      <div className="text-[10px] text-gray-500 font-normal">{campaign.course}</div>
                     </TableCell>
                     {isAdmin && (
                       <TableCell className="text-xs text-gray-600">
-                        {lead.salesExecutive?.user?.name || "-"}
+                        {campaign.courseAdvisor?.user?.name || "-"}
                       </TableCell>
                     )}
-                    <TableCell className="text-xs text-gray-600 max-w-[200px] truncate">
-                      {lead.remarks || "-"}
+                    <TableCell className="text-xs text-gray-900 text-right font-medium">
+                      {campaign.noOfLeads}
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={`${getStatusColor(lead.status)} text-[10px]`}>
-                        {lead.status}
-                      </Badge>
+                    <TableCell className="text-xs text-gray-900 text-right">
+                      {campaign.amountSpent}
                     </TableCell>
-                    <TableCell className="text-[11px] text-gray-500">
-                      {new Date(lead.createdAt).toLocaleDateString()}
+                    <TableCell className="text-xs text-gray-900 text-right">
+                      {campaign.dailyBudget}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Select 
-                        value={lead.status} 
-                        onValueChange={(val) => handleStatusChange(lead.id, val)}
-                      >
-                        <SelectTrigger className="w-[110px] ml-auto h-7 text-[10px] bg-white">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent className="text-[10px]">
-                          <SelectItem value="New">New</SelectItem>
-                          <SelectItem value="Contacted">Contacted</SelectItem>
-                          <SelectItem value="Converted">Converted</SelectItem>
-                          <SelectItem value="Dead">Dead</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center items-center">
+                        <Switch
+                          checked={campaign.isActive}
+                          onCheckedChange={(val) => handleStatusChange(campaign.id, val)}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

@@ -12,8 +12,6 @@ import HierarchyManager from "@/components/Sales/HierarchyManager";
 import DashboardView from "@/components/Sales/DashboardView";
 import AsmPerformanceReport from "@/components/Sales/AsmPerformanceReport";
 import WeeklyLeaderboard from "@/components/Sales/WeeklyLeaderboard";
-import LeadsManager from "@/components/Sales/LeadsManager";
-import LeadsReportView from "@/components/Sales/LeadsReportView";
 import ReconciliationUpload from "@/components/Sales/ReconciliationUpload";
 
 export default function SalesDashboard() {
@@ -32,8 +30,6 @@ export default function SalesDashboard() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
           <TabsTrigger value="dashboard" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Dashboard</TabsTrigger>
-          <TabsTrigger value="leads" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Leads</TabsTrigger>
-          <TabsTrigger value="leads-report" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Leads Report</TabsTrigger>
           <TabsTrigger value="leaderboard" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Leaderboard</TabsTrigger>
           <TabsTrigger value="closures" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Closures</TabsTrigger>
           <TabsTrigger value="reconciliation" className="data-[state=active]:bg-white dark:data-[state=active]:bg-indigo-600 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-white data-[state=active]:shadow">Reconciliation (IQED)</TabsTrigger>
@@ -50,14 +46,6 @@ export default function SalesDashboard() {
 
         <TabsContent value="dashboard" className="mt-6">
           <DashboardView />
-        </TabsContent>
-
-        <TabsContent value="leads" className="mt-6">
-          <LeadsManager />
-        </TabsContent>
-
-        <TabsContent value="leads-report" className="mt-6">
-          <LeadsReportView />
         </TabsContent>
 
         <TabsContent value="leaderboard" className="mt-6">

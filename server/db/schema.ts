@@ -1353,14 +1353,14 @@ export const salesPointsRules = pgTable("sales_points_rules", {
 export type SalesPointsRule = typeof salesPointsRules.$inferSelect;
 export type InsertSalesPointsRule = typeof salesPointsRules.$inferInsert;
 
-// Sales Leads
+// Sales Leads (Deprecated but kept for historical data and to avoid migration issues)
 export const salesLeads = pgTable("sales_leads", {
   id: serial("id").primaryKey(),
   studentName: varchar("student_name", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 50 }),
   address: text("address"),
   remarks: text("remarks"),
-  status: varchar("status", { length: 50 }).default("New").notNull(), // New, Contacted, Converted, Dead
+  status: varchar("status", { length: 50 }).default("New").notNull(),
   caId: bigint("ca_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
   isDeleted: boolean("is_deleted").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1373,6 +1373,38 @@ export const salesLeadsRelations = relations(salesLeads, ({ one }) => ({
   salesExecutive: one(salesExecutives, {
     fields: [salesLeads.caId],
     references: [salesExecutives.id],
+  }),
+}));
+
+// Lead Campaigns (Replaces old salesLeads)
+export const leadCampaigns = pgTable("lead_campaigns", {
+  id: serial("id").primaryKey(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  month: varchar("month", { length: 50 }).notNull(),
+  caId: bigint("ca_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
+  asmId: bigint("asm_id", { mode: "number" }).references(() => salesExecutives.id, { onDelete: "set null" }),
+  course: varchar("course", { length: 255 }).notNull(),
+  noOfLeads: integer("no_of_leads").default(0).notNull(),
+  amountSpent: decimal("amount_spent", { precision: 10, scale: 2 }).default("0").notNull(),
+  dailyBudget: decimal("daily_budget", { precision: 10, scale: 2 }).default("0").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type LeadCampaign = typeof leadCampaigns.$inferSelect;
+export type InsertLeadCampaign = typeof leadCampaigns.$inferInsert;
+
+export const leadCampaignsRelations = relations(leadCampaigns, ({ one }) => ({
+  courseAdvisor: one(salesExecutives, {
+    fields: [leadCampaigns.caId],
+    references: [salesExecutives.id],
+    relationName: "courseAdvisor",
+  }),
+  asm: one(salesExecutives, {
+    fields: [leadCampaigns.asmId],
+    references: [salesExecutives.id],
+    relationName: "asmManager",
   }),
 }));
 
