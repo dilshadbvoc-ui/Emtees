@@ -2824,6 +2824,58 @@ export default function ReportsPage() {
                         </CardContent>
                       </Card>
 
+                      {/* 6. Students List */}
+                      <Card className="print-card-border shadow-sm border border-slate-100 mt-6">
+                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
+                          <CardTitle className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                            <Users className="w-4 h-4 text-orange-500" />
+                            Assigned Students ({teacherReport.data.studentsList?.length || 0})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0 overflow-x-auto">
+                          {!teacherReport.data.studentsList || teacherReport.data.studentsList.length === 0 ? (
+                            <div className="p-6 text-center text-sm text-gray-450">No students found for this teacher.</div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Student Name (ID)</TableHead>
+                                  <TableHead>Batches/Type</TableHead>
+                                  <TableHead>Classes Conducted</TableHead>
+                                  <TableHead>Classes Remaining</TableHead>
+                                  <TableHead>Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {teacherReport.data.studentsList.map((s: any) => (
+                                  <TableRow key={s.id}>
+                                    <TableCell className="font-semibold">
+                                      {s.name} <span className="text-xs text-gray-400 font-mono">({s.unionId || s.id})</span>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-gray-600 font-medium max-w-[200px] truncate" title={s.batchNames.join(", ")}>
+                                      {s.batchNames.join(", ") || "-"}
+                                    </TableCell>
+                                    <TableCell className="font-semibold text-emerald-600">
+                                      {s.totalClassesConducted} <span className="text-xs text-gray-400 font-normal">({s.oneToOneConducted} 1:1, {s.groupConducted} Grp)</span>
+                                    </TableCell>
+                                    <TableCell className="font-semibold text-amber-600">
+                                      {s.totalClassesRemaining} <span className="text-xs text-gray-400 font-normal">({s.oneToOneRemaining} 1:1, {s.groupRemaining} Grp)</span>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge className={`capitalize text-[10px] ${
+                                        s.status === "active" ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-gray-100 text-gray-700 hover:bg-gray-100"
+                                      }`}>
+                                        {s.status}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </CardContent>
+                      </Card>
+
                       {/* Admin Actions Footer */}
                       <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-dashed border-gray-200 print-hide">
                         {user?.role !== "academic_head" && (

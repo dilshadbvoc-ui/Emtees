@@ -908,12 +908,104 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
   );
 
   const enrolledStudentIds = new Set<number>();
+  const batchToStudents = new Map<number, Set<number>>();
+  
   for (const batch of teacherBatches) {
     const enrollments = await db.query.batchEnrollments.findMany({
       where: eq(batchEnrollments.batchId, batch.id),
     });
-    enrollments.forEach((e) => enrolledStudentIds.add(e.studentId));
+    
+    const bStudents = new Set<number>();
+    enrollments.forEach((e) => {
+      enrolledStudentIds.add(e.studentId);
+      bStudents.add(e.studentId);
+    });
+    batchToStudents.set(batch.id, bStudents);
   }
+
+  // 6. Students List
+  const studentsMap = new Map<number, any>();
+
+  // Fetch user details for all enrolled students and 1-to-1 students
+  const allStudentIds = new Set<number>(enrolledStudentIds);
+  for (const session of otoClasses) {
+    allStudentIds.add(session.studentId);
+  }
+  
+  if (allStudentIds.size > 0) {
+    const studentUsers = await db.query.users.findMany({
+      where: inArray(users.id, Array.from(allStudentIds)),
+    });
+    
+    for (const u of studentUsers) {
+      studentsMap.set(u.id, {
+        id: u.id,
+        name: u.name,
+        unionId: u.unionId,
+        status: u.status,
+        batchNames: new Set<string>(),
+        oneToOneConducted: 0,
+        oneToOneRemaining: 0,
+        groupConducted: 0,
+        groupRemaining: 0,
+      });
+    }
+  }
+
+  for (const batch of teacherBatches) {
+    const bStudents = batchToStudents.get(batch.id) || new Set();
+    for (const sid of bStudents) {
+      if (studentsMap.has(sid)) {
+        studentsMap.get(sid).batchNames.add(batch.name);
+      }
+    }
+  }
+
+  for (const session of otoClasses) {
+    if (studentsMap.has(session.studentId)) {
+      const st = studentsMap.get(session.studentId);
+      st.batchNames.add("One-to-One");
+      
+      if (session.status === "completed") {
+        st.oneToOneConducted++;
+      } else if (session.status !== "cancelled") {
+        st.oneToOneRemaining++;
+      }
+    }
+  }
+
+  if (teacherCompletedClassesIds.length > 0) {
+    const studentAttendanceRecords = await db
+      .select({ studentId: attendance.studentId })
+      .from(attendance)
+      .where(inArray(attendance.classId, teacherCompletedClassesIds));
+      
+    for (const r of studentAttendanceRecords) {
+      if (studentsMap.has(r.studentId)) {
+        studentsMap.get(r.studentId).groupConducted++;
+      }
+    }
+  }
+
+  for (const cls of groupClasses) {
+    if (cls.status === "scheduled" || cls.status === "ongoing") {
+      if (cls.batchId && batchToStudents.has(cls.batchId)) {
+        const bStudents = batchToStudents.get(cls.batchId);
+        for (const sid of bStudents!) {
+          if (studentsMap.has(sid)) {
+            studentsMap.get(sid).groupRemaining++;
+          }
+        }
+      }
+    }
+  }
+  
+  const studentsDetails = Array.from(studentsMap.values()).map(st => ({
+    ...st,
+    batchNames: Array.from(st.batchNames),
+    totalClassesConducted: st.oneToOneConducted + st.groupConducted,
+    totalClassesRemaining: st.oneToOneRemaining + st.groupRemaining,
+  }));
 
   return {
     teacher: {
@@ -1013,6 +1105,7 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
         paymentDate: s.paymentDate,
       })),
     },
+    studentsList: studentsDetails,
     salaries: salaryHistoryList.map(s => ({
       id: s.id,
       month: s.month,

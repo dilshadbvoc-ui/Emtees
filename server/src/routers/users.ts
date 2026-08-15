@@ -856,6 +856,13 @@ export const userRouter = createRouter({
       }
 
       try {
+        // Workaround for Postgres FK firing order issue with ON DELETE SET NULL vs CASCADE.
+        // Delete related sessions and classes manually first so their cascading deletes 
+        // process before the user's SET NULL triggers run on the attendance table.
+        await db.delete(oneToOneSessions).where(eq(oneToOneSessions.teacherId, input.id));
+        await db.delete(oneToOneSessions).where(eq(oneToOneSessions.studentId, input.id));
+        await db.delete(classes).where(eq(classes.teacherId, input.id));
+
         await db.delete(users).where(eq(users.id, input.id));
         return { success: true };
       } catch (error: any) {
