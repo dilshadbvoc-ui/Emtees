@@ -2717,7 +2717,7 @@ export const adminRouter = createRouter({
     .query(async ({ input }) => {
       const db = getDb();
       
-      const allClasses = await db
+      const groupClasses = await db
         .select({
           classId: classes.id,
           title: classes.title,
@@ -2729,12 +2729,39 @@ export const adminRouter = createRouter({
         .from(classes)
         .leftJoin(users, eq(classes.teacherId, users.id))
         .orderBy(desc(classes.startedAt))
-        .limit(200); // For now limit to 200 to prevent huge payloads
+        .limit(200);
 
-      const classIds = allClasses.map(c => c.classId);
+      const o2oSessions = await db
+        .select({
+          classId: oneToOneSessions.id,
+          title: oneToOneSessions.title,
+          teacherName: users.name,
+          startedAt: oneToOneSessions.startedAt,
+          endedAt: oneToOneSessions.endedAt,
+          studentAttendance: oneToOneSessions.studentAttendance,
+        })
+        .from(oneToOneSessions)
+        .leftJoin(users, eq(oneToOneSessions.teacherId, users.id))
+        .orderBy(desc(oneToOneSessions.startedAt))
+        .limit(200);
+
+      const combined = [
+        ...groupClasses.map(c => ({ ...c, isGroup: true, studentAttendance: null })),
+        ...o2oSessions.map(c => ({ ...c, classType: "one-on-one", isGroup: false }))
+      ];
+
+      // Sort combined by startedAt desc and limit to 200
+      combined.sort((a, b) => {
+        const dateA = a.startedAt ? a.startedAt.getTime() : 0;
+        const dateB = b.startedAt ? b.startedAt.getTime() : 0;
+        return dateB - dateA;
+      });
+      const topClasses = combined.slice(0, 200);
+
+      const groupClassIds = topClasses.filter(c => c.isGroup).map(c => c.classId);
       let attendanceMap: Record<number, number> = {};
       
-      if (classIds.length > 0) {
+      if (groupClassIds.length > 0) {
         const atts = await db
           .select({
             classId: attendance.classId,
@@ -2742,7 +2769,7 @@ export const adminRouter = createRouter({
           })
           .from(attendance)
           .where(and(
-            inArray(attendance.classId, classIds),
+            inArray(attendance.classId, groupClassIds),
             eq(attendance.status, "present")
           ))
           .groupBy(attendance.classId);
@@ -2754,11 +2781,22 @@ export const adminRouter = createRouter({
         });
       }
 
-      return allClasses.map(c => ({
-        ...c,
-        validStudents: attendanceMap[c.classId] || 0,
-        isValid: (attendanceMap[c.classId] || 0) > 0,
-      }));
+      return topClasses.map(c => {
+        const validStudents = c.isGroup 
+          ? (attendanceMap[c.classId] || 0) 
+          : (c.studentAttendance === "present" ? 1 : 0);
+          
+        return {
+          classId: c.classId,
+          title: c.title,
+          teacherName: c.teacherName,
+          startedAt: c.startedAt,
+          endedAt: c.endedAt,
+          classType: c.classType || "group",
+          validStudents,
+          isValid: validStudents > 0,
+        };
+      });
     }),
 
   generateWorkloadReport: adminQuery
