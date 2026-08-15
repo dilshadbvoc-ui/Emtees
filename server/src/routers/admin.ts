@@ -926,10 +926,24 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
   // 6. Students List
   const studentsMap = new Map<number, any>();
 
+  // Fetch allocations for this teacher
+  const teacherAllocations = await db.select({
+      studentId: studentClassAllocations.studentId,
+      allocation: studentClassAllocations.allocation,
+  }).from(studentClassAllocations).where(
+    or(
+      sql`CAST(${studentClassAllocations.allocation}->'oneToOne'->>'teacherId' AS INTEGER) = ${userId}`,
+      sql`CAST(${studentClassAllocations.allocation}->'group'->>'teacherId' AS INTEGER) = ${userId}`
+    )
+  );
+
   // Fetch user details for all enrolled students and 1-to-1 students
   const allStudentIds = new Set<number>(enrolledStudentIds);
   for (const session of otoClasses) {
     allStudentIds.add(session.studentId);
+  }
+  for (const alloc of teacherAllocations) {
+    allStudentIds.add(alloc.studentId);
   }
   
   if (allStudentIds.size > 0) {
@@ -950,6 +964,28 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
         groupRemaining: 0,
       });
     }
+
+    // Use the allocation fetch to populate remaining classes accurately
+    const allAllocs = await db.select({
+        studentId: studentClassAllocations.studentId,
+        allocation: studentClassAllocations.allocation,
+    }).from(studentClassAllocations).where(
+        inArray(studentClassAllocations.studentId, Array.from(allStudentIds))
+    );
+    
+    for (const a of allAllocs) {
+        if (studentsMap.has(a.studentId) && a.allocation) {
+            const st = studentsMap.get(a.studentId);
+            const alloc: any = a.allocation;
+            
+            if (alloc.oneToOne) {
+                st.oneToOneRemaining = (alloc.oneToOne.remaining30 || 0) + (alloc.oneToOne.remaining45 || 0) + (alloc.oneToOne.remaining60 || 0);
+            }
+            if (alloc.group) {
+                st.groupRemaining = (alloc.group.remaining30 || 0) + (alloc.group.remaining45 || 0) + (alloc.group.remaining60 || 0);
+            }
+        }
+    }
   }
 
   for (const batch of teacherBatches) {
@@ -968,8 +1004,6 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
       
       if (session.status === "completed") {
         st.oneToOneConducted++;
-      } else if (session.status !== "cancelled") {
-        st.oneToOneRemaining++;
       }
     }
   }
@@ -987,19 +1021,6 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
     }
   }
 
-  for (const cls of groupClasses) {
-    if (cls.status === "scheduled" || cls.status === "ongoing") {
-      if (cls.batchId && batchToStudents.has(cls.batchId)) {
-        const bStudents = batchToStudents.get(cls.batchId);
-        for (const sid of bStudents!) {
-          if (studentsMap.has(sid)) {
-            studentsMap.get(sid).groupRemaining++;
-          }
-        }
-      }
-    }
-  }
-  
   const studentsDetails = Array.from(studentsMap.values()).map(st => ({
     ...st,
     batchNames: Array.from(st.batchNames),
