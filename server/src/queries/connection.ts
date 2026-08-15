@@ -1,5 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
+import fs from "fs";
+import path from "path";
 import { env } from "../lib/env";
 import * as schema from "@db/schema";
 import * as relations from "@db/relations";
@@ -11,11 +13,26 @@ let instance: ReturnType<typeof drizzle<typeof fullSchema>>;
 export function getDb() {
   if (!instance) {
     const isLocal = env.databaseUrl.includes("localhost") || env.databaseUrl.includes("127.0.0.1");
+    
+    let sslConfig: any = false;
+    if (!isLocal) {
+      try {
+        const caPath = path.resolve(__dirname, "../../global-bundle.pem"); // resolve to server root
+        if (fs.existsSync(caPath)) {
+          sslConfig = { ca: fs.readFileSync(caPath).toString(), rejectUnauthorized: true };
+        } else {
+          sslConfig = { rejectUnauthorized: false };
+        }
+      } catch (e) {
+        sslConfig = { rejectUnauthorized: false };
+      }
+    }
+
     const pool = new pg.Pool({
       connectionString: env.databaseUrl,
       connectionTimeoutMillis: 5000, // 5 seconds connection timeout
       query_timeout: 5000,           // 5 seconds query timeout
-      ssl: isLocal ? false : { rejectUnauthorized: false },
+      ssl: sslConfig,
     });
     instance = drizzle(pool, { schema: fullSchema });
   }

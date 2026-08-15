@@ -1,7 +1,7 @@
-/// <reference types="node" />
+import fs from "fs";
+import path from "path";
 import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
-
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -14,5 +14,9 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url: connectionString,
+    ssl: process.env.NODE_ENV === "production" ? {
+      ca: fs.readFileSync(path.resolve(__dirname, "global-bundle.pem")).toString(),
+      rejectUnauthorized: true, // adjust to false if needed depending on your RDS/PG setup
+    } : false,
   },
 });
