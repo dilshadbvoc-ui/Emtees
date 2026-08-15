@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   Search,
@@ -110,6 +111,7 @@ export default function SalesExecutivesAdminPage() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [groupId, setGroupId] = useState<number | null>(null);
+  const [managerGroupIds, setManagerGroupIds] = useState<number[]>([]);
   const [designation, setDesignation] = useState("Sales User");
 
   const groupsQuery = trpc.sales.listGroups.useQuery();
@@ -212,6 +214,7 @@ export default function SalesExecutivesAdminPage() {
     setPassword("");
     setStatus("active");
     setGroupId(null);
+    setManagerGroupIds([]);
     setDesignation("Sales User");
   };
 
@@ -233,6 +236,7 @@ export default function SalesExecutivesAdminPage() {
       password,
       status,
       groupId,
+      managerGroupIds,
       isASM,
       designation,
     });
@@ -252,6 +256,7 @@ export default function SalesExecutivesAdminPage() {
       phone,
       status,
       groupId,
+      managerGroupIds,
       isASM,
       designation,
     });
@@ -274,6 +279,7 @@ export default function SalesExecutivesAdminPage() {
     setPhoneNumber(exec.phoneNumber || rawPhone);
     setStatus(exec.status);
     setGroupId(exec.groupId);
+    setManagerGroupIds(exec.managedGroupIds || []);
     setDesignation(exec.designation || "Sales User");
     setEditModalOpen(true);
   };
@@ -449,7 +455,20 @@ export default function SalesExecutivesAdminPage() {
                             {exec.designation}
                           </Badge>
                         )}
-                        {exec.groupId && (
+                        {exec.designation === "Manager" && exec.managedGroupIds?.length > 0 ? (
+                          exec.managedGroupIds.map((mGroupId: number) => {
+                            const gName = groupsQuery.data?.find((g) => g.id === mGroupId)?.name;
+                            return (
+                              <Badge
+                                key={mGroupId}
+                                variant="outline"
+                                className="ml-1 text-[10px] bg-slate-100 text-slate-700"
+                              >
+                                {gName || "Team"}
+                              </Badge>
+                            );
+                          })
+                        ) : exec.groupId ? (
                           <Badge
                             variant="outline"
                             className="ml-1 text-[10px] bg-slate-100 text-slate-700"
@@ -458,7 +477,7 @@ export default function SalesExecutivesAdminPage() {
                               (g) => g.id === exec.groupId,
                             )?.name || "Team"}
                           </Badge>
-                        )}
+                        ) : null}
                       </TableCell>
                       <TableCell className="text-xs text-right space-x-1">
                         {/* Students Button */}
@@ -717,26 +736,55 @@ export default function SalesExecutivesAdminPage() {
 
               <div className="space-y-1.5">
                 <Label className="font-semibold text-gray-600">
-                  Assign to Team (Optional)
+                  Assign to Team(s) (Optional)
                 </Label>
-                <Select
-                  value={groupId?.toString() || "none"}
-                  onValueChange={(val: any) =>
-                    setGroupId(val === "none" ? null : parseInt(val))
-                  }
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="No Team" />
-                  </SelectTrigger>
-                  <SelectContent className="text-xs">
-                    <SelectItem value="none">No Team</SelectItem>
+                {designation === "Manager" ? (
+                  <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-2 bg-white">
                     {groupsQuery.data?.map((g) => (
-                      <SelectItem key={g.id} value={g.id.toString()}>
-                        {g.name}
-                      </SelectItem>
+                      <div key={g.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`group-${g.id}`}
+                          checked={managerGroupIds.includes(g.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setManagerGroupIds([...managerGroupIds, g.id]);
+                            } else {
+                              setManagerGroupIds(managerGroupIds.filter((id) => id !== g.id));
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`group-${g.id}`}
+                          className="text-xs font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {g.name}
+                        </Label>
+                      </div>
                     ))}
-                  </SelectContent>
-                </Select>
+                    {!groupsQuery.data?.length && (
+                      <p className="text-xs text-muted-foreground">No teams available</p>
+                    )}
+                  </div>
+                ) : (
+                  <Select
+                    value={groupId?.toString() || "none"}
+                    onValueChange={(val: any) =>
+                      setGroupId(val === "none" ? null : parseInt(val))
+                    }
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="No Team" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs">
+                      <SelectItem value="none">No Team</SelectItem>
+                      {groupsQuery.data?.map((g) => (
+                        <SelectItem key={g.id} value={g.id.toString()}>
+                          {g.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -859,26 +907,55 @@ export default function SalesExecutivesAdminPage() {
 
               <div className="space-y-1.5">
                 <Label className="font-semibold text-gray-600">
-                  Assign to Team (Optional)
+                  Assign to Team(s) (Optional)
                 </Label>
-                <Select
-                  value={groupId?.toString() || "none"}
-                  onValueChange={(val: any) =>
-                    setGroupId(val === "none" ? null : parseInt(val))
-                  }
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="No Team" />
-                  </SelectTrigger>
-                  <SelectContent className="text-xs">
-                    <SelectItem value="none">No Team</SelectItem>
+                {designation === "Manager" ? (
+                  <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-2 bg-white">
                     {groupsQuery.data?.map((g) => (
-                      <SelectItem key={g.id} value={g.id.toString()}>
-                        {g.name}
-                      </SelectItem>
+                      <div key={g.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-group-${g.id}`}
+                          checked={managerGroupIds.includes(g.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setManagerGroupIds([...managerGroupIds, g.id]);
+                            } else {
+                              setManagerGroupIds(managerGroupIds.filter((id) => id !== g.id));
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`edit-group-${g.id}`}
+                          className="text-xs font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {g.name}
+                        </Label>
+                      </div>
                     ))}
-                  </SelectContent>
-                </Select>
+                    {!groupsQuery.data?.length && (
+                      <p className="text-xs text-muted-foreground">No teams available</p>
+                    )}
+                  </div>
+                ) : (
+                  <Select
+                    value={groupId?.toString() || "none"}
+                    onValueChange={(val: any) =>
+                      setGroupId(val === "none" ? null : parseInt(val))
+                    }
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="No Team" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs">
+                      <SelectItem value="none">No Team</SelectItem>
+                      {groupsQuery.data?.map((g) => (
+                        <SelectItem key={g.id} value={g.id.toString()}>
+                          {g.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">

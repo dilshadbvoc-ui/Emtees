@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, desc, sql, count, gte, lte, ne } from "drizzle-orm";
+import { eq, and, desc, sql, count, gte, lte, ne, inArray } from "drizzle-orm";
 import { createRouter, authedQuery, adminQuery, publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import {
@@ -10,7 +10,8 @@ import {
   batches,
   modules,
   batchEnrollments,
-  payments
+  payments,
+  salesGroups
 } from "@db/schema";
 import { getNextUniqueId } from "../lib/idGenerator";
 import { phoneSchema, parseFullPhone, validatePhoneNumber, PHONE_ERROR_MESSAGE, getCountryISOFromDialCode } from "@contracts/validation";
@@ -68,9 +69,16 @@ export const salesExecutiveRouter = createRouter({
           .from(users)
           .where(eq(users.salesExecutiveId, exec.id));
 
+        let managedGroupIds: number[] = [];
+        if (exec.designation === "Manager") {
+          const mGroups = await db.select({ id: salesGroups.id }).from(salesGroups).where(eq(salesGroups.managerId, exec.id));
+          managedGroupIds = mGroups.map(g => g.id);
+        }
+
         result.push({
           ...exec,
           studentCount,
+          managedGroupIds,
         });
       }
       return result;
@@ -87,6 +95,7 @@ export const salesExecutiveRouter = createRouter({
         password: z.string().min(6),
         status: z.enum(["active", "inactive"]).default("active"),
         groupId: z.number().nullable().optional(),
+        managerGroupIds: z.array(z.number()).optional(),
         isASM: z.boolean().default(false),
         designation: z.string().default("Sales User"),
       })
@@ -198,6 +207,12 @@ export const salesExecutiveRouter = createRouter({
         designation: input.designation,
       }).returning();
 
+      if (input.designation === "Manager" && input.managerGroupIds && input.managerGroupIds.length > 0) {
+        await db.update(salesGroups)
+          .set({ managerId: execResult[0].id })
+          .where(inArray(salesGroups.id, input.managerGroupIds));
+      }
+
       return execResult[0];
     }),
 
@@ -211,6 +226,7 @@ export const salesExecutiveRouter = createRouter({
         phone: z.string().min(6),
         status: z.enum(["active", "inactive"]),
         groupId: z.number().nullable().optional(),
+        managerGroupIds: z.array(z.number()).optional(),
         isASM: z.boolean().default(false),
         designation: z.string().default("Sales User"),
       })
@@ -301,6 +317,18 @@ export const salesExecutiveRouter = createRouter({
         })
         .where(eq(salesExecutives.id, input.id))
         .returning();
+
+      // Clear managerId from all groups currently managed by this executive
+      await db.update(salesGroups)
+        .set({ managerId: null })
+        .where(eq(salesGroups.managerId, input.id));
+
+      // Set managerId for selected groups
+      if (input.designation === "Manager" && input.managerGroupIds && input.managerGroupIds.length > 0) {
+        await db.update(salesGroups)
+          .set({ managerId: input.id })
+          .where(inArray(salesGroups.id, input.managerGroupIds));
+      }
 
       return updated[0];
     }),
