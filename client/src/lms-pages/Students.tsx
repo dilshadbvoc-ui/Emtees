@@ -1406,12 +1406,12 @@ export default function StudentsPage() {
                 <TableHead>Student ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Assigned Teacher</TableHead>
+                <TableHead>Designated Time</TableHead>
                 <TableHead>Qualification</TableHead>
                 <TableHead>Postal Code</TableHead>
                 <TableHead>Course</TableHead>
                 <TableHead>Session Type</TableHead>
-                <TableHead>Assigned Teacher</TableHead>
-                <TableHead>Designated Time</TableHead>
                 <TableHead>Batch</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joined</TableHead>
@@ -1440,14 +1440,6 @@ export default function StudentsPage() {
                     <TableCell className="font-mono text-xs font-semibold text-emerald-800">{s.profile?.enrollmentId || s.unionId}</TableCell>
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell>{s.phone}</TableCell>
-                    <TableCell>{qualDisplay}</TableCell>
-                    <TableCell className="font-mono text-xs">{postalDisplay}</TableCell>
-                    <TableCell>{s.profile?.course || "-"}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${sessionBadgeClass}`}>
-                        {sessionLabel}
-                      </span>
-                    </TableCell>
                     <TableCell className="text-xs">
                       {isO2O && (s.classAllocation as any)?.oneToOne?.teacherId && (
                         <div className="whitespace-nowrap"><span className="font-semibold text-blue-700">1v1:</span> {getTeacherName((s.classAllocation as any).oneToOne.teacherId)}</div>
@@ -1465,6 +1457,14 @@ export default function StudentsPage() {
                         <div className="whitespace-nowrap"><span className="font-semibold text-emerald-700">Grp:</span> {(s.classAllocation as any).group.designatedTime}</div>
                       )}
                       {(!isO2O || !(s.classAllocation as any)?.oneToOne?.designatedTime) && (!isGrp || !(s.classAllocation as any)?.group?.designatedTime) && "-"}
+                    </TableCell>
+                    <TableCell>{qualDisplay}</TableCell>
+                    <TableCell className="font-mono text-xs">{postalDisplay}</TableCell>
+                    <TableCell>{s.profile?.course || "-"}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${sessionBadgeClass}`}>
+                        {sessionLabel}
+                      </span>
                     </TableCell>
                     <TableCell>
                       {s.profile?.batch ? (
