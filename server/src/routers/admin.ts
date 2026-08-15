@@ -716,41 +716,57 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
     ),
   });
 
+  const teacherAllocations = await db.select({
+      studentId: studentClassAllocations.studentId,
+      allocation: studentClassAllocations.allocation,
+  }).from(studentClassAllocations).where(
+    or(
+      sql`CAST(${studentClassAllocations.allocation}->'oneToOne'->>'teacherId' AS INTEGER) = ${userId}`,
+      sql`CAST(${studentClassAllocations.allocation}->'group'->>'teacherId' AS INTEGER) = ${userId}`
+    )
+  );
+
   const otoStats = {
     min30: { total: 0, completed: 0, remaining: 0 },
     min45: { total: 0, completed: 0, remaining: 0 },
     min60: { total: 0, completed: 0, remaining: 0 },
   };
 
-  for (const session of otoClasses) {
-    const len = session.sessionLength || 30;
-    const cat = getDurationCategory(len);
-    const completed = session.status === "completed";
-    const cancelled = session.status === "cancelled";
-    const remaining = !completed && !cancelled;
-
-    if (!cancelled) {
-      if (cat === 30) {
-        otoStats.min30.total++;
-        if (completed) otoStats.min30.completed++;
-        if (remaining) otoStats.min30.remaining++;
-      } else if (cat === 45) {
-        otoStats.min45.total++;
-        if (completed) otoStats.min45.completed++;
-        if (remaining) otoStats.min45.remaining++;
-      } else if (cat === 60) {
-        otoStats.min60.total++;
-        if (completed) otoStats.min60.completed++;
-        if (remaining) otoStats.min60.remaining++;
-      }
-    }
-  }
-
   const groupStats = {
     min30: { total: 0, completed: 0, remaining: 0 },
     min45: { total: 0, completed: 0, remaining: 0 },
     min60: { total: 0, completed: 0, remaining: 0 },
   };
+
+  // Pre-fill remaining classes from allocations for the teacher
+  for (const allocRow of teacherAllocations) {
+    const alloc: any = allocRow.allocation;
+    if (alloc?.oneToOne && String(alloc.oneToOne.teacherId) === String(userId)) {
+      otoStats.min30.remaining += (alloc.oneToOne.remaining30 || 0);
+      otoStats.min45.remaining += (alloc.oneToOne.remaining45 || 0);
+      otoStats.min60.remaining += (alloc.oneToOne.remaining60 || 0);
+    }
+    // For group classes, we'll keep the logic to Scheduled classes from the DB below,
+    // because group class 'remaining' in allocations represents the student's remaining,
+    // not necessarily the teacher's remaining classes (since they are shared).
+  }
+
+  for (const session of otoClasses) {
+    const len = session.sessionLength || 30;
+    const cat = getDurationCategory(len);
+    const completed = session.status === "completed";
+
+    if (completed) {
+      if (cat === 30) otoStats.min30.completed++;
+      else if (cat === 45) otoStats.min45.completed++;
+      else if (cat === 60) otoStats.min60.completed++;
+    }
+  }
+
+  // Calculate totals for one-to-one
+  otoStats.min30.total = otoStats.min30.completed + otoStats.min30.remaining;
+  otoStats.min45.total = otoStats.min45.completed + otoStats.min45.remaining;
+  otoStats.min60.total = otoStats.min60.completed + otoStats.min60.remaining;
 
   for (const cls of groupClasses) {
     const len = cls.duration || 30;
@@ -926,16 +942,8 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
   // 6. Students List
   const studentsMap = new Map<number, any>();
 
-  // Fetch allocations for this teacher
-  const teacherAllocations = await db.select({
-      studentId: studentClassAllocations.studentId,
-      allocation: studentClassAllocations.allocation,
-  }).from(studentClassAllocations).where(
-    or(
-      sql`CAST(${studentClassAllocations.allocation}->'oneToOne'->>'teacherId' AS INTEGER) = ${userId}`,
-      sql`CAST(${studentClassAllocations.allocation}->'group'->>'teacherId' AS INTEGER) = ${userId}`
-    )
-  );
+  // We already fetched teacherAllocations above at line 720
+
 
   // Fetch user details for all enrolled students and 1-to-1 students
   const allStudentIds = new Set<number>(enrolledStudentIds);
