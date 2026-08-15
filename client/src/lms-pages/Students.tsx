@@ -173,6 +173,7 @@ export default function StudentsPage() {
     oneToOne: { teacherId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
     group: { teacherId: "", batchId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
   });
+  const [configStudentId, setConfigStudentId] = useState<number | null>(null);
 
   const [isAdjustingBalance, setIsAdjustingBalance] = useState(false);
   const [adjustType, setAdjustType] = useState<"oneToOne" | "group">("oneToOne");
@@ -1438,7 +1439,39 @@ export default function StudentsPage() {
                     }}
                   >
                     <TableCell className="font-mono text-xs font-semibold text-emerald-800">{s.profile?.enrollmentId || s.unionId}</TableCell>
-                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <button
+                        className="text-left hover:underline hover:text-emerald-700 font-medium"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfigStudentId(s.id);
+                          const alloc = s.classAllocation || {
+                            oneToOne: { teacherId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
+                            group: { teacherId: "", batchId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 }
+                          };
+                          setTempAllocation({
+                            oneToOne: {
+                              teacherId: (alloc as any).oneToOne?.teacherId ?? "",
+                              designatedTime: (alloc as any).oneToOne?.designatedTime ?? "",
+                              sessions30: (alloc as any).oneToOne?.sessions30 ?? 0,
+                              sessions45: (alloc as any).oneToOne?.sessions45 ?? 0,
+                              sessions60: (alloc as any).oneToOne?.sessions60 ?? 0,
+                            },
+                            group: {
+                              teacherId: (alloc as any).group?.teacherId ?? "",
+                              batchId: ((alloc as any).group?.batchId as any) ?? "",
+                              designatedTime: (alloc as any).group?.designatedTime ?? "",
+                              sessions30: (alloc as any).group?.sessions30 ?? 0,
+                              sessions45: (alloc as any).group?.sessions45 ?? 0,
+                              sessions60: (alloc as any).group?.sessions60 ?? 0,
+                            }
+                          });
+                          setIsConfiguringAllocation(true);
+                        }}
+                      >
+                        {s.name}
+                      </button>
+                    </TableCell>
                     <TableCell>{s.phone}</TableCell>
                     <TableCell className="text-xs">
                       {isO2O && (s.classAllocation as any)?.oneToOne?.teacherId && (
@@ -2851,7 +2884,10 @@ export default function StudentsPage() {
       </Dialog>
 
       {/* Configure Allocation Dialog */}
-      <Dialog open={isConfiguringAllocation} onOpenChange={setIsConfiguringAllocation}>
+      <Dialog open={isConfiguringAllocation} onOpenChange={(open) => {
+        setIsConfiguringAllocation(open);
+        if (!open) setConfigStudentId(null);
+      }}>
         <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">Configure Student Class Allocation</DialogTitle>
@@ -2870,7 +2906,7 @@ export default function StudentsPage() {
               disabled={updateClassAllocationMutation.isPending}
               onClick={() => {
                 updateClassAllocationMutation.mutate({
-                  studentId: detailsStudentId || 0,
+                  studentId: configStudentId || detailsStudentId || 0,
                   allocation: {
                       oneToOne: {
                       teacherId: tempAllocation.oneToOne.teacherId !== "" ? Number(tempAllocation.oneToOne.teacherId) : null,
