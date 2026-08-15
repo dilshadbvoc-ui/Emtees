@@ -64,6 +64,50 @@ export const salesRouter = createRouter({
         .returning();
     }),
 
+  deleteGroup: adminQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = getDb();
+      return db.delete(salesGroups)
+        .where(eq(salesGroups.id, input.id))
+        .returning();
+    }),
+
+  getTeamDetails: salesExecQuery
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const group = await db.query.salesGroups.findFirst({
+        where: eq(salesGroups.id, input.id)
+      });
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+
+      const members = await db.query.salesExecutives.findMany({
+        where: eq(salesExecutives.groupId, input.id),
+      });
+
+      const closures = await db.query.salesClosures.findMany({
+        where: eq(salesClosures.groupId, input.id),
+      });
+
+      let totalPoints = 0;
+      let totalSales = 0;
+      for (const closure of closures) {
+        totalPoints += Number(closure.points || 0);
+        totalSales += Number(closure.totalFee || 0);
+      }
+
+      return {
+        group,
+        members,
+        performance: {
+          totalClosures: closures.length,
+          totalPoints,
+          totalSales,
+        }
+      };
+    }),
+
   // ----------------------------------------------------
   // POINTS RULES
   // ----------------------------------------------------
