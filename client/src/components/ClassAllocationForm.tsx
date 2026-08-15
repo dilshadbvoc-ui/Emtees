@@ -2,6 +2,8 @@ import React from "react";
 import { trpc } from "@/providers/trpc";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 export interface ClassAllocationValue {
   oneToOne: {
@@ -58,16 +60,30 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Assigned Teacher</Label>
-            <select
-              value={value.oneToOne.teacherId}
-              onChange={(e) => handleO2OChange("teacherId", e.target.value !== "" ? Number(e.target.value) : "")}
-              className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none"
-            >
-              <option value="">Select Teacher</option>
-              {teachersQuery.data?.map((t: any) => (
-                <option key={t.id} value={t.id}>{t.name} ({t.unionId})</option>
-              ))}
-            </select>
+            <div className="flex gap-1 items-center">
+              <select
+                value={value.oneToOne.teacherId}
+                onChange={(e) => handleO2OChange("teacherId", e.target.value !== "" ? Number(e.target.value) : "")}
+                className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none"
+              >
+                <option value="">Select Teacher</option>
+                {teachersQuery.data?.map((t: any) => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.unionId})</option>
+                ))}
+              </select>
+              {value.oneToOne.teacherId !== "" && value.oneToOne.teacherId !== null && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 shrink-0"
+                  onClick={() => handleO2OChange("teacherId", "")}
+                  title="Remove Assigned Teacher"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Designated Time</Label>
@@ -120,29 +136,57 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Assigned Teacher</Label>
-            <select
-              value={value.group.teacherId}
-              onChange={(e) => handleGroupChange("teacherId", e.target.value !== "" ? Number(e.target.value) : "")}
-              className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none"
-            >
-              <option value="">Select Teacher</option>
-              {teachersQuery.data?.map((t: any) => (
-                <option key={t.id} value={t.id}>{t.name} ({t.unionId})</option>
-              ))}
-            </select>
+            <div className="flex gap-1 items-center">
+              <select
+                value={value.group.teacherId}
+                onChange={(e) => handleGroupChange("teacherId", e.target.value !== "" ? Number(e.target.value) : "")}
+                className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none"
+              >
+                <option value="">Select Teacher</option>
+                {teachersQuery.data?.map((t: any) => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.unionId})</option>
+                ))}
+              </select>
+              {value.group.teacherId !== "" && value.group.teacherId !== null && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 shrink-0"
+                  onClick={() => handleGroupChange("teacherId", "")}
+                  title="Remove Assigned Teacher"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Assigned Batch</Label>
-            <select
-              value={value.group.batchId}
-              onChange={(e) => handleGroupChange("batchId", e.target.value !== "" ? Number(e.target.value) : "")}
-              className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none"
-            >
-              <option value="">Select Batch</option>
-              {batchesQuery.data?.map((b: any) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
+            <div className="flex gap-1 items-center">
+              <select
+                value={value.group.batchId}
+                onChange={(e) => handleGroupChange("batchId", e.target.value !== "" ? Number(e.target.value) : "")}
+                className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none"
+              >
+                <option value="">Select Batch</option>
+                {batchesQuery.data?.map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+              {value.group.batchId !== "" && value.group.batchId !== null && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 shrink-0"
+                  onClick={() => handleGroupChange("batchId", "")}
+                  title="Remove Assigned Batch"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Designated Time</Label>
