@@ -77,6 +77,18 @@ export default function ReportsPage() {
   const [holidayDescription, setHolidayDescription] = useState("");
   const [showHolidayDialog, setShowHolidayDialog] = useState(false);
 
+  // Teacher Student-Wise Report states
+  const [tswTeacherId, setTswTeacherId] = useState<number | null>(null);
+  const [tswTeacherSearch, setTswTeacherSearch] = useState("");
+  const [showTswTeacherDropdown, setShowTswTeacherDropdown] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const firstOfMonth = today.slice(0, 8) + "01";
+  const [tswStartDate, setTswStartDate] = useState(firstOfMonth);
+  const [tswEndDate, setTswEndDate] = useState(today);
+
+  // Daily Teacher Report states
+  const [dailyReportDate, setDailyReportDate] = useState(today);
+
   // Auto-set teacher id if logged in user is teacher
   useEffect(() => {
     if (isTeacher && user?.id) {
@@ -169,6 +181,22 @@ export default function ReportsPage() {
   const exportTeacherReport = trpc.admin.exportTeacherReport.useQuery(
     { teacherId: isNaN(Number(teacherId)) ? teacherId : Number(teacherId) },
     { enabled: false }
+  );
+
+  // Teacher Student-Wise Report query
+  const tswTeacherSearchQuery = trpc.admin.searchTeachers.useQuery(
+    { search: tswTeacherSearch },
+    { enabled: isAdmin && tswTeacherSearch.length >= 2 && showTswTeacherDropdown }
+  );
+  const tswReportQuery = trpc.admin.getTeacherStudentWiseReport.useQuery(
+    { teacherId: tswTeacherId!, startDate: tswStartDate, endDate: tswEndDate },
+    { enabled: isAdmin && !!tswTeacherId && !!tswStartDate && !!tswEndDate }
+  );
+
+  // Daily Teacher Report query
+  const dailyReportQuery = trpc.admin.getDailyTeacherReport.useQuery(
+    { date: dailyReportDate },
+    { enabled: isAdmin && !!dailyReportDate }
   );
 
   function getDateRange(type: string): { start: string; end: string } {
@@ -1266,7 +1294,10 @@ export default function ReportsPage() {
               <TabsTrigger value="teacher-attendance">Teacher Attendance Report</TabsTrigger>
               <TabsTrigger value="class-report">Class Report</TabsTrigger>
               <TabsTrigger value="workload">Workload Report</TabsTrigger>
+              <TabsTrigger value="teacher-student-wise">Teacher Student-Wise</TabsTrigger>
+              <TabsTrigger value="daily-report">Daily Report</TabsTrigger>
             </TabsList>
+
 
             <TabsContent value="student">
               <Card className="print-card-border">
@@ -2949,6 +2980,161 @@ export default function ReportsPage() {
 
             <TabsContent value="workload">
               <WorkloadReportView />
+            </TabsContent>
+
+            {/* ─── Teacher Student-Wise Report ─── */}
+            <TabsContent value="teacher-student-wise">
+              <Card className="shadow-sm border-0">
+                <CardHeader className="border-b">
+                  <CardTitle className="text-base font-semibold text-slate-800">Teacher Student-Wise Report</CardTitle>
+                  <p className="text-xs text-gray-500 mt-1">Select a teacher and date range to see per-student attendance breakdown.</p>
+                </CardHeader>
+                <div className="p-5 space-y-4 print-hide">
+                  {/* Teacher Search */}
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
+                      <Input
+                        className="pl-9"
+                        placeholder="Search teacher name..."
+                        value={tswTeacherSearch}
+                        onChange={(e) => { setTswTeacherSearch(e.target.value); setShowTswTeacherDropdown(true); if (!e.target.value) setTswTeacherId(null); }}
+                        onFocus={() => setShowTswTeacherDropdown(true)}
+                      />
+                      {showTswTeacherDropdown && tswTeacherSearchQuery.data && tswTeacherSearchQuery.data.length > 0 && (
+                        <div className="absolute z-20 left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                          {tswTeacherSearchQuery.data.map((t: any) => (
+                            <button
+                              key={t.id}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm"
+                              onClick={() => { setTswTeacherId(t.id); setTswTeacherSearch(t.name || t.username); setShowTswTeacherDropdown(false); }}
+                            >
+                              <span className="font-medium">{t.name || t.username}</span>
+                              {t.username && <span className="text-gray-400 ml-2">@{t.username}</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input type="date" value={tswStartDate} onChange={(e) => setTswStartDate(e.target.value)} className="w-36" />
+                      <span className="text-gray-400 text-sm">to</span>
+                      <Input type="date" value={tswEndDate} onChange={(e) => setTswEndDate(e.target.value)} className="w-36" />
+                    </div>
+                  </div>
+                </div>
+                {tswReportQuery.isLoading && <div className="text-center py-12 text-gray-400">Loading...</div>}
+                {!tswTeacherId && !tswReportQuery.isLoading && (
+                  <div className="text-center py-12 text-gray-400">Search and select a teacher to view their student-wise report.</div>
+                )}
+                {tswTeacherId && !tswReportQuery.isLoading && tswReportQuery.data && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead>Student</TableHead>
+                        <TableHead className="text-center">Present</TableHead>
+                        <TableHead className="text-center">Absent</TableHead>
+                        <TableHead className="text-center">1-to-1 Sessions</TableHead>
+                        <TableHead className="text-center">Total Classes</TableHead>
+                        <TableHead className="text-center">Attendance %</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tswReportQuery.data.length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-400">No records found for this period.</TableCell></TableRow>
+                      )}
+                      {tswReportQuery.data.map((row: any) => (
+                        <TableRow key={row.studentId} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">{row.studentName}</TableCell>
+                          <TableCell className="text-center text-green-600 font-semibold">{row.presentCount}</TableCell>
+                          <TableCell className="text-center text-red-500 font-semibold">{row.absentCount}</TableCell>
+                          <TableCell className="text-center text-blue-600">{row.oneToOneCount}</TableCell>
+                          <TableCell className="text-center">{row.totalClasses}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge className={`text-xs ${row.attendanceRate >= 75 ? "bg-green-100 text-green-700" : row.attendanceRate >= 50 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-600"}`}>
+                              {row.attendanceRate}%
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </Card>
+            </TabsContent>
+
+            {/* ─── Daily All-Teachers Report ─── */}
+            <TabsContent value="daily-report">
+              <Card className="shadow-sm border-0">
+                <CardHeader className="border-b">
+                  <CardTitle className="text-base font-semibold text-slate-800">Daily All-Teachers Report</CardTitle>
+                  <p className="text-xs text-gray-500 mt-1">Overview of all teacher activity for a given day.</p>
+                </CardHeader>
+                <div className="p-5 print-hide">
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-gray-700">Date:</label>
+                    <Input
+                      type="date"
+                      value={dailyReportDate}
+                      onChange={(e) => setDailyReportDate(e.target.value)}
+                      className="w-40"
+                    />
+                    <Button variant="outline" size="sm" onClick={() => setDailyReportDate(today)}>Today</Button>
+                  </div>
+                </div>
+                {dailyReportQuery.isLoading && <div className="text-center py-12 text-gray-400">Loading...</div>}
+                {dailyReportQuery.data && (
+                  <>
+                    {/* Summary bar */}
+                    <div className="grid grid-cols-4 gap-3 px-5 pb-4">
+                      {[
+                        { label: "Teachers Active", value: dailyReportQuery.data.length, cls: "text-indigo-600" },
+                        { label: "Group Classes", value: dailyReportQuery.data.reduce((a: number, r: any) => a + r.groupClasses, 0), cls: "text-blue-600" },
+                        { label: "1-to-1 Sessions", value: dailyReportQuery.data.reduce((a: number, r: any) => a + r.o2oSessions, 0), cls: "text-purple-600" },
+                        { label: "Total Minutes", value: dailyReportQuery.data.reduce((a: number, r: any) => a + r.totalMinutes, 0), cls: "text-green-600" },
+                      ].map((s) => (
+                        <div key={s.label} className="bg-gray-50 rounded-lg p-3 text-center">
+                          <p className={`text-xl font-bold ${s.cls}`}>{s.value}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead>Teacher</TableHead>
+                          <TableHead className="text-center">Group Classes</TableHead>
+                          <TableHead className="text-center">1-to-1</TableHead>
+                          <TableHead className="text-center">Completed</TableHead>
+                          <TableHead className="text-center">Unique Students</TableHead>
+                          <TableHead className="text-center">Total Minutes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dailyReportQuery.data.length === 0 && (
+                          <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-400">No classes or sessions found for this date.</TableCell></TableRow>
+                        )}
+                        {dailyReportQuery.data.map((row: any) => (
+                          <TableRow key={row.teacherId} className="hover:bg-gray-50">
+                            <TableCell className="font-medium">{row.teacherName}</TableCell>
+                            <TableCell className="text-center">{row.groupClasses}</TableCell>
+                            <TableCell className="text-center">{row.o2oSessions}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge className="bg-green-100 text-green-700 text-xs">{row.completedClasses}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center">{row.uniqueStudents}</TableCell>
+                            <TableCell className="text-center font-semibold text-indigo-700">{row.totalMinutes} min</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
+              </Card>
             </TabsContent>
           </Tabs>
         </>

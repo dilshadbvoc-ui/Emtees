@@ -1,8 +1,13 @@
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { getDb } from "../queries/connection";
-import { attendanceEvents, attendance, classLedgerTransactions, classes, users, profiles, batches, batchEnrollments, classBatches } from "@db/schema";
+import { attendanceEvents, attendance, classLedgerTransactions, classes, users, profiles, batches, batchEnrollments, classBatches, systemSettings } from "@db/schema";
 import { recalculateSalaryInternal } from "../routers/admin";
 import { NotificationService } from "./notificationService";
+
+async function getClassDurationThreshold(db: ReturnType<typeof getDb>): Promise<number> {
+  const setting = await db.query.systemSettings.findFirst({ where: eq(systemSettings.key, "class_duration_threshold") });
+  return setting ? parseInt(setting.value) || 20 : 20;
+}
 
 export async function evaluateClassCompletion(classId: number) {
   const db = getDb();
@@ -45,10 +50,11 @@ export async function evaluateClassCompletion(classId: number) {
     userDurations[uid] = (userDurations[uid] || 0) + diffMins;
   }
 
-  // 3. Determine if teacher met the 20-min rule
+  // 3. Determine if teacher met the configurable duration threshold
+  const durationThreshold = await getClassDurationThreshold(db);
   const teacherId = cls.teacherId;
   const teacherDuration = userDurations[teacherId] || 0;
-  const teacherValid = teacherDuration >= 20;
+  const teacherValid = teacherDuration >= durationThreshold;
 
   // 4. Determine student validities and create Ledger Debits
   const students = Object.keys(userDurations)
@@ -57,7 +63,7 @@ export async function evaluateClassCompletion(classId: number) {
 
   for (const studentId of students) {
     const duration = userDurations[studentId] || 0;
-    const studentValid = duration >= 20;
+    const studentValid = duration >= durationThreshold;
     
     let finalStatus: "present" | "absent" = "absent";
     if (teacherValid && studentValid) {
@@ -138,7 +144,7 @@ export async function evaluateClassCompletion(classId: number) {
   // 5. Post-Class Followups: Auto-message absentees
   // Find all batches for this class
   const cbList = await db.select({ batchId: classBatches.batchId }).from(classBatches).where(eq(classBatches.classId, classId));
-  const classBatchIds = Array.from(new Set([cls.batchId, ...cbList.map(x => x.batchId)]));
+  const classBatchIds = Array.from(new Set([cls.batchId, ...cbList.map(x => x.batchId)].filter(Boolean)));
 
   // Find all active enrollments for these batches
   const activeEnrollments = await db.query.batchEnrollments.findMany({
@@ -166,6 +172,38 @@ export async function evaluateClassCompletion(classId: number) {
         type: "missed_class",
         channels: ["in_app", "email", "whatsapp", "sms"] // Let the service handle enabled/disabled ones
       });
+
+      // Also check consecutive absences threshold
+      const absentSetting = await db.query.systemSettings.findFirst({ where: eq(systemSettings.key, "absent_consecutive_threshold") });
+      const absentThreshold = absentSetting ? parseInt(absentSetting.value) || 7 : 7;
+
+      // Find last N attendance records for this student
+      const lastN = await db.select({ status: attendance.status })
+        .from(attendance)
+        .where(eq(attendance.studentId, enr.studentId))
+        .orderBy(sql`${attendance.id} DESC`)
+        .limit(absentThreshold);
+
+      if (lastN.length === absentThreshold && lastN.every((r: any) => r.status === "absent")) {
+        await NotificationService.dispatch({
+          userId: enr.studentId,
+          subject: "Absence Alert",
+          message: `You have been absent for ${absentThreshold} consecutive classes. Please reach out if you need assistance.`,
+          type: "absence_alert",
+          channels: ["in_app", "email", "sms"]
+        });
+
+        const adminIds = (await db.query.users.findMany({ where: inArray(users.role, ["super_admin", "admin", "academic_head"]) })).map((u: any) => u.id);
+        for (const adminId of adminIds) {
+          await NotificationService.dispatch({
+            userId: adminId,
+            subject: "Student Absence Alert",
+            message: `Student ${enr.student.name} has been absent for ${absentThreshold} consecutive classes.`,
+            type: "absence_alert",
+            channels: ["in_app"]
+          });
+        }
+      }
     }
   }
 }

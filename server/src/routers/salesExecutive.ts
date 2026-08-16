@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, and, desc, sql, count, gte, lte, ne, inArray } from "drizzle-orm";
 import { createRouter, authedQuery, adminQuery, publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
+import { recalculateSalaryInternal } from "./admin";
 import {
   users,
   profiles,
@@ -11,7 +12,9 @@ import {
   modules,
   batchEnrollments,
   payments,
-  salesGroups
+  salesGroups,
+  demoClasses,
+  teacherSalaryConfigs,
 } from "@db/schema";
 import { getNextUniqueId } from "../lib/idGenerator";
 import { phoneSchema, parseFullPhone, validatePhoneNumber, PHONE_ERROR_MESSAGE, getCountryISOFromDialCode } from "@contracts/validation";
@@ -861,5 +864,150 @@ export const salesExecutiveRouter = createRouter({
         success: true,
         message: "Sales Executive deleted successfully.",
       };
+    }),
+
+  // ─── Demo Classes ───────────────────────────────────────────────────────────
+
+  // List available teachers for demo class selection
+  getAvailableTeachers: salesExecQuery
+    .query(async () => {
+      const db = getDb();
+      const teachers = await db.select({
+        id: users.id,
+        name: users.name,
+        username: users.username,
+      })
+        .from(users)
+        .where(eq(users.role, "teacher"));
+      return teachers;
+    }),
+
+  // Create a demo class
+  createDemoClass: salesExecQuery
+    .input(z.object({
+      teacherId: z.number(),
+      studentName: z.string().min(1),
+      studentPhone: z.string().optional(),
+      studentEmail: z.string().email().optional(),
+      moduleId: z.number().optional(),
+      scheduledAt: z.string().optional(), // ISO datetime
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      // Find the sales exec record for the current user
+      const exec = await db.query.salesExecutives.findFirst({
+        where: eq(salesExecutives.userId, ctx.user.id),
+      });
+      if (!exec && !['super_admin', 'admin'].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Sales executive record not found" });
+      }
+      // Verify teacher exists
+      const teacher = await db.query.users.findFirst({ where: and(eq(users.id, input.teacherId), eq(users.role, "teacher")) });
+      if (!teacher) throw new TRPCError({ code: "NOT_FOUND", message: "Teacher not found" });
+
+      const jitsiRoom = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const [demo] = await db.insert(demoClasses).values({
+        salesExecId: exec?.id || 0,
+        teacherId: input.teacherId,
+        studentName: input.studentName,
+        studentPhone: input.studentPhone,
+        studentEmail: input.studentEmail,
+        moduleId: input.moduleId,
+        scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
+        jitsiRoom,
+        notes: input.notes,
+        status: "pending",
+      }).returning();
+      return demo;
+    }),
+
+  // List demo classes for the current sales exec
+  listDemoClasses: salesExecQuery
+    .input(z.object({
+      status: z.enum(["pending", "completed", "cancelled", "all"]).default("all"),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const exec = await db.query.salesExecutives.findFirst({ where: eq(salesExecutives.userId, ctx.user.id) });
+      const isAdmin = ["super_admin", "admin"].includes(ctx.user.role);
+
+      const demos = await db.query.demoClasses.findMany({
+        where: (exec || !isAdmin) ? eq(demoClasses.salesExecId, exec?.id || 0) : undefined,
+        with: {
+          teacher: { columns: { id: true, name: true, username: true } },
+          module: { columns: { id: true, name: true } },
+        },
+        orderBy: (d, { desc }) => [desc(d.createdAt)],
+      });
+      return input.status === "all" ? demos : demos.filter((d) => d.status === input.status);
+    }),
+
+  // Complete a demo class (teacher conducts it)
+  completeDemoClass: authedQuery
+    .input(z.object({
+      id: z.number(),
+      durationMinutes: z.number().optional(),
+      convertedToEnrollment: z.boolean().default(false),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const demo = await db.query.demoClasses.findFirst({ where: eq(demoClasses.id, input.id) });
+      if (!demo) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Only the assigned teacher, admin, or the sales exec can complete
+      const allowed = ["super_admin", "admin"].includes(ctx.user.role) || demo.teacherId === ctx.user.id;
+      if (!allowed) throw new TRPCError({ code: "FORBIDDEN" });
+
+      await db.update(demoClasses).set({
+        status: "completed",
+        completedAt: new Date(),
+        durationMinutes: input.durationMinutes,
+        convertedToEnrollment: input.convertedToEnrollment,
+        notes: input.notes ?? demo.notes,
+        updatedAt: new Date(),
+      }).where(eq(demoClasses.id, input.id));
+
+      // Trigger salary recalculation for the teacher
+      const month = demo.scheduledAt 
+        ? new Date(demo.scheduledAt).toISOString().slice(0, 7)
+        : new Date().toISOString().slice(0, 7);
+      await recalculateSalaryInternal(db, demo.teacherId, month, true).catch(e => console.error("Failed to recalculate salary on demo complete:", e));
+
+      return { success: true };
+    }),
+
+  // Cancel a demo class
+  cancelDemoClass: salesExecQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const demo = await db.query.demoClasses.findFirst({ where: eq(demoClasses.id, input.id) });
+      if (!demo) throw new TRPCError({ code: "NOT_FOUND" });
+      await db.update(demoClasses).set({ status: "cancelled", updatedAt: new Date() }).where(eq(demoClasses.id, input.id));
+      return { success: true };
+    }),
+
+  // Get Jitsi join token for a demo class
+  getDemoJoinToken: authedQuery
+    .input(z.object({ demoId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const demo = await db.query.demoClasses.findFirst({ where: eq(demoClasses.id, input.demoId) });
+      if (!demo) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const { generateJitsiToken } = await import("../lib/jitsi");
+      const isModerator = demo.teacherId === ctx.user.id || ["super_admin", "admin"].includes(ctx.user.role);
+      const token = await generateJitsiToken({
+        room: demo.jitsiRoom,
+        userName: ctx.user.name || `User ${ctx.user.id}`,
+        userEmail: undefined,
+        userId: String(ctx.user.id),
+        isModerator,
+        appId: process.env.JITSI_APP_ID || "emtees",
+        appSecret: process.env.JITSI_APP_SECRET || "",
+      });
+      return { token, room: demo.jitsiRoom, jitsiHost: process.env.JITSI_HOST || "meet.gecouncil.com" };
     }),
 });

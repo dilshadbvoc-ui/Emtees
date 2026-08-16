@@ -532,6 +532,8 @@ export const teacherSalaries = pgTable("teacher_salaries", {
   oneToOne30MinRate: decimal("one_to_one_30min_rate", { precision: 10, scale: 2 }).default("0"),
   oneToOne45MinRate: decimal("one_to_one_45min_rate", { precision: 10, scale: 2 }).default("0"),
   oneToOne60MinRate: decimal("one_to_one_60min_rate", { precision: 10, scale: 2 }).default("0"),
+  demoCount: integer("demo_count").default(0),
+  demoBaseRate: decimal("demo_base_rate", { precision: 10, scale: 2 }).default("0"),
   demoConversionCount: integer("demo_conversion_count").default(0),
   demoBonusAmount: decimal("demo_bonus_amount", { precision: 10, scale: 2 }).default("0"),
   netSalary: decimal("net_salary", { precision: 10, scale: 2 }).default("0"),
@@ -1460,3 +1462,78 @@ export const reportTemplates = pgTable("report_templates", {
 });
 export type ReportTemplate = typeof reportTemplates.$inferSelect;
 export type InsertReportTemplate = typeof reportTemplates.$inferInsert;
+
+// ─── Departments (Academic Teams) ────────────────────────────────────────────
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  headUserId: bigint("head_user_id", { mode: "number" }).references(() => users.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type Department = typeof departments.$inferSelect;
+export type InsertDepartment = typeof departments.$inferInsert;
+
+// Department ↔ Module (Course) assignments
+export const departmentModules = pgTable(
+  "department_modules",
+  {
+    id: serial("id").primaryKey(),
+    departmentId: bigint("department_id", { mode: "number" })
+      .notNull()
+      .references(() => departments.id, { onDelete: "cascade" }),
+    moduleId: bigint("module_id", { mode: "number" })
+      .notNull()
+      .references(() => modules.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueDeptModule: uniqueIndex("unique_dept_module_idx").on(table.departmentId, table.moduleId),
+  })
+);
+export type DepartmentModule = typeof departmentModules.$inferSelect;
+export type InsertDepartmentModule = typeof departmentModules.$inferInsert;
+
+// Drizzle Relations for departments
+export const departmentsRelations = relations(departments, ({ one, many }) => ({
+  head: one(users, { fields: [departments.headUserId], references: [users.id] }),
+  departmentModules: many(departmentModules),
+}));
+export const departmentModulesRelations = relations(departmentModules, ({ one }) => ({
+  department: one(departments, { fields: [departmentModules.departmentId], references: [departments.id] }),
+  module: one(modules, { fields: [departmentModules.moduleId], references: [modules.id] }),
+}));
+
+// ─── Demo Classes (Sales Executive → Teacher → Prospective Student) ──────────
+export const demoClasses = pgTable("demo_classes", {
+  id: serial("id").primaryKey(),
+  salesExecId: bigint("sales_exec_id", { mode: "number" })
+    .notNull()
+    .references(() => salesExecutives.id, { onDelete: "cascade" }),
+  teacherId: bigint("teacher_id", { mode: "number" })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  studentName: varchar("student_name", { length: 255 }).notNull(),
+  studentPhone: varchar("student_phone", { length: 50 }),
+  studentEmail: varchar("student_email", { length: 320 }),
+  moduleId: bigint("module_id", { mode: "number" }).references(() => modules.id, { onDelete: "set null" }),
+  scheduledAt: timestamp("scheduled_at"),
+  jitsiRoom: varchar("jitsi_room", { length: 255 }).notNull(),
+  status: varchar("status", { length: 30 }).default("pending").notNull(), // pending | completed | cancelled
+  convertedToEnrollment: boolean("converted_to_enrollment").default(false).notNull(),
+  completedAt: timestamp("completed_at"),
+  durationMinutes: integer("duration_minutes"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type DemoClass = typeof demoClasses.$inferSelect;
+export type InsertDemoClass = typeof demoClasses.$inferInsert;
+
+export const demoClassesRelations = relations(demoClasses, ({ one }) => ({
+  salesExec: one(salesExecutives, { fields: [demoClasses.salesExecId], references: [salesExecutives.id] }),
+  teacher: one(users, { fields: [demoClasses.teacherId], references: [users.id] }),
+  module: one(modules, { fields: [demoClasses.moduleId], references: [modules.id] }),
+}));

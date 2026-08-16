@@ -28,6 +28,7 @@ import {
   studentFeeConfigurations,
   classLedgerTransactions,
   salesClosures,
+  demoClasses,
 } from "@db/schema";
 import { sendNotification } from "../lib/notificationEngine";
 import { updateStudentSessionBalances } from "../lib/sessionHelper";
@@ -536,48 +537,43 @@ export async function recalculateSalaryInternal(
     (oneToOne45Count * oneToOne45MinRate) +
     (oneToOne60Count * oneToOne60MinRate);
 
+  // Fetch completed demo classes for this teacher in the month
+  const demoClassesList = await db.select({
+      id: demoClasses.id,
+      scheduledAt: demoClasses.scheduledAt
+    })
+    .from(demoClasses)
+    .where(and(
+      eq(demoClasses.teacherId, teacherId),
+      eq(demoClasses.status, "completed"),
+      sql`TO_CHAR(${demoClasses.scheduledAt}, 'YYYY-MM') = ${month}`
+    ));
+    
+  const demoCount = demoClassesList.length;
+  const demoBaseRate = config ? parseFloat(config.demoBaseRate) : 0;
+  const demoBaseEarnings = demoCount * demoBaseRate;
+
   // 5b. Calculate Demo Conversion Bonus
   const demoConversionBonusRate = config ? parseFloat(config.demoConversionBonus) : 0;
   let demoConversionCount = 0;
   
   if (demoConversionBonusRate > 0) {
-    const closuresInMonth = await db.select({
-        studentId: salesClosures.studentId,
-        admNo: salesClosures.admNo,
-        closingDate: salesClosures.closingDate
+    const convertedDemos = await db.select({
+        id: demoClasses.id
       })
-      .from(salesClosures)
+      .from(demoClasses)
       .where(and(
-        eq(salesClosures.isDeleted, false),
-        sql`TO_CHAR(${salesClosures.closingDate}, 'YYYY-MM') = ${month}`
+        eq(demoClasses.teacherId, teacherId),
+        eq(demoClasses.status, "completed"),
+        eq(demoClasses.convertedToEnrollment, true),
+        sql`TO_CHAR(${demoClasses.scheduledAt}, 'YYYY-MM') = ${month}`
       ));
       
-    for (const closure of closuresInMonth) {
-      let sId = closure.studentId;
-      if (!sId && closure.admNo) {
-        const student = await db.query.users.findFirst({ where: eq(users.username, closure.admNo) });
-        if (student) sId = student.id;
-      }
-      
-      if (sId) {
-        // Find if this teacher took a 1-on-1 session with this student BEFORE the closure
-        const demo = await db.query.oneToOneSessions.findFirst({
-          where: and(
-            eq(oneToOneSessions.studentId, sId),
-            eq(oneToOneSessions.teacherId, teacherId),
-            eq(oneToOneSessions.status, "completed"),
-            lte(oneToOneSessions.scheduledAt, closure.closingDate)
-          )
-        });
-        if (demo) {
-          demoConversionCount++;
-        }
-      }
-    }
+    demoConversionCount = convertedDemos.length;
   }
 
   const demoBonusAmount = demoConversionCount * demoConversionBonusRate;
-  const netSalary = basicSalary + sessionEarnings + demoBonusAmount;
+  const netSalary = basicSalary + sessionEarnings + demoBaseEarnings + demoBonusAmount;
 
   // 6. Find if there is an existing record
   const existing = await db.query.teacherSalaries.findFirst({
@@ -608,6 +604,8 @@ export async function recalculateSalaryInternal(
     oneToOne30MinRate: String(oneToOne30MinRate),
     oneToOne45MinRate: String(oneToOne45MinRate),
     oneToOne60MinRate: String(oneToOne60MinRate),
+    demoCount,
+    demoBaseRate: String(demoBaseRate),
     demoConversionCount,
     demoBonusAmount: String(demoBonusAmount),
     netSalary: String(netSalary),
@@ -2031,6 +2029,7 @@ export const adminRouter = createRouter({
         oneToOne30MinRate: "0.00",
         oneToOne45MinRate: "0.00",
         oneToOne60MinRate: "0.00",
+        demoBaseRate: "0.00",
       };
     }),
 
@@ -2044,6 +2043,7 @@ export const adminRouter = createRouter({
       oneToOne30MinRate: z.number().nonnegative(),
       oneToOne45MinRate: z.number().nonnegative(),
       oneToOne60MinRate: z.number().nonnegative(),
+      demoBaseRate: z.number().nonnegative(),
     }))
     .mutation(async ({ input, ctx }) => {
       if (ctx.user.role !== "super_admin") {
@@ -2061,6 +2061,7 @@ export const adminRouter = createRouter({
       const oneToOne30MinRateStr = String(input.oneToOne30MinRate);
       const oneToOne45MinRateStr = String(input.oneToOne45MinRate);
       const oneToOne60MinRateStr = String(input.oneToOne60MinRate);
+      const demoBaseRateStr = String(input.demoBaseRate);
 
       const prevBasic = existing ? parseFloat(existing.basicSalary) : 0;
       const prevGroup30 = existing ? parseFloat(existing.group30MinRate) : 0;
@@ -2069,6 +2070,7 @@ export const adminRouter = createRouter({
       const prevOneToOne30 = existing ? parseFloat(existing.oneToOne30MinRate) : 0;
       const prevOneToOne45 = existing ? parseFloat(existing.oneToOne45MinRate) : 0;
       const prevOneToOne60 = existing ? parseFloat(existing.oneToOne60MinRate) : 0;
+      const prevDemoBaseRate = existing ? parseFloat(existing.demoBaseRate) : 0;
 
       // Update or insert configuration
       if (existing) {
@@ -2081,6 +2083,7 @@ export const adminRouter = createRouter({
             oneToOne30MinRate: oneToOne30MinRateStr,
             oneToOne45MinRate: oneToOne45MinRateStr,
             oneToOne60MinRate: oneToOne60MinRateStr,
+            demoBaseRate: demoBaseRateStr,
             updatedAt: new Date(),
           })
           .where(eq(teacherSalaryConfigs.id, existing.id));
@@ -2094,6 +2097,7 @@ export const adminRouter = createRouter({
           oneToOne30MinRate: oneToOne30MinRateStr,
           oneToOne45MinRate: oneToOne45MinRateStr,
           oneToOne60MinRate: oneToOne60MinRateStr,
+          demoBaseRate: demoBaseRateStr,
         });
       }
 
@@ -2118,6 +2122,7 @@ export const adminRouter = createRouter({
       addAuditLog("oneToOne30MinRate", prevOneToOne30, oneToOne30MinRateStr);
       addAuditLog("oneToOne45MinRate", prevOneToOne45, oneToOne45MinRateStr);
       addAuditLog("oneToOne60MinRate", prevOneToOne60, oneToOne60MinRateStr);
+      addAuditLog("demoBaseRate", prevDemoBaseRate, demoBaseRateStr);
 
       if (auditEntries.length > 0) {
         await db.insert(teacherSalaryConfigAuditLogs).values(auditEntries);
@@ -2395,6 +2400,39 @@ export const adminRouter = createRouter({
       await upsertSetting("feedback_limit_per_batch", String(input.feedback_limit_per_batch));
       await upsertSetting("feedback_teacher_stats_enabled", String(input.feedback_teacher_stats_enabled));
       
+      return { success: true };
+    }),
+
+  // Academic Rule Settings (class duration threshold + consecutive absent threshold)
+  getAcademicRuleSettings: adminQuery.query(async () => {
+    const db = getDb();
+    const settingsList = await db.query.systemSettings.findMany({
+      where: (s, { inArray }) => inArray(s.key, ["class_duration_threshold", "absent_consecutive_threshold"]),
+    });
+    const map = new Map(settingsList.map((s) => [s.key, s.value]));
+    return {
+      class_duration_threshold: parseInt(map.get("class_duration_threshold") || "20", 10),
+      absent_consecutive_threshold: parseInt(map.get("absent_consecutive_threshold") || "7", 10),
+    };
+  }),
+
+  updateAcademicRuleSettings: adminQuery
+    .input(z.object({
+      class_duration_threshold: z.number().int().min(1).max(120),
+      absent_consecutive_threshold: z.number().int().min(1).max(30),
+    }))
+    .mutation(async ({ input }) => {
+      const db = getDb();
+      const upsert = async (key: string, value: string) => {
+        const existing = await db.query.systemSettings.findFirst({ where: eq(systemSettings.key, key) });
+        if (existing) {
+          await db.update(systemSettings).set({ value, updatedAt: new Date() }).where(eq(systemSettings.key, key));
+        } else {
+          await db.insert(systemSettings).values({ key, value });
+        }
+      };
+      await upsert("class_duration_threshold", String(input.class_duration_threshold));
+      await upsert("absent_consecutive_threshold", String(input.absent_consecutive_threshold));
       return { success: true };
     }),
 
@@ -3512,5 +3550,159 @@ export const adminRouter = createRouter({
           changedByUser: true,
         },
       });
+    }),
+
+  // Teacher Student-Wise Report: for a given teacher + date range, breakdown by student
+  getTeacherStudentWiseReport: adminQuery
+    .input(z.object({
+      teacherId: z.number(),
+      startDate: z.string(), // YYYY-MM-DD
+      endDate: z.string(),   // YYYY-MM-DD
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      // Fetch group class attendance records for teacher in range
+      const groupRecords = await db.select({
+        studentId: attendance.studentId,
+        status: attendance.status,
+        classId: attendance.classId,
+        recordedAt: attendance.recordedAt,
+      })
+        .from(attendance)
+        .innerJoin(classes, eq(attendance.classId, classes.id))
+        .where(and(
+          eq(classes.teacherId, input.teacherId),
+          gte(classes.scheduledAt, new Date(input.startDate)),
+          lte(classes.scheduledAt, new Date(input.endDate + "T23:59:59Z"))
+        ));
+
+      // Fetch 1-to-1 session attendance
+      const oneToOneRecords = await db.select({
+        studentId: oneToOneSessions.studentId,
+        status: oneToOneSessions.status,
+        sessionId: oneToOneSessions.id,
+        scheduledAt: oneToOneSessions.scheduledAt,
+      })
+        .from(oneToOneSessions)
+        .where(and(
+          eq(oneToOneSessions.teacherId, input.teacherId),
+          gte(oneToOneSessions.scheduledAt, new Date(input.startDate)),
+          lte(oneToOneSessions.scheduledAt, new Date(input.endDate + "T23:59:59Z"))
+        ));
+
+      // Aggregate by student
+      const studentMap: Record<number, { present: number; absent: number; oneToOne: number }> = {};
+
+      for (const r of groupRecords) {
+        if (!studentMap[r.studentId]) studentMap[r.studentId] = { present: 0, absent: 0, oneToOne: 0 };
+        if (r.status === "present") studentMap[r.studentId].present++;
+        else studentMap[r.studentId].absent++;
+      }
+      for (const r of oneToOneRecords) {
+        if (!studentMap[r.studentId]) studentMap[r.studentId] = { present: 0, absent: 0, oneToOne: 0 };
+        if (r.status === "completed") studentMap[r.studentId].oneToOne++;
+      }
+
+      // Fetch student names
+      const studentIds = Object.keys(studentMap).map(Number);
+      const studentNames: Record<number, string> = {};
+      if (studentIds.length > 0) {
+        const rows = await db.select({ id: users.id, name: users.name, username: users.username })
+          .from(users).where(inArray(users.id, studentIds));
+        for (const r of rows) studentNames[r.id] = r.name ?? r.username ?? `User #${r.id}`;
+      }
+
+      return studentIds.map((sid) => ({
+        studentId: sid,
+        studentName: studentNames[sid] || `User #${sid}`,
+        presentCount: studentMap[sid].present,
+        absentCount: studentMap[sid].absent,
+        oneToOneCount: studentMap[sid].oneToOne,
+        totalClasses: studentMap[sid].present + studentMap[sid].absent,
+        attendanceRate: studentMap[sid].present + studentMap[sid].absent > 0
+          ? Math.round((studentMap[sid].present / (studentMap[sid].present + studentMap[sid].absent)) * 100)
+          : 0,
+      }));
+    }),
+
+  // Daily Report: for a given date, all teachers with their class counts and student counts
+  getDailyTeacherReport: adminQuery
+    .input(z.object({ date: z.string() })) // YYYY-MM-DD
+    .query(async ({ input }) => {
+      const db = getDb();
+      const dayStart = new Date(input.date);
+      const dayEnd = new Date(input.date + "T23:59:59Z");
+
+      // Get all group classes on that day
+      const dayClasses = await db.select({
+        id: classes.id,
+        teacherId: classes.teacherId,
+        status: classes.status,
+        duration: classes.duration,
+        classType: classes.classType,
+      })
+        .from(classes)
+        .where(and(gte(classes.scheduledAt, dayStart), lte(classes.scheduledAt, dayEnd)));
+
+      // Get all 1-to-1 sessions on that day
+      const dayO2O = await db.select({
+        id: oneToOneSessions.id,
+        teacherId: oneToOneSessions.teacherId,
+        status: oneToOneSessions.status,
+        sessionLength: oneToOneSessions.sessionLength,
+      })
+        .from(oneToOneSessions)
+        .where(and(gte(oneToOneSessions.scheduledAt, dayStart), lte(oneToOneSessions.scheduledAt, dayEnd)));
+
+      // Get attendance for those classes
+      const classIds = dayClasses.map((c) => c.id);
+      let attendanceRows: any[] = [];
+      if (classIds.length > 0) {
+        attendanceRows = await db.select({ classId: attendance.classId, studentId: attendance.studentId, status: attendance.status })
+          .from(attendance)
+          .where(inArray(attendance.classId, classIds));
+      }
+
+      // Aggregate by teacher
+      const teacherMap: Record<number, { groupClasses: number; o2oSessions: number; students: Set<number>; totalMinutes: number; completedClasses: number }> = {};
+
+      for (const cls of dayClasses) {
+        const tid = cls.teacherId;
+        if (!tid) continue;
+        if (!teacherMap[tid]) teacherMap[tid] = { groupClasses: 0, o2oSessions: 0, students: new Set(), totalMinutes: 0, completedClasses: 0 };
+        teacherMap[tid].groupClasses++;
+        if (cls.status === "completed") teacherMap[tid].completedClasses++;
+        teacherMap[tid].totalMinutes += cls.duration || 0;
+        for (const att of attendanceRows.filter((a) => a.classId === cls.id)) {
+          teacherMap[tid].students.add(att.studentId);
+        }
+      }
+      for (const sess of dayO2O) {
+        const tid = sess.teacherId;
+        if (!tid) continue;
+        if (!teacherMap[tid]) teacherMap[tid] = { groupClasses: 0, o2oSessions: 0, students: new Set(), totalMinutes: 0, completedClasses: 0 };
+        teacherMap[tid].o2oSessions++;
+        if (sess.status === "completed") teacherMap[tid].completedClasses++;
+        teacherMap[tid].totalMinutes += sess.sessionLength || 0;
+        teacherMap[tid].students.add(sess.teacherId);
+      }
+
+      const teacherIds = Object.keys(teacherMap).map(Number);
+      const teacherNames: Record<number, string> = {};
+      if (teacherIds.length > 0) {
+        const rows = await db.select({ id: users.id, name: users.name, username: users.username })
+          .from(users).where(inArray(users.id, teacherIds));
+        for (const r of rows) teacherNames[r.id] = r.name ?? r.username ?? `Teacher #${r.id}`;
+      }
+
+      return teacherIds.map((tid) => ({
+        teacherId: tid,
+        teacherName: teacherNames[tid] || `Teacher #${tid}`,
+        groupClasses: teacherMap[tid].groupClasses,
+        o2oSessions: teacherMap[tid].o2oSessions,
+        completedClasses: teacherMap[tid].completedClasses,
+        totalMinutes: teacherMap[tid].totalMinutes,
+        uniqueStudents: teacherMap[tid].students.size,
+      }));
     }),
 });

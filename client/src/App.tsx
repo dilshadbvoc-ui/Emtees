@@ -33,6 +33,9 @@ import SalesReports from "./lms-pages/SalesReports";
 import SalesLeads from "./lms-pages/SalesLeads";
 import SalesDashboard from "./lms-pages/SalesDashboard";
 import SalesPerformanceDetail from "./lms-pages/SalesPerformanceDetail";
+import Departments from "./lms-pages/Departments";
+import SalesDemoClasses from "./lms-pages/SalesDemoClasses";
+import AcademicHeadPortal from "./lms-pages/AcademicHeadPortal";
 
 function ProtectedLayout() {
   const { user, isLoading } = useAuth();
@@ -124,6 +127,9 @@ export default function App() {
           <Route path="users" element={<Users />} />
           <Route path="qualifications" element={<QualificationManagement />} />
           <Route path="sales-executive/students" element={<SalesExecutiveStudents />} />
+          <Route path="sales-executive/demo-classes" element={<SalesDemoClasses />} />
+          <Route path="departments" element={<Departments />} />
+          <Route path="academic-portal" element={<AcademicHeadPortal />} />
           <Route path="sales-management">
             <Route path="dashboard" element={<SalesDashboard />} />
             <Route path="executives" element={<SalesExecutives />} />

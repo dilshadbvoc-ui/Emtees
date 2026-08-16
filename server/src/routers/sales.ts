@@ -304,7 +304,7 @@ export const salesRouter = createRouter({
 
       const leadFilters = [];
       if (input.startDate) leadFilters.push(gte(leadCampaigns.createdAt, new Date(input.startDate)));
-      if (input.endDate) leadFilters.push(lte(leadCampaigns.createdAt, new Date(input.endDate)));
+      if (input.endDate) leadFilters.push(lte(leadCampaigns.createdAt, new Date(input.endDate + "T23:59:59Z")));
       
       const campaigns = await db.query.leadCampaigns.findMany({
         where: leadFilters.length > 0 ? and(...leadFilters) : undefined,
@@ -320,7 +320,7 @@ export const salesRouter = createRouter({
 
       const closureFilters = [eq(salesClosures.isDeleted, false)];
       if (input.startDate) closureFilters.push(gte(salesClosures.closingDate, new Date(input.startDate)));
-      if (input.endDate) closureFilters.push(lte(salesClosures.closingDate, new Date(input.endDate)));
+      if (input.endDate) closureFilters.push(lte(salesClosures.closingDate, new Date(input.endDate + "T23:59:59Z")));
 
       const closures = await db.query.salesClosures.findMany({
         where: and(...closureFilters)

@@ -28,6 +28,8 @@ import {
   Clock,
   User,
   Award,
+  Building2,
+  Video,
 } from "lucide-react";
 import { useSocket, useClassStartedAlert } from "@/hooks/useSocket";
 import { trpc } from "@/providers/trpc";
@@ -43,6 +45,8 @@ const navItems = [
   { icon: Users, label: "Sales Executives", path: "/sales-management/executives" },
   { icon: BarChart3, label: "Sales & Accounts", path: "/sales-management/dashboard" },
   { icon: Contact, label: "Leads", path: "/sales-management/leads" },
+  { icon: Building2, label: "Departments", path: "/departments" },
+  { icon: GraduationCap, label: "Academic Portal", path: "/academic-portal" },
   { icon: BookOpen, label: "Batches", path: "/batches" },
   { icon: MessageCircle, label: "Chat", path: "/chat" },
   { icon: Globe, label: "Community", path: "/community" },
@@ -84,6 +88,7 @@ const salesNav = [
   { icon: BarChart3, label: "Sales & Accounts", path: "/sales-management/dashboard" },
   { icon: Contact, label: "Leads", path: "/sales-management/leads" },
   { icon: Contact, label: "My Students", path: "/sales-executive/students" },
+  { icon: Video, label: "Demo Classes", path: "/sales-executive/demo-classes" },
   { icon: GitPullRequest, label: "Enrollments", path: "/sales-management/registrations" },
   { icon: User, label: "Profile", path: "/settings?tab=profile" },
   { icon: Settings, label: "Settings", path: "/settings?tab=security" },
@@ -190,11 +195,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   if (!["super_admin", "admin", "academic_head"].includes(user.role)) {
     items = items.filter((item) => item.path !== "/qualifications");
   }
+  if (user.role !== "academic_head") {
+    items = items.filter((item) => item.path !== "/academic-portal");
+  }
   if (user.role === "academic_head") {
     const allowedPaths = [
       "/",
       "/students",
       "/batches",
+      "/departments",
+      "/academic-portal",
       "/classes/group",
       "/classes/one-to-one",
       "/feedback",

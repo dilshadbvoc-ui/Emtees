@@ -170,6 +170,28 @@ export default function SettingsPage() {
     },
   });
 
+  // Academic Rules
+  const [classDurationThreshold, setClassDurationThreshold] = useState(20);
+  const [absentConsecutiveThreshold, setAbsentConsecutiveThreshold] = useState(7);
+  const academicRulesQuery = trpc.admin.getAcademicRuleSettings.useQuery(undefined, {
+    enabled: isActualAdmin,
+  });
+  useEffect(() => {
+    if (academicRulesQuery.data) {
+      setClassDurationThreshold(academicRulesQuery.data.class_duration_threshold ?? 20);
+      setAbsentConsecutiveThreshold(academicRulesQuery.data.absent_consecutive_threshold ?? 7);
+    }
+  }, [academicRulesQuery.data]);
+  const updateAcademicRulesMut = trpc.admin.updateAcademicRuleSettings.useMutation({
+    onSuccess: () => {
+      toast.success("Academic rules saved");
+      academicRulesQuery.refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to save academic rules");
+    },
+  });
+
   // Handlers
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,7 +267,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className={`grid w-full h-10 p-1 bg-gray-100 dark:bg-gray-900 rounded-lg ${isActualAdmin ? 'grid-cols-4 lg:grid-cols-5' : 'grid-cols-3 lg:grid-cols-4'}`}>
+        <TabsList className={`grid w-full h-10 p-1 bg-gray-100 dark:bg-gray-900 rounded-lg ${isActualAdmin ? 'grid-cols-4 lg:grid-cols-6' : 'grid-cols-3 lg:grid-cols-4'}`}>
           <TabsTrigger value="profile" className="text-xs font-semibold flex items-center justify-center gap-1.5 py-1.5 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-gray-950">
             <User className="w-3.5 h-3.5" />
             {tabLabel}
@@ -262,6 +284,12 @@ export default function SettingsPage() {
             <TabsTrigger value="student-id" className="text-xs font-semibold flex items-center justify-center gap-1.5 py-1.5 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-gray-950">
               <Settings className="w-3.5 h-3.5" />
               System Settings
+            </TabsTrigger>
+          )}
+          {isActualAdmin && (
+            <TabsTrigger value="academic-rules" className="hidden lg:flex text-xs font-semibold items-center justify-center gap-1.5 py-1.5 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-gray-950">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Rules
             </TabsTrigger>
           )}
           {isAdmin && user?.role !== "academic_head" && (
@@ -650,6 +678,69 @@ export default function SettingsPage() {
                   }}
                 >
                   {updateDefaultCountryMutation.isPending ? "Saving..." : "Save Default Country"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* ─── Academic Rules ────────────────────────────────────────────────────── */}
+        {isActualAdmin && (
+          <TabsContent value="academic-rules">
+            <Card className="border border-gray-100 dark:border-gray-900 shadow-sm rounded-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-gray-200">
+                  <AlertTriangle className="w-4 h-4 text-orange-500" />
+                  Academic Rules
+                </CardTitle>
+                <CardDescription>
+                  Configure attendance rules that apply to all classes system-wide.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="dur-threshold" className="text-sm font-medium">
+                    Class Duration Threshold (minutes)
+                  </Label>
+                  <p className="text-xs text-gray-500">
+                    Minimum cumulative minutes a user must be in a class session for it to count as attended. Default: 20 min.
+                  </p>
+                  <Input
+                    id="dur-threshold"
+                    type="number"
+                    min={1}
+                    max={120}
+                    value={classDurationThreshold}
+                    onChange={(e) => setClassDurationThreshold(parseInt(e.target.value) || 20)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="absent-threshold" className="text-sm font-medium">
+                    Consecutive Absence Alert Threshold
+                  </Label>
+                  <p className="text-xs text-gray-500">
+                    Number of consecutive absent classes before alerting student, teacher, and admin. Default: 7.
+                  </p>
+                  <Input
+                    id="absent-threshold"
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={absentConsecutiveThreshold}
+                    onChange={(e) => setAbsentConsecutiveThreshold(parseInt(e.target.value) || 7)}
+                  />
+                </div>
+                <Button
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  disabled={updateAcademicRulesMut.isPending}
+                  onClick={() =>
+                    updateAcademicRulesMut.mutate({
+                      class_duration_threshold: classDurationThreshold,
+                      absent_consecutive_threshold: absentConsecutiveThreshold,
+                    })
+                  }
+                >
+                  {updateAcademicRulesMut.isPending ? "Saving..." : "Save Academic Rules"}
                 </Button>
               </CardContent>
             </Card>

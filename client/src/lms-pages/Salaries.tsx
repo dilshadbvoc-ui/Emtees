@@ -39,6 +39,7 @@ export default function SalariesPage() {
   const [oneToOne30MinRate, setOneToOne30MinRate] = useState<number>(0);
   const [oneToOne45MinRate, setOneToOne45MinRate] = useState<number>(0);
   const [oneToOne60MinRate, setOneToOne60MinRate] = useState<number>(0);
+  const [demoBaseRate, setDemoBaseRate] = useState<number>(0);
   const [configDialogOpen, setConfigDialogOpen] = useState<boolean>(false);
 
   // Mark as Paid Dialog State
@@ -135,6 +136,7 @@ export default function SalariesPage() {
       setOneToOne30MinRate(parseFloat(configQuery.data.oneToOne30MinRate) || 0);
       setOneToOne45MinRate(parseFloat(configQuery.data.oneToOne45MinRate) || 0);
       setOneToOne60MinRate(parseFloat(configQuery.data.oneToOne60MinRate) || 0);
+      setDemoBaseRate(parseFloat(configQuery.data.demoBaseRate) || 0);
     }
   }, [configQuery.data]);
 
@@ -148,7 +150,8 @@ export default function SalariesPage() {
       group60MinRate,
       oneToOne30MinRate,
       oneToOne45MinRate,
-      oneToOne60MinRate
+      oneToOne60MinRate,
+      demoBaseRate
     });
   };
 
@@ -484,6 +487,7 @@ export default function SalariesPage() {
             setOneToOne30MinRate(0);
             setOneToOne45MinRate(0);
             setOneToOne60MinRate(0);
+            setDemoBaseRate(0);
           }
           setConfigDialogOpen(open);
         }}>
@@ -596,6 +600,19 @@ export default function SalariesPage() {
                           type="number" 
                           value={oneToOne60MinRate} 
                           onChange={(e) => setOneToOne60MinRate(parseFloat(e.target.value) || 0)} 
+                          className="pl-7 h-8 text-sm bg-white border border-gray-200"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+                      <Label htmlFor="demo-base-rate" className="text-left text-xs font-medium text-gray-700">Demo Class Base Rate</Label>
+                      <div className="col-span-2 relative">
+                        <span className="absolute left-3 top-1.5 text-gray-400 text-xs">₹</span>
+                        <Input 
+                          id="demo-base-rate" 
+                          type="number" 
+                          value={demoBaseRate} 
+                          onChange={(e) => setDemoBaseRate(parseFloat(e.target.value) || 0)} 
                           className="pl-7 h-8 text-sm bg-white border border-gray-200"
                         />
                       </div>
@@ -759,6 +776,12 @@ export default function SalariesPage() {
                           <TableCell className="text-center text-gray-500 py-1 text-xs">₹{parseFloat(activeStatement.oneToOne60MinRate || "0").toLocaleString("en-IN")}</TableCell>
                           <TableCell className="text-right font-medium text-gray-800 py-1 text-xs">₹{((activeStatement.oneToOne60MinCount || 0) * parseFloat(activeStatement.oneToOne60MinRate || "0")).toLocaleString("en-IN")}</TableCell>
                         </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium text-gray-800 py-1 text-xs">Demo Classes</TableCell>
+                          <TableCell className="text-center text-gray-600 py-1 text-xs">{activeStatement.demoCount || 0}</TableCell>
+                          <TableCell className="text-center text-gray-500 py-1 text-xs">₹{parseFloat(activeStatement.demoBaseRate || "0").toLocaleString("en-IN")}</TableCell>
+                          <TableCell className="text-right font-medium text-gray-800 py-1 text-xs">₹{((activeStatement.demoCount || 0) * parseFloat(activeStatement.demoBaseRate || "0")).toLocaleString("en-IN")}</TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
@@ -791,7 +814,17 @@ export default function SalariesPage() {
                             ).toLocaleString("en-IN")}
                           </TableCell>
                         </TableRow>
-                        <TableRow className="bg-gray-50/50">
+                                                <TableRow>
+                          <TableCell className="font-medium text-gray-800 py-1 text-xs">Demo Class Earnings</TableCell>
+                          <TableCell className="text-right font-medium text-gray-800 py-1 text-xs">
+                            ₹{((activeStatement.demoCount || 0) * parseFloat(activeStatement.demoBaseRate || "0")).toLocaleString("en-IN")}
+                          </TableCell>
+                        </TableRow>
+<TableRow>
+                          <TableCell className="font-medium text-gray-800 py-1 text-xs">Demo Class Bonus</TableCell>
+                          <TableCell className="text-right font-medium text-gray-800 py-1 text-xs">₹{parseFloat(activeStatement.demoBonusAmount || "0").toLocaleString("en-IN")}</TableCell>
+                        </TableRow>
+<TableRow className="bg-gray-50/50">
                           <TableCell className="font-bold text-gray-900 text-sm py-1.5">Total Salary</TableCell>
                           <TableCell className="text-right font-bold text-emerald-700 text-base py-1.5">
                             ₹{parseFloat(activeStatement.totalAmount || "0").toLocaleString("en-IN")}
@@ -1011,6 +1044,12 @@ export default function SalariesPage() {
                           <TableCell className="text-center text-gray-500 py-1 text-xs">₹{parseFloat(activeStatement.oneToOne60MinRate || "0").toLocaleString("en-IN")}</TableCell>
                           <TableCell className="text-right font-medium text-gray-800 py-1 text-xs">₹{((activeStatement.oneToOne60MinCount || 0) * parseFloat(activeStatement.oneToOne60MinRate || "0")).toLocaleString("en-IN")}</TableCell>
                         </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium text-gray-800 py-1 text-xs">Demo Classes</TableCell>
+                          <TableCell className="text-center text-gray-600 py-1 text-xs">{activeStatement.demoCount || 0}</TableCell>
+                          <TableCell className="text-center text-gray-500 py-1 text-xs">₹{parseFloat(activeStatement.demoBaseRate || "0").toLocaleString("en-IN")}</TableCell>
+                          <TableCell className="text-right font-medium text-gray-800 py-1 text-xs">₹{((activeStatement.demoCount || 0) * parseFloat(activeStatement.demoBaseRate || "0")).toLocaleString("en-IN")}</TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
@@ -1043,7 +1082,17 @@ export default function SalariesPage() {
                             ).toLocaleString("en-IN")}
                           </TableCell>
                         </TableRow>
-                        <TableRow className="bg-gray-50/50">
+                                                <TableRow>
+                          <TableCell className="font-medium text-gray-800 py-1 text-xs">Demo Class Earnings</TableCell>
+                          <TableCell className="text-right font-medium text-gray-800 py-1 text-xs">
+                            ₹{((activeStatement.demoCount || 0) * parseFloat(activeStatement.demoBaseRate || "0")).toLocaleString("en-IN")}
+                          </TableCell>
+                        </TableRow>
+<TableRow>
+                          <TableCell className="font-medium text-gray-800 py-1 text-xs">Demo Class Bonus</TableCell>
+                          <TableCell className="text-right font-medium text-gray-800 py-1 text-xs">₹{parseFloat(activeStatement.demoBonusAmount || "0").toLocaleString("en-IN")}</TableCell>
+                        </TableRow>
+<TableRow className="bg-gray-50/50">
                           <TableCell className="font-bold text-gray-900 text-sm py-1.5">Total Salary</TableCell>
                           <TableCell className="text-right font-bold text-emerald-700 text-base py-1.5">
                             ₹{parseFloat(activeStatement.totalAmount || "0").toLocaleString("en-IN")}

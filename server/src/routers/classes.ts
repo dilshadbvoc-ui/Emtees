@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
 import { createRouter, authedQuery, adminQuery, teacherQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { classes, attendance, oneToOneSessions, batchEnrollments, batches, profiles, users, classBatches, classJoinRequests, attendanceAlerts, oneToOneRescheduleRequests, notifications, studentClassAllocations, holidays, modules, classLedgerTransactions } from "@db/schema";
+import { classes, attendance, oneToOneSessions, batchEnrollments, batches, profiles, users, classBatches, classJoinRequests, attendanceAlerts, oneToOneRescheduleRequests, notifications, studentClassAllocations, holidays, modules, classLedgerTransactions, systemSettings } from "@db/schema";
 import { sendBulkNotification, sendNotification, getAdminUserIds } from "../lib/notificationEngine";
 import { getIo } from "../lib/socketInstance";
 import { isStudentFeeRestricted } from "../lib/feeHelper";
@@ -1844,23 +1844,25 @@ export const classRouter = createRouter({
         }
       }
 
-      // Check for 7 consecutive absences
-      const last7 = await db.query.attendance.findMany({
+      // Check for consecutive absences (threshold configurable in system_settings)
+      const absentSetting = await db.query.systemSettings.findFirst({ where: eq(systemSettings.key, "absent_consecutive_threshold") });
+      const absentThreshold = absentSetting ? parseInt(absentSetting.value) || 7 : 7;
+      const lastN = await db.query.attendance.findMany({
         where: eq(attendance.studentId, input.studentId),
         orderBy: desc(attendance.recordedAt),
-        limit: 7,
+        limit: absentThreshold,
       });
-      if (last7.length === 7 && last7.every((r) => r.status === "absent")) {
+      if (lastN.length === absentThreshold && lastN.every((r) => r.status === "absent")) {
         const cls = await db.query.classes.findFirst({ where: eq(classes.id, input.classId) });
         if (cls) {
           const batch = await db.query.batches.findFirst({ where: eq(batches.id, cls.batchId) });
           const adminIds = await getAdminUserIds();
-          await sendNotification(input.studentId, "Absence Alert", "You have been absent for 7 consecutive classes", "absence_alert");
+          await sendNotification(input.studentId, "Absence Alert", `You have been absent for ${absentThreshold} consecutive classes`, "absence_alert");
           if (batch?.teacherId) {
-            await sendNotification(batch.teacherId, "Student Absence Alert", `A student has been absent for 7 consecutive classes`, "absence_alert");
+            await sendNotification(batch.teacherId, "Student Absence Alert", `A student has been absent for ${absentThreshold} consecutive classes`, "absence_alert");
           }
           if (adminIds.length > 0) {
-            await sendBulkNotification(adminIds, "Student Absence Alert", `A student has been absent for 7 consecutive classes`, "absence_alert");
+            await sendBulkNotification(adminIds, "Student Absence Alert", `A student has been absent for ${absentThreshold} consecutive classes`, "absence_alert");
           }
         }
       }
