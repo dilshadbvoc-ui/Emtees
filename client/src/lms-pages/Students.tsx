@@ -803,6 +803,7 @@ export default function StudentsPage() {
 
     createStudentMutation.mutate({
       ...form,
+      email: form.email ? form.email : undefined,
       sessionType: (form.sessionType as "one_on_one" | "group" | "both") || "group",
       enrollmentId: idGenerationType === "manual" ? form.enrollmentId : undefined,
       courseId: Number(form.courseId),
@@ -876,6 +877,7 @@ export default function StudentsPage() {
 
     updateStudentMutation.mutate({
       ...editStudent,
+      email: editStudent.email ? editStudent.email : undefined,
       courseId: editStudent.courseId ? Number(editStudent.courseId) : undefined,
       batchId: editStudent.batchId ? Number(editStudent.batchId) : undefined,
       qualificationId: editStudent.qualificationId ? Number(editStudent.qualificationId) : null,
