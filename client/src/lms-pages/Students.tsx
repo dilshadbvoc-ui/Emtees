@@ -830,6 +830,7 @@ export default function StudentsPage() {
       batch: u.profile?.batch || "",
       courseId: u.courseId || "",
       batchId: u.batchId || "",
+      preferredClassTime: u.profile?.preferredClassTime || "",
       classAllocation: u.classAllocation || null,
       feesTotal: parseFloat(u.profile?.feesTotal || "0"),
       completionDate: u.profile?.completionDate ? new Date(u.profile.completionDate).toISOString().split("T")[0] : "",
@@ -1941,6 +1942,10 @@ export default function StudentsPage() {
                       <Input value={selectedEditBatch?.status || ""} disabled className="bg-gray-50 dark:bg-gray-900 cursor-not-allowed capitalize" />
                     </div>
                     <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600">Preferred Class Time</label>
+                      <Input value={editStudent.preferredClassTime} onChange={(e) => setEditStudent({ ...editStudent, preferredClassTime: e.target.value })} placeholder="e.g. 7 AM or Morning" />
+                    </div>
+                    <div className="space-y-1">
                       <label className="text-xs font-semibold text-gray-600">Total Course Fee (₹)</label>
                       <Input type="number" value={editStudent.feesTotal} onChange={(e) => setEditStudent({ ...editStudent, feesTotal: Number(e.target.value) })} />
                     </div>
@@ -2098,6 +2103,7 @@ export default function StudentsPage() {
                         <p><strong>LMS Username:</strong> <span className="font-mono text-xs bg-slate-100 px-1 rounded">{profileQuery.data.student.username}</span></p>
                         <p><strong>Enrollment Date:</strong> {profileQuery.data.student.profile?.admissionDate ? new Date(profileQuery.data.student.profile.admissionDate).toLocaleDateString() : "-"}</p>
                         <p><strong>Completion Date:</strong> {profileQuery.data.student.profile?.completionDate ? new Date(profileQuery.data.student.profile.completionDate).toLocaleDateString() : "Ongoing study"}</p>
+                        <p><strong>Preferred Class Time:</strong> {profileQuery.data.student.profile?.preferredClassTime || "Not specified"}</p>
                         <p><strong>Admin Notes:</strong> {profileQuery.data.student.profile?.notes || "No notes registered."}</p>
                       </CardContent>
                     </Card>
