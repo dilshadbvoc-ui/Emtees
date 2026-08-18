@@ -71,7 +71,8 @@ export default function StudentsPage() {
   const [detailsStudentId, setDetailsStudentId] = useState<number | null>(() => {
     if (typeof window !== "undefined") {
       const view = new URLSearchParams(window.location.search).get("view");
-      return view ? parseInt(view, 10) || null : null;
+      const parsed = view ? parseInt(view, 10) : null;
+      return parsed && parsed > 0 ? parsed : null;
     }
     return null;
   });
@@ -268,8 +269,8 @@ export default function StudentsPage() {
   }, { enabled: isStaff });
 
   const profileQuery = trpc.students.getProfile.useQuery(
-    { id: detailsStudentId || 0 },
-    { enabled: !!detailsStudentId }
+    { id: detailsStudentId ?? 0 },
+    { enabled: !!detailsStudentId && detailsStudentId > 0 }
   );
 
   // tRPC Mutations
