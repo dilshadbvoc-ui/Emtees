@@ -194,7 +194,7 @@ export class StudentAdmissionService {
       password: hashedPassword,
       role: "student",
       status: "active",
-      mustChangePassword: true,
+      mustChangePassword: false,
       address: input.address || null,
       postalCode: input.postalCode ? input.postalCode.trim() : null,
       qualificationId: input.qualificationId || null,

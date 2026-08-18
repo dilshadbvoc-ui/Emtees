@@ -362,7 +362,7 @@ export const userRouter = createRouter({
         role: input.role,
         status: input.status || "active",
         canViewSalaryReports: canViewReports,
-        mustChangePassword: true,
+        mustChangePassword: false,
         gender: input.gender,
         dateOfBirth: dobDate,
         educationalQualification: input.educationalQualification,
