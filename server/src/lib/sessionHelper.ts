@@ -132,31 +132,31 @@ export async function updateStudentSessionBalances(db: any, studentId: number) {
   const existingAllocData = existingAlloc?.allocation as any;
   const newAllocationJson = {
     oneToOne: {
-      teacherId: enrollment ? ((enrollment.assignedTeachers as any)?.[0] || null) : (existingAlloc ? (existingAllocData?.oneToOne?.teacherId || null) : null),
+      teacherId: existingAlloc ? (existingAllocData?.oneToOne?.teacherId || null) : (enrollment ? ((enrollment.assignedTeachers as any)?.[0] || null) : null),
       designatedTime: existingAllocData?.oneToOne?.designatedTime || "",
-      sessions30: sessionsO2O30,
-      sessions45: sessionsO2O45,
-      sessions60: sessionsO2O60,
+      sessions30: existingAlloc ? (existingAllocData?.oneToOne?.sessions30 || 0) : sessionsO2O30,
+      sessions45: existingAlloc ? (existingAllocData?.oneToOne?.sessions45 || 0) : sessionsO2O45,
+      sessions60: existingAlloc ? (existingAllocData?.oneToOne?.sessions60 || 0) : sessionsO2O60,
       completed30: completedO2O30,
       completed45: completedO2O45,
       completed60: completedO2O60,
-      remaining30: remainingO2O30,
-      remaining45: remainingO2O45,
-      remaining60: remainingO2O60
+      remaining30: Math.max(0, (existingAlloc ? (existingAllocData?.oneToOne?.sessions30 || 0) : sessionsO2O30) - completedO2O30),
+      remaining45: Math.max(0, (existingAlloc ? (existingAllocData?.oneToOne?.sessions45 || 0) : sessionsO2O45) - completedO2O45),
+      remaining60: Math.max(0, (existingAlloc ? (existingAllocData?.oneToOne?.sessions60 || 0) : sessionsO2O60) - completedO2O60)
     },
     group: {
-      teacherId: enrollment ? ((enrollment.assignedTeachers as any)?.[1] || (enrollment.assignedTeachers as any)?.[0] || null) : (existingAlloc ? (existingAllocData?.group?.teacherId || null) : null),
+      teacherId: existingAlloc ? (existingAllocData?.group?.teacherId || null) : (enrollment ? ((enrollment.assignedTeachers as any)?.[1] || (enrollment.assignedTeachers as any)?.[0] || null) : null),
       batchId: enrollment ? enrollment.batchId : null,
       designatedTime: existingAllocData?.group?.designatedTime || "",
-      sessions30: sessionsGroup30,
-      sessions45: sessionsGroup45,
-      sessions60: sessionsGroup60,
+      sessions30: existingAlloc ? (existingAllocData?.group?.sessions30 || 0) : sessionsGroup30,
+      sessions45: existingAlloc ? (existingAllocData?.group?.sessions45 || 0) : sessionsGroup45,
+      sessions60: existingAlloc ? (existingAllocData?.group?.sessions60 || 0) : sessionsGroup60,
       completed30: completedGroup30,
       completed45: completedGroup45,
       completed60: completedGroup60,
-      remaining30: remainingGroup30,
-      remaining45: remainingGroup45,
-      remaining60: remainingGroup60
+      remaining30: Math.max(0, (existingAlloc ? (existingAllocData?.group?.sessions30 || 0) : sessionsGroup30) - completedGroup30),
+      remaining45: Math.max(0, (existingAlloc ? (existingAllocData?.group?.sessions45 || 0) : sessionsGroup45) - completedGroup45),
+      remaining60: Math.max(0, (existingAlloc ? (existingAllocData?.group?.sessions60 || 0) : sessionsGroup60) - completedGroup60)
     }
   };
 

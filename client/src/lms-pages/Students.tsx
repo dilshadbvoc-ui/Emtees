@@ -416,6 +416,7 @@ export default function StudentsPage() {
       toast.success("Class allocation saved successfully!");
       setIsConfiguringAllocation(false);
       profileQuery.refetch();
+      studentsQuery.refetch();
     },
     onError: (err) => {
       toast.error(err.message);
@@ -427,6 +428,7 @@ export default function StudentsPage() {
       toast.success("Package details updated successfully");
       setPackageEditMode(false);
       profileQuery.refetch();
+      studentsQuery.refetch();
     },
     onError: (err) => toast.error(err.message),
   });
