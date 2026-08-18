@@ -551,8 +551,8 @@ export const studentsRouter = createRouter({
         countryISO: z.string().optional(),
         phoneNumber: z.string(),
         email: z.string().email().optional(),
-        username: z.string().min(3),
-        password: z.string().min(6),
+        username: z.string().trim().min(3),
+        password: z.string().trim().min(6),
         enrollmentId: z.string().optional(),
         courseId: z.number(),
         batchId: z.number().optional(),
@@ -707,8 +707,8 @@ export const studentsRouter = createRouter({
         parentPhone: z.string().optional(),
         notes: z.string().optional(),
         enrollmentId: z.string().optional(),
-        username: z.string().optional(),
-        password: z.string().optional(),
+        username: z.string().trim().optional(),
+        password: z.string().trim().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

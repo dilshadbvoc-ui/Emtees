@@ -94,8 +94,8 @@ export const salesExecutiveRouter = createRouter({
         name: z.string().min(2),
         email: z.string().email(),
         phone: z.string().min(6),
-        username: z.string().min(3),
-        password: z.string().min(6),
+        username: z.string().trim().min(3),
+        password: z.string().trim().min(6),
         status: z.enum(["active", "inactive"]).default("active"),
         groupId: z.number().nullable().optional(),
         managerGroupIds: z.array(z.number()).optional(),
@@ -360,7 +360,7 @@ export const salesExecutiveRouter = createRouter({
 
   // 5. Reset Password (Admin only)
   resetPassword: adminQuery
-    .input(z.object({ id: z.number(), newPassword: z.string().min(6).optional(), username: z.string().optional() }))
+    .input(z.object({ id: z.number(), newPassword: z.string().trim().min(6).optional(), username: z.string().trim().optional() }))
     .mutation(async ({ input }) => {
       const db = getDb();
       const exec = await db.query.salesExecutives.findFirst({
@@ -630,8 +630,8 @@ export const salesExecutiveRouter = createRouter({
         name: z.string().min(2),
         phone: z.string().min(6),
         email: z.string().email().optional(),
-        username: z.string().min(3),
-        password: z.string().min(6),
+        username: z.string().trim().min(3),
+        password: z.string().trim().min(6),
         courseId: z.number(),
         batchId: z.number().optional(),
         oneOnOneEnabled: z.boolean().default(false),

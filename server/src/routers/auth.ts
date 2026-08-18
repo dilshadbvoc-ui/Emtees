@@ -29,8 +29,8 @@ export const authRouter = createRouter({
         countryISO: z.string().optional(),
         phoneNumber: z.string().optional(),
         phone: z.string().optional(),
-        username: z.string().min(3),
-        password: z.string().min(6),
+        username: z.string().trim().min(3),
+        password: z.string().trim().min(6),
         role: z.enum(["student", "teacher", "admin", "academic_head", "super_admin"]).default("student"),
       })
     )
@@ -108,8 +108,8 @@ export const authRouter = createRouter({
   login: publicQuery
     .input(
       z.object({
-        username: z.string(),
-        password: z.string(),
+        username: z.string().trim(),
+        password: z.string().trim(),
         deviceToken: z.string().optional(),
       })
     )
