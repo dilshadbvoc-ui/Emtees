@@ -707,6 +707,8 @@ export const studentsRouter = createRouter({
         parentPhone: z.string().optional(),
         notes: z.string().optional(),
         enrollmentId: z.string().optional(),
+        username: z.string().optional(),
+        password: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -727,6 +729,26 @@ export const studentsRouter = createRouter({
 
       // Build the user update data object from non-profile fields
       const updateData: any = { ...userData };
+      
+      // Prevent overwriting password with empty string if not changed
+      if (!input.password) {
+        delete updateData.password;
+      } else {
+        updateData.password = await bcrypt.hash(input.password, 10);
+      }
+
+      if (input.username) {
+        const existingUsername = await db.query.users.findFirst({
+          where: and(
+            eq(users.username, input.username),
+            ne(users.id, id)
+          )
+        });
+        if (existingUsername) {
+          throw new TRPCError({ code: "CONFLICT", message: "Username already taken" });
+        }
+        updateData.username = input.username;
+      }
 
       let countryISO = input.countryISO;
       if (input.countryCode || input.phoneNumber) {
@@ -2156,6 +2178,20 @@ export const studentsRouter = createRouter({
       });
       if (!profile) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Student profile not found." });
+      }
+
+      // Validate teachers exist
+      if (allocation.oneToOne.teacherId) {
+        const teacher = await db.query.users.findFirst({ where: eq(users.id, allocation.oneToOne.teacherId) });
+        if (!teacher) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Teacher does not exist or was deleted. Please refresh the page and select a valid teacher.` });
+        }
+      }
+      if (allocation.group.teacherId) {
+        const teacher = await db.query.users.findFirst({ where: eq(users.id, allocation.group.teacherId) });
+        if (!teacher) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Teacher does not exist or was deleted. Please refresh the page and select a valid teacher.` });
+        }
       }
 
       const activeEnrollment = await db.query.batchEnrollments.findFirst({

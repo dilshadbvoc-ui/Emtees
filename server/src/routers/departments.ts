@@ -6,6 +6,7 @@ import { getDb } from "../queries/connection";
 import {
   departments,
   departmentModules,
+  departmentTeachers,
   users,
   batches,
   batchEnrollments,
@@ -27,6 +28,9 @@ export const departmentRouter = createRouter({
           departmentModules: {
             with: { module: { columns: { id: true, name: true } } },
           },
+          departmentTeachers: {
+            with: { teacher: { columns: { id: true, name: true } } },
+          },
         },
         orderBy: (d, { asc }) => [asc(d.name)],
       });
@@ -37,6 +41,7 @@ export const departmentRouter = createRouter({
         isActive: d.isActive,
         head: d.head,
         modules: d.departmentModules.map((dm) => dm.module),
+        teachers: d.departmentTeachers.map((dt) => dt.teacher),
         createdAt: d.createdAt,
       }));
     }),
@@ -77,6 +82,7 @@ export const departmentRouter = createRouter({
       description: z.string().optional(),
       headUserId: z.number().nullable().optional(),
       moduleIds: z.array(z.number()).default([]),
+      teacherIds: z.array(z.number()).default([]),
       isActive: z.boolean().default(true),
     }))
     .mutation(async ({ input }) => {
@@ -90,6 +96,9 @@ export const departmentRouter = createRouter({
       if (input.moduleIds.length > 0) {
         await db.insert(departmentModules).values(input.moduleIds.map((moduleId) => ({ departmentId: dept.id, moduleId })));
       }
+      if (input.teacherIds.length > 0) {
+        await db.insert(departmentTeachers).values(input.teacherIds.map((teacherId) => ({ departmentId: dept.id, teacherId })));
+      }
       return dept;
     }),
 
@@ -101,11 +110,12 @@ export const departmentRouter = createRouter({
       description: z.string().optional().nullable(),
       headUserId: z.number().nullable().optional(),
       moduleIds: z.array(z.number()).optional(),
+      teacherIds: z.array(z.number()).optional(),
       isActive: z.boolean().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const { id, moduleIds, ...fields } = input;
+      const { id, moduleIds, teacherIds, ...fields } = input;
       const updateData: any = { updatedAt: new Date() };
       if (fields.name !== undefined) updateData.name = fields.name;
       if (fields.description !== undefined) updateData.description = fields.description;
@@ -116,6 +126,12 @@ export const departmentRouter = createRouter({
         await db.delete(departmentModules).where(eq(departmentModules.departmentId, id));
         if (moduleIds.length > 0) {
           await db.insert(departmentModules).values(moduleIds.map((moduleId) => ({ departmentId: id, moduleId })));
+        }
+      }
+      if (teacherIds !== undefined) {
+        await db.delete(departmentTeachers).where(eq(departmentTeachers.departmentId, id));
+        if (teacherIds.length > 0) {
+          await db.insert(departmentTeachers).values(teacherIds.map((teacherId) => ({ departmentId: id, teacherId })));
         }
       }
       return { success: true };
@@ -136,6 +152,14 @@ export const departmentRouter = createRouter({
       const db = getDb();
       return db.select({ id: users.id, name: users.name, username: users.username })
         .from(users).where(eq(users.role, "academic_head"));
+    }),
+
+  // 6b. List teachers for dropdown
+  listTeachers: adminQuery
+    .query(async () => {
+      const db = getDb();
+      return db.select({ id: users.id, name: users.name, username: users.username })
+        .from(users).where(eq(users.role, "teacher"));
     }),
 
   // 7. Get students enrolled in my department's modules

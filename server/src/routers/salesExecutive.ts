@@ -360,7 +360,7 @@ export const salesExecutiveRouter = createRouter({
 
   // 5. Reset Password (Admin only)
   resetPassword: adminQuery
-    .input(z.object({ id: z.number(), newPassword: z.string().min(6) }))
+    .input(z.object({ id: z.number(), newPassword: z.string().min(6).optional(), username: z.string().optional() }))
     .mutation(async ({ input }) => {
       const db = getDb();
       const exec = await db.query.salesExecutives.findFirst({
@@ -368,17 +368,32 @@ export const salesExecutiveRouter = createRouter({
       });
       if (!exec) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const hashedPassword = await bcrypt.hash(input.newPassword, 10);
+      const updateData: any = {};
+      if (input.newPassword) {
+        updateData.password = await bcrypt.hash(input.newPassword, 10);
+      }
+      if (input.username) {
+        // check if username is taken
+        const existing = await db.query.users.findFirst({ where: eq(users.username, input.username) });
+        if (existing && existing.id !== exec.userId) {
+          throw new TRPCError({ code: "CONFLICT", message: "Username already taken." });
+        }
+        updateData.username = input.username;
+      }
 
-      await db.update(users)
-        .set({ password: hashedPassword })
-        .where(eq(users.id, exec.userId));
+      if (Object.keys(updateData).length > 0) {
+        await db.update(users)
+          .set(updateData)
+          .where(eq(users.id, exec.userId));
+        
+        if (updateData.password) {
+          await db.update(salesExecutives)
+            .set({ password: updateData.password })
+            .where(eq(salesExecutives.id, input.id));
+        }
+      }
 
-      await db.update(salesExecutives)
-        .set({ password: hashedPassword })
-        .where(eq(salesExecutives.id, input.id));
-
-      return { success: true, message: "Password updated successfully" };
+      return { success: true, message: "Credentials updated successfully" };
     }),
 
   // 6. Regenerate Referral Code (Admin only)

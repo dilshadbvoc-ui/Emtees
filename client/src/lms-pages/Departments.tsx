@@ -20,6 +20,7 @@ type Dept = {
   isActive: boolean;
   head?: { id: number; name: string; username: string } | null;
   modules: { id: number; name: string }[];
+  teachers?: { id: number; name: string }[];
   createdAt: Date;
 };
 
@@ -38,9 +39,13 @@ function DeptForm({
   const [selectedModuleIds, setSelectedModuleIds] = useState<number[]>(
     initial?.modules?.map((m) => m.id) || []
   );
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<number[]>(
+    initial?.teachers?.map((t) => t.id) || []
+  );
 
   const headsQuery = trpc.department.listAcademicHeads.useQuery();
   const modulesQuery = trpc.learning.listModules.useQuery();
+  const teachersQuery = trpc.department.listTeachers.useQuery();
 
   const createMut = trpc.department.create.useMutation({
     onSuccess: () => { toast.success("Department created"); onSuccess(); },
@@ -56,6 +61,11 @@ function DeptForm({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
+  const toggleTeacher = (id: number) => {
+    setSelectedTeacherIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +74,7 @@ function DeptForm({
       description: description.trim() || undefined,
       headUserId: headUserId ? parseInt(headUserId) : null,
       moduleIds: selectedModuleIds,
+      teacherIds: selectedTeacherIds,
       isActive: true,
     };
     if (initial?.id) {
@@ -132,6 +143,34 @@ function DeptForm({
                 {selectedModuleIds.includes(m.id) && <Check className="w-3 h-3 text-white" />}
               </div>
               {m.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-1 block">
+          Assigned Teachers
+          <span className="ml-2 text-xs text-gray-500">({selectedTeacherIds.length} selected)</span>
+        </label>
+        <div className="border rounded-lg max-h-40 overflow-y-auto divide-y">
+          {teachersQuery.data?.length === 0 && (
+            <p className="text-xs text-gray-400 p-3">No teachers found</p>
+          )}
+          {teachersQuery.data?.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => toggleTeacher(t.id)}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors ${
+                selectedTeacherIds.includes(t.id) ? "bg-indigo-50 text-indigo-700" : "text-gray-700"
+              }`}
+            >
+              <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                selectedTeacherIds.includes(t.id) ? "bg-indigo-600 border-indigo-600" : "border-gray-300"
+              }`}>
+                {selectedTeacherIds.includes(t.id) && <Check className="w-3 h-3 text-white" />}
+              </div>
+              {t.name}
             </button>
           ))}
         </div>
@@ -230,6 +269,7 @@ export default function Departments() {
               <TableHead>Department</TableHead>
               <TableHead>Academic Head</TableHead>
               <TableHead>Assigned Courses</TableHead>
+              <TableHead>Assigned Teachers</TableHead>
               <TableHead>Status</TableHead>
               {isAdmin && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
@@ -240,7 +280,7 @@ export default function Departments() {
             )}
             {!listQuery.isLoading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12">
+                <TableCell colSpan={6} className="text-center py-12">
                   <Building2 className="w-10 h-10 text-gray-200 mx-auto mb-2" />
                   <p className="text-sm text-gray-400">No departments found</p>
                 </TableCell>
@@ -282,6 +322,20 @@ export default function Departments() {
                     ))}
                     {dept.modules.length > 3 && (
                       <Badge variant="outline" className="text-xs">+{dept.modules.length - 3} more</Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {!dept.teachers || dept.teachers.length === 0 ? <span className="text-xs text-gray-400 italic">None</span> : null}
+                    {dept.teachers?.slice(0, 3).map((t) => (
+                      <Badge key={t.id} variant="secondary" className="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                        <User className="w-2.5 h-2.5 mr-1" />
+                        {t.name}
+                      </Badge>
+                    ))}
+                    {dept.teachers && dept.teachers.length > 3 && (
+                      <Badge variant="outline" className="text-xs border-indigo-200 text-indigo-700">+{dept.teachers.length - 3} more</Badge>
                     )}
                   </div>
                 </TableCell>

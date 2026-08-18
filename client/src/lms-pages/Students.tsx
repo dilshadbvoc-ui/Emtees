@@ -823,6 +823,8 @@ export default function StudentsPage() {
       countryISO: u.countryISO || "IN",
       phoneNumber: u.phoneNumber || "",
       email: u.email || "",
+      username: u.username || "",
+      password: "",
       status: u.status,
       course: u.profile?.course || "",
       batch: u.profile?.batch || "",
@@ -1860,6 +1862,14 @@ export default function StudentsPage() {
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-gray-600">Email Address</label>
                       <Input value={editStudent.email} onChange={(e) => setEditStudent({ ...editStudent, email: e.target.value })} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600">Username *</label>
+                      <Input value={editStudent.username} onChange={(e) => setEditStudent({ ...editStudent, username: e.target.value })} required />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600">New Password <span className="font-normal text-gray-400">(Leave empty to keep unchanged)</span></label>
+                      <Input type="password" value={editStudent.password} onChange={(e) => setEditStudent({ ...editStudent, password: e.target.value })} placeholder="Min 6 characters" />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-gray-600">Status</label>

@@ -190,7 +190,7 @@ export class StudentAdmissionService {
       phoneNumber: input.phoneNumber,
       fullInternationalNumber: fullIntNum,
       email: input.email || null,
-      username: fullIntNum,
+      username: input.username,
       password: hashedPassword,
       role: "student",
       status: "active",

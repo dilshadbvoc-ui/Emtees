@@ -1496,14 +1496,39 @@ export const departmentModules = pgTable(
 export type DepartmentModule = typeof departmentModules.$inferSelect;
 export type InsertDepartmentModule = typeof departmentModules.$inferInsert;
 
+// Department ↔ Teacher assignments
+export const departmentTeachers = pgTable(
+  "department_teachers",
+  {
+    id: serial("id").primaryKey(),
+    departmentId: bigint("department_id", { mode: "number" })
+      .notNull()
+      .references(() => departments.id, { onDelete: "cascade" }),
+    teacherId: bigint("teacher_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueDeptTeacher: uniqueIndex("unique_dept_teacher_idx").on(table.departmentId, table.teacherId),
+  })
+);
+export type DepartmentTeacher = typeof departmentTeachers.$inferSelect;
+export type InsertDepartmentTeacher = typeof departmentTeachers.$inferInsert;
+
 // Drizzle Relations for departments
 export const departmentsRelations = relations(departments, ({ one, many }) => ({
   head: one(users, { fields: [departments.headUserId], references: [users.id] }),
   departmentModules: many(departmentModules),
+  departmentTeachers: many(departmentTeachers),
 }));
 export const departmentModulesRelations = relations(departmentModules, ({ one }) => ({
   department: one(departments, { fields: [departmentModules.departmentId], references: [departments.id] }),
   module: one(modules, { fields: [departmentModules.moduleId], references: [modules.id] }),
+}));
+export const departmentTeachersRelations = relations(departmentTeachers, ({ one }) => ({
+  department: one(departments, { fields: [departmentTeachers.departmentId], references: [departments.id] }),
+  teacher: one(users, { fields: [departmentTeachers.teacherId], references: [users.id] }),
 }));
 
 // ─── Demo Classes (Sales Executive → Teacher → Prospective Student) ──────────

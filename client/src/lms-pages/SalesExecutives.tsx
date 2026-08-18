@@ -264,8 +264,8 @@ export default function SalesExecutivesAdminPage() {
 
   const handleResetPasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedId || !password) return;
-    resetPasswordMutation.mutate({ id: selectedId, newPassword: password });
+    if (!selectedId) return;
+    resetPasswordMutation.mutate({ id: selectedId, newPassword: password || undefined, username: username || undefined });
   };
 
   const handleOpenEdit = (exec: any) => {
@@ -284,8 +284,9 @@ export default function SalesExecutivesAdminPage() {
     setEditModalOpen(true);
   };
 
-  const handleOpenResetPassword = (id: number) => {
-    setSelectedId(id);
+  const handleOpenResetPassword = (exec: any) => {
+    setSelectedId(exec.id);
+    setUsername(exec.username || "");
     setPassword("");
     setPassModalOpen(true);
   };
@@ -510,6 +511,17 @@ export default function SalesExecutivesAdminPage() {
                           Performance
                         </Button>
 
+                        {/* Credentials Button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs border-amber-100 text-amber-700 hover:bg-amber-50 px-2.5 font-medium"
+                          onClick={() => handleOpenResetPassword(exec)}
+                        >
+                          <Edit className="w-3.5 h-3.5 mr-1" />
+                          Edit Credentials
+                        </Button>
+
                         {/* Options Dropdown */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -551,7 +563,7 @@ export default function SalesExecutivesAdminPage() {
                               Edit Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleOpenResetPassword(exec.id)}
+                              onClick={() => handleOpenResetPassword(exec)}
                               className="flex items-center gap-2 cursor-pointer py-1.5 text-amber-600"
                             >
                               <Key className="w-3.5 h-3.5" />
@@ -995,34 +1007,47 @@ export default function SalesExecutivesAdminPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Reset Password Modal */}
+      {/* Update Credentials Modal */}
       <Dialog open={passModalOpen} onOpenChange={setPassModalOpen}>
         <DialogContent className="max-w-sm w-full rounded-2xl">
           <form onSubmit={handleResetPasswordSubmit}>
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-gray-900">
-                Reset Password
+                Edit Credentials
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-500">
-                Change password for this Sales Executive.
+                Update login credentials for this Sales Executive.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-4 text-xs space-y-1.5">
-              <Label
-                htmlFor="reset-pass-field"
-                className="font-semibold text-gray-600"
-              >
-                New Password *
-              </Label>
-              <Input
-                id="reset-pass-field"
-                type="password"
-                placeholder="Min 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div className="py-4 text-xs space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-username-field" className="font-semibold text-gray-600">
+                  Username *
+                </Label>
+                <Input
+                  id="edit-username-field"
+                  placeholder="johndoe"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="reset-pass-field"
+                  className="font-semibold text-gray-600"
+                >
+                  New Password <span className="text-gray-400 font-normal">(Leave empty to keep unchanged)</span>
+                </Label>
+                <Input
+                  id="reset-pass-field"
+                  type="password"
+                  placeholder="Min 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
             </div>
 
             <DialogFooter className="gap-2">
@@ -1040,7 +1065,7 @@ export default function SalesExecutivesAdminPage() {
               >
                 {resetPasswordMutation.isPending
                   ? "Updating..."
-                  : "Reset Password"}
+                  : "Update Credentials"}
               </Button>
             </DialogFooter>
           </form>
