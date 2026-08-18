@@ -128,10 +128,12 @@ export async function updateStudentSessionBalances(db: any, studentId: number) {
       .where(eq(batchEnrollments.id, enrollment.id));
   }
 
-  // Sync studentClassAllocations table
+  // Sync studentClassAllocations table — preserve designatedTime from existing allocation
+  const existingAllocData = existingAlloc?.allocation as any;
   const newAllocationJson = {
     oneToOne: {
-      teacherId: enrollment ? ((enrollment.assignedTeachers as any)?.[0] || null) : (existingAlloc ? ((existingAlloc.allocation as any)?.oneToOne?.teacherId || null) : null),
+      teacherId: enrollment ? ((enrollment.assignedTeachers as any)?.[0] || null) : (existingAlloc ? (existingAllocData?.oneToOne?.teacherId || null) : null),
+      designatedTime: existingAllocData?.oneToOne?.designatedTime || "",
       sessions30: sessionsO2O30,
       sessions45: sessionsO2O45,
       sessions60: sessionsO2O60,
@@ -143,8 +145,9 @@ export async function updateStudentSessionBalances(db: any, studentId: number) {
       remaining60: remainingO2O60
     },
     group: {
-      teacherId: enrollment ? ((enrollment.assignedTeachers as any)?.[1] || (enrollment.assignedTeachers as any)?.[0] || null) : (existingAlloc ? ((existingAlloc.allocation as any)?.group?.teacherId || null) : null),
+      teacherId: enrollment ? ((enrollment.assignedTeachers as any)?.[1] || (enrollment.assignedTeachers as any)?.[0] || null) : (existingAlloc ? (existingAllocData?.group?.teacherId || null) : null),
       batchId: enrollment ? enrollment.batchId : null,
+      designatedTime: existingAllocData?.group?.designatedTime || "",
       sessions30: sessionsGroup30,
       sessions45: sessionsGroup45,
       sessions60: sessionsGroup60,
