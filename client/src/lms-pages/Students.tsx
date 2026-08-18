@@ -865,14 +865,6 @@ export default function StudentsPage() {
       return;
     }
 
-    if (!editStudent.courseId) {
-      toast.error("Course selection is mandatory.");
-      return;
-    }
-    if (editStudent.sessionType !== "one_on_one" && !editStudent.batchId) {
-      toast.error("Batch selection is mandatory.");
-      return;
-    }
 
     const selectedB = editStudent.batchId ? batchesQuery.data?.find((b) => b.id === Number(editStudent.batchId)) : null;
     if (selectedB && selectedB.status !== "active") {
