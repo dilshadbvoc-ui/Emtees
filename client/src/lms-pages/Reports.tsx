@@ -131,8 +131,8 @@ export default function ReportsPage() {
   const leaderboard = trpc.admin.getLeaderboard.useQuery(undefined, { enabled: isAdmin });
   const myAttendance = trpc.class.myAttendance.useQuery(undefined, { enabled: user?.role === "student" });
   const studentProfileQuery = trpc.students.getProfile.useQuery(
-    { id: user?.id || 0 },
-    { enabled: user?.role === "student" }
+    { id: user?.id ?? 0 },
+    { enabled: user?.role === "student" && !!user?.id && user.id > 0 }
   );
 
   // Holiday Queries
