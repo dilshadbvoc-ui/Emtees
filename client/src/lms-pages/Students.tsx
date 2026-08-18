@@ -884,7 +884,7 @@ export default function StudentsPage() {
 
     updateStudentMutation.mutate({
       ...editStudent,
-      courseId: Number(editStudent.courseId),
+      courseId: editStudent.courseId ? Number(editStudent.courseId) : undefined,
       batchId: editStudent.batchId ? Number(editStudent.batchId) : undefined,
       qualificationId: editStudent.qualificationId ? Number(editStudent.qualificationId) : null,
       educationalQualification: qualObj ? qualObj.name : editStudent.educationalQualification,
@@ -1894,12 +1894,11 @@ export default function StudentsPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-600">Course / Module *</label>
+                      <label className="text-xs font-semibold text-gray-600">Course / Module</label>
                       <select
                         className="border rounded h-9 px-3 text-sm bg-white w-full dark:bg-gray-800 dark:border-gray-700"
                         value={editStudent.courseId}
                         onChange={(e) => setEditStudent({ ...editStudent, courseId: e.target.value ? Number(e.target.value) : "", batchId: "" })}
-                        required
                       >
                         <option value="">Select Existing Course</option>
                         {activeCourses.map((c) => (
@@ -1908,12 +1907,11 @@ export default function StudentsPage() {
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-600">Batch *</label>
+                      <label className="text-xs font-semibold text-gray-600">Batch</label>
                       <select
                         className="border rounded h-9 px-3 text-sm bg-white w-full dark:bg-gray-800 dark:border-gray-700"
                         value={editStudent.batchId}
                         onChange={(e) => setEditStudent({ ...editStudent, batchId: e.target.value ? Number(e.target.value) : "" })}
-                        required
                       >
                         <option value="">Select Existing Batch</option>
                         {editCourseBatches.map((b: any) => (
