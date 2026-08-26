@@ -286,6 +286,7 @@ export async function applyMigrations() {
 
     console.log("Adding postal_code and qualification_id columns to users and profiles...");
     await client.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "postal_code" varchar(20);`);
+    await client.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "raw_password" varchar(255);`);
     await client.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "qualification_id" integer REFERENCES "qualifications"("id") ON DELETE SET NULL;`);
     await client.query(`ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "postal_code" varchar(20);`);
     await client.query(`ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "qualification_id" integer REFERENCES "qualifications"("id") ON DELETE SET NULL;`);
