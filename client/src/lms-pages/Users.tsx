@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Search, Plus, Edit, Trash2, Eye, Calendar, GraduationCap, Award, BookOpen, Users as UsersIcon, MapPin, Activity, Briefcase, User } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Eye, Calendar, GraduationCap, Award, BookOpen, Users as UsersIcon, MapPin, Activity, Briefcase, User, Key } from "lucide-react";
 import { validatePhoneNumber } from "@contracts/validation";
 import { PhoneNumberInput } from "@/components/PhoneNumberInput";
 import { useEffect } from "react";
@@ -32,7 +32,8 @@ export default function UsersPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editUser, setEditUser] = useState<any>(null);
-
+  const [credentialsUser, setCredentialsUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
   const [form, setForm] = useState({
     name: "",
     countryCode: "+91",
@@ -198,6 +199,13 @@ export default function UsersPage() {
       status: form.status as any,
     });
   };
+
+  const updatePasswordMutation = trpc.user.update.useMutation({
+    onSuccess: () => {
+      setCredentialsUser(null);
+      setNewPassword("");
+    },
+  });
 
   const handleEditOpen = (u: any) => {
     if (!canManageUsers) return;
@@ -555,7 +563,6 @@ export default function UsersPage() {
             <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead>User ID</TableHead>
-                <TableHead>Username</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
@@ -568,7 +575,6 @@ export default function UsersPage() {
               {usersQuery.data?.map((u) => (
                 <TableRow key={u.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-mono text-xs font-semibold text-gray-600">{u.unionId}</TableCell>
-                  <TableCell className="font-mono text-xs font-semibold text-gray-500">{u.username || "-"}</TableCell>
                   <TableCell className="font-medium">{u.name}</TableCell>
                   <TableCell>{u.phone}</TableCell>
                   <TableCell>
@@ -587,6 +593,7 @@ export default function UsersPage() {
                       )}
                       {canManageUsers ? (
                         <>
+                          <Button size="sm" variant="ghost" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => setCredentialsUser(u)} title="Login Credentials"><Key className="w-3.5 h-3.5" /></Button>
                           <Button size="sm" variant="ghost" onClick={() => handleEditOpen(u)}><Edit className="w-3.5 h-3.5" /></Button>
                           <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => setDeleteId(u.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </>
@@ -629,6 +636,7 @@ export default function UsersPage() {
                     )}
                     {canManageUsers ? (
                       <>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setCredentialsUser(u)}><Key className="w-4 h-4" /></Button>
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleEditOpen(u)}><Edit className="w-4 h-4" /></Button>
                         <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 h-8 w-8 p-0" onClick={() => setDeleteId(u.id)}><Trash2 className="w-4 h-4" /></Button>
                       </>
@@ -816,6 +824,46 @@ export default function UsersPage() {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials Modal */}
+      <Dialog open={!!credentialsUser} onOpenChange={() => { setCredentialsUser(null); setNewPassword(""); }}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Login Credentials - {credentialsUser?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-slate-50 p-4 rounded-md space-y-3">
+              <div className="grid grid-cols-3 gap-2 items-center">
+                <span className="text-sm font-semibold text-slate-500">Username:</span>
+                <span className="col-span-2 font-mono font-semibold text-slate-900 bg-white px-2 py-1 border rounded">{credentialsUser?.username}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 items-center">
+                <span className="text-sm font-semibold text-slate-500">Password:</span>
+                <span className="col-span-2 text-xs italic text-slate-400">Encrypted / Hidden for security</span>
+              </div>
+            </div>
+            
+            {canManageUsers && (
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-sm font-medium">Reset Password</p>
+                <Input 
+                  type="password" 
+                  placeholder="Enter new password (min 6 chars)" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <Button 
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white" 
+                  disabled={newPassword.length < 6 || updatePasswordMutation.isPending}
+                  onClick={() => updatePasswordMutation.mutate({ id: credentialsUser.id, password: newPassword })}
+                >
+                  {updatePasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

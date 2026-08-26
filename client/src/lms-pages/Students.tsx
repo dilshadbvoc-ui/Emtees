@@ -24,7 +24,7 @@ const getEnrollmentSourceLabel = (source: string | null | undefined) => {
   if (source === "self") return "Student Self Enrollment";
   return "Direct Admission";
 };
-import { Search, Plus, Upload, Edit, Trash2, Download, Eye, FileText, Send, Calendar, CreditCard, Award, MessageCircle, FileUp, User, Clock, AlertTriangle, CheckCircle, RefreshCcw, BookOpen, History, Settings, X, Play, GraduationCap } from "lucide-react";
+import { Search, Plus, Upload, Edit, Trash2, Download, Eye, FileText, Send, Calendar, CreditCard, Award, MessageCircle, FileUp, User, Clock, AlertTriangle, CheckCircle, RefreshCcw, BookOpen, History, Settings, X, Play, GraduationCap, Key } from "lucide-react";
 import { validatePhoneNumber } from "@contracts/validation";
 import { PhoneNumberInput } from "@/components/PhoneNumberInput";
 import { useEffect } from "react";
@@ -60,6 +60,8 @@ export default function StudentsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editStudent, setEditStudent] = useState<any>(null);
+  const [credentialsStudent, setCredentialsStudent] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
   const [importSummary, setImportSummary] = useState<{
     totalRows: number;
     successfulImports: number;
@@ -1405,7 +1407,6 @@ export default function StudentsPage() {
             <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead>Student ID</TableHead>
-                <TableHead>Username</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Assigned Teacher</TableHead>
@@ -1440,7 +1441,6 @@ export default function StudentsPage() {
                     }}
                   >
                     <TableCell className="font-mono text-xs font-semibold text-emerald-800">{s.profile?.enrollmentId || s.unionId}</TableCell>
-                    <TableCell className="font-mono text-xs font-semibold text-gray-500">{s.username || "-"}</TableCell>
                     <TableCell className="font-medium">
                       <button
                         className="text-left hover:underline hover:text-emerald-700 font-medium"
@@ -1517,8 +1517,9 @@ export default function StudentsPage() {
                         <Button size="sm" variant="ghost" onClick={() => setDetailsStudentId(s.id)}><Eye className="w-3.5 h-3.5" /></Button>
                         {isAdmin && (
                           <>
-                            <Button size="sm" variant="ghost" onClick={() => handleEditOpen(s)}><Edit className="w-3.5 h-3.5" /></Button>
-                            <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => setDeleteId(s.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                            <Button size="sm" variant="ghost" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={(e) => { e.stopPropagation(); setCredentialsStudent(s); }} title="Login Credentials"><Key className="w-3.5 h-3.5" /></Button>
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleEditOpen(s); }}><Edit className="w-3.5 h-3.5" /></Button>
+                            <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={(e) => { e.stopPropagation(); setDeleteId(s.id); }}><Trash2 className="w-3.5 h-3.5" /></Button>
                           </>
                         )}
                       </div>
@@ -1554,7 +1555,6 @@ export default function StudentsPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 text-sm">{s.name}</h4>
-                    <p className="text-xs font-mono text-gray-500 mt-0.5">{s.username}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{s.phone}</p>
                   </div>
                   <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs">
@@ -1571,6 +1571,7 @@ export default function StudentsPage() {
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setDetailsStudentId(s.id)}><Eye className="w-4 h-4" /></Button>
                       {isAdmin && (
                         <>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => setCredentialsStudent(s)}><Key className="w-4 h-4" /></Button>
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleEditOpen(s)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 h-8 w-8 p-0" onClick={() => setDeleteId(s.id)}><Trash2 className="w-4 h-4" /></Button>
                         </>
@@ -1805,6 +1806,56 @@ export default function StudentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Credentials Modal */}
+      <Dialog open={!!credentialsStudent} onOpenChange={() => { setCredentialsStudent(null); setNewPassword(""); }}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Login Credentials - {credentialsStudent?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-slate-50 p-4 rounded-md space-y-3">
+              <div className="grid grid-cols-3 gap-2 items-center">
+                <span className="text-sm font-semibold text-slate-500">Username:</span>
+                <span className="col-span-2 font-mono font-semibold text-slate-900 bg-white px-2 py-1 border rounded">{credentialsStudent?.username}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 items-center">
+                <span className="text-sm font-semibold text-slate-500">Password:</span>
+                <span className="col-span-2 text-xs italic text-slate-400">Encrypted / Hidden for security</span>
+              </div>
+            </div>
+            
+            {isAdmin && (
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-sm font-medium">Reset Password</p>
+                <Input 
+                  type="password" 
+                  placeholder="Enter new password (min 6 chars)" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <Button 
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white" 
+                  disabled={newPassword.length < 6 || updateStudentMutation.isPending}
+                  onClick={() => {
+                    updateStudentMutation.mutate({ 
+                      id: credentialsStudent.id, 
+                      password: newPassword 
+                    }, {
+                      onSuccess: () => {
+                        setCredentialsStudent(null);
+                        setNewPassword("");
+                      }
+                    });
+                  }}
+                >
+                  {updateStudentMutation.isPending ? "Resetting..." : "Reset Password"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Student Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
