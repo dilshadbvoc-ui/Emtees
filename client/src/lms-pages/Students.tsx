@@ -1405,6 +1405,7 @@ export default function StudentsPage() {
             <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead>Student ID</TableHead>
+                <TableHead>Username</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Assigned Teacher</TableHead>
@@ -1439,6 +1440,7 @@ export default function StudentsPage() {
                     }}
                   >
                     <TableCell className="font-mono text-xs font-semibold text-emerald-800">{s.profile?.enrollmentId || s.unionId}</TableCell>
+                    <TableCell className="font-mono text-xs font-semibold text-gray-500">{s.username || "-"}</TableCell>
                     <TableCell className="font-medium">
                       <button
                         className="text-left hover:underline hover:text-emerald-700 font-medium"
@@ -1552,6 +1554,7 @@ export default function StudentsPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 text-sm">{s.name}</h4>
+                    <p className="text-xs font-mono text-gray-500 mt-0.5">{s.username}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{s.phone}</p>
                   </div>
                   <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs">

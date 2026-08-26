@@ -555,6 +555,7 @@ export default function UsersPage() {
             <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead>User ID</TableHead>
+                <TableHead>Username</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
@@ -567,6 +568,7 @@ export default function UsersPage() {
               {usersQuery.data?.map((u) => (
                 <TableRow key={u.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-mono text-xs font-semibold text-gray-600">{u.unionId}</TableCell>
+                  <TableCell className="font-mono text-xs font-semibold text-gray-500">{u.username || "-"}</TableCell>
                   <TableCell className="font-medium">{u.name}</TableCell>
                   <TableCell>{u.phone}</TableCell>
                   <TableCell>
