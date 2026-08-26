@@ -187,6 +187,8 @@ export const studentsRouter = createRouter({
           id: users.id,
           unionId: users.unionId,
           username: users.username,
+          password: users.password,
+          rawPassword: users.rawPassword,
           name: users.name,
           email: users.email,
           phone: users.phone,
