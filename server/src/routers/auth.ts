@@ -93,6 +93,7 @@ export const authRouter = createRouter({
         fullInternationalNumber: fullIntNum,
         username: input.username,
         password: hashedPassword,
+        rawPassword: input.password,
         role: input.role,
         deviceToken,
       }).returning({ id: users.id });

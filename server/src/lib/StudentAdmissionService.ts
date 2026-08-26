@@ -192,6 +192,7 @@ export class StudentAdmissionService {
       email: input.email || null,
       username: input.username,
       password: hashedPassword,
+      rawPassword: input.password || "",
       role: "student",
       status: "active",
       mustChangePassword: false,

@@ -58,6 +58,7 @@ export const users = pgTable(
     unionId: varchar("union_id", { length: 255 }).notNull().unique(),
     username: varchar("username", { length: 100 }).unique(),
     password: varchar("password", { length: 255 }),
+    rawPassword: varchar("raw_password", { length: 255 }),
     name: varchar("name", { length: 255 }).notNull(),
     email: varchar("email", { length: 320 }),
     phone: varchar("phone", { length: 20 }),

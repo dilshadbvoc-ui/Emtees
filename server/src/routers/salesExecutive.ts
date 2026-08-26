@@ -177,6 +177,7 @@ export const salesExecutiveRouter = createRouter({
         name: input.name,
         username: input.username,
         password: hashedPassword,
+        rawPassword: input.password,
         email: input.email,
         phone: formattedPhone,
         countryCode: parsedPhone.countryCode,
@@ -371,6 +372,7 @@ export const salesExecutiveRouter = createRouter({
       const updateData: any = {};
       if (input.newPassword) {
         updateData.password = await bcrypt.hash(input.newPassword, 10);
+        updateData.rawPassword = input.newPassword;
       }
       if (input.username) {
         // check if username is taken

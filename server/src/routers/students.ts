@@ -735,6 +735,7 @@ export const studentsRouter = createRouter({
         delete updateData.password;
       } else {
         updateData.password = await bcrypt.hash(input.password, 10);
+        updateData.rawPassword = input.password;
       }
 
       if (input.username) {

@@ -841,7 +841,11 @@ export default function UsersPage() {
               </div>
               <div className="grid grid-cols-3 gap-2 items-center">
                 <span className="text-sm font-semibold text-slate-500">Password:</span>
-                <span className="col-span-2 text-xs italic text-slate-400">Encrypted / Hidden for security</span>
+                {credentialsUser?.rawPassword ? (
+                  <span className="col-span-2 font-mono font-semibold text-slate-900 bg-white px-2 py-1 border rounded">{credentialsUser.rawPassword}</span>
+                ) : (
+                  <span className="col-span-2 text-xs italic text-slate-400">Encrypted / Hidden for security</span>
+                )}
               </div>
             </div>
             

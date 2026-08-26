@@ -359,6 +359,7 @@ export const userRouter = createRouter({
         email: input.email,
         username: fullIntNum,
         password: hashedPassword,
+        rawPassword: input.password,
         role: input.role,
         status: input.status || "active",
         canViewSalaryReports: canViewReports,
@@ -666,6 +667,7 @@ export const userRouter = createRouter({
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         updateData.password = hashedPassword;
+        updateData.rawPassword = password;
       }
 
       if (userData.dateOfBirth) {
@@ -1305,7 +1307,7 @@ export const userRouter = createRouter({
       }
 
       const hashed = await bcrypt.hash(input.newPassword, 10);
-      await db.update(users).set({ password: hashed, mustChangePassword: false }).where(eq(users.id, userId));
+      await db.update(users).set({ password: hashed, rawPassword: input.newPassword, mustChangePassword: false }).where(eq(users.id, userId));
 
       // Send critical security notification: "User is notified when the password is successfully changed."
       await sendNotification(
