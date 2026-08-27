@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, asc, desc, count, sql } from "drizzle-orm";
-import { createRouter, publicQuery, adminQuery } from "../middleware";
+import { createRouter, publicQuery, strictAdminQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import { qualifications, users, profiles, qualificationAuditLogs } from "@db/schema";
 
@@ -17,7 +17,7 @@ export const qualificationsRouter = createRouter({
   }),
 
   // Admin procedure to list all qualifications (active & inactive)
-  listAll: adminQuery.query(async () => {
+  listAll: strictAdminQuery.query(async () => {
     const db = getDb();
     const items = await db.query.qualifications.findMany({
       orderBy: [asc(qualifications.displayOrder), asc(qualifications.name)],
@@ -26,7 +26,7 @@ export const qualificationsRouter = createRouter({
   }),
 
   // Check usage count for a qualification
-  getUsage: adminQuery
+  getUsage: strictAdminQuery
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = getDb();
@@ -43,7 +43,7 @@ export const qualificationsRouter = createRouter({
     }),
 
   // Create new qualification
-  create: adminQuery
+  create: strictAdminQuery
     .input(
       z.object({
         name: z.string().min(1, "Qualification name is required").trim(),
@@ -87,7 +87,7 @@ export const qualificationsRouter = createRouter({
     }),
 
   // Update existing qualification
-  update: adminQuery
+  update: strictAdminQuery
     .input(
       z.object({
         id: z.number(),
@@ -141,7 +141,7 @@ export const qualificationsRouter = createRouter({
     }),
 
   // Toggle active status
-  toggleStatus: adminQuery
+  toggleStatus: strictAdminQuery
     .input(z.object({ id: z.number(), isActive: z.boolean() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -174,7 +174,7 @@ export const qualificationsRouter = createRouter({
     }),
 
   // Delete qualification with safeguards
-  delete: adminQuery
+  delete: strictAdminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -211,7 +211,7 @@ export const qualificationsRouter = createRouter({
     }),
 
   // List audit logs for qualifications
-  listAuditLogs: adminQuery.query(async () => {
+  listAuditLogs: strictAdminQuery.query(async () => {
     const db = getDb();
     const logs = await db.query.qualificationAuditLogs.findMany({
       orderBy: [desc(qualificationAuditLogs.createdAt)],

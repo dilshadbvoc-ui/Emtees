@@ -1,7 +1,8 @@
+import { departments, studentClassAllocations } from "@db/schema";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
-import { createRouter, authedQuery, adminQuery } from "../middleware";
+import { createRouter, authedQuery, adminQuery, strictAdminQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import {
   performanceConfigs,
@@ -63,7 +64,7 @@ export const performanceRouter = createRouter({
     }),
 
   // Save/update configuration (Admin only)
-  saveConfig: adminQuery
+  saveConfig: strictAdminQuery
     .input(
       z.object({
         type: z.enum(["student", "teacher"]),
@@ -621,6 +622,33 @@ export const performanceRouter = createRouter({
         if (input.status) {
           conditions.push(eq(performanceReports.status, input.status));
         }
+        
+        if (role === "academic_head") {
+          const dept = await db.query.departments.findFirst({
+            where: eq(departments.headUserId, ctx.user.id),
+            with: { departmentTeachers: true }
+          });
+          if (!dept || dept.departmentTeachers.length === 0) {
+            return [];
+          }
+          const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+          
+          const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+            .from(batchEnrollments)
+            .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+            .where(inArray(batches.teacherId, teacherIds));
+          const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+            .from(studentClassAllocations)
+            .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+            
+          const allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+          const allDepartmentUserIds = [...teacherIds, ...allStudentIds];
+          
+          if (allDepartmentUserIds.length === 0) {
+            return [];
+          }
+          conditions.push(inArray(performanceReports.targetUserId, allDepartmentUserIds));
+        }
       }
 
       const reportsList = await db.query.performanceReports.findMany({
@@ -678,6 +706,40 @@ export const performanceRouter = createRouter({
         throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
       }
 
+      if (role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, ctx.user.id),
+          with: { departmentTeachers: true }
+        });
+        
+        let isAuthorized = false;
+        if (dept && dept.departmentTeachers.length > 0) {
+          const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+          
+          if (teacherIds.includes(report.targetUserId)) {
+            isAuthorized = true;
+          } else {
+            const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+              .from(batchEnrollments)
+              .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+              .where(inArray(batches.teacherId, teacherIds));
+            const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+              .from(studentClassAllocations)
+              .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+              
+            const allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+            
+            if (allStudentIds.includes(report.targetUserId)) {
+              isAuthorized = true;
+            }
+          }
+        }
+        
+        if (!isAuthorized) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied: Report not in your department" });
+        }
+      }
+
       const parentId = report.parentReportId ?? report.id;
 
       const history = await db.query.performanceReports.findMany({
@@ -702,13 +764,37 @@ export const performanceRouter = createRouter({
     }),
 
   // Fetch batches & modules for filters
-  getFiltersData: adminQuery.query(async () => {
+  getFiltersData: adminQuery.query(async ({ ctx }) => {
     const db = getDb();
+    
+    let batchCond = undefined;
+    let courseCond = undefined;
+    
+    if (ctx.user.role === "academic_head") {
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: {
+          departmentTeachers: true,
+          departmentModules: true
+        }
+      });
+      if (!dept) {
+        return { batches: [], courses: [] };
+      }
+      const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+      const moduleIds = dept.departmentModules.map((dm: any) => dm.moduleId);
+      
+      batchCond = teacherIds.length > 0 ? inArray(batches.teacherId, teacherIds) : eq(batches.id, -1);
+      courseCond = moduleIds.length > 0 ? inArray(modules.id, moduleIds) : eq(modules.id, -1);
+    }
+    
     const batchesList = await db.query.batches.findMany({
+      where: batchCond,
       columns: { id: true, name: true },
       orderBy: [batches.name],
     });
     const coursesList = await db.query.modules.findMany({
+      where: courseCond,
       columns: { id: true, name: true },
       orderBy: [modules.name],
     });

@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, desc, and, sql, count, inArray, ne, gte, lte } from "drizzle-orm";
 import { createRouter, authedQuery, adminQuery, teacherQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { users, profiles, batchEnrollments, batches, classes, modules, teacherSalaries, payments, studentClassAllocations, attendance, oneToOneSessions } from "@db/schema";
+import { users, profiles, batchEnrollments, batches, classes, modules, teacherSalaries, payments, studentClassAllocations, attendance, oneToOneSessions, departments, departmentTeachers } from "@db/schema";
 import { sendNotification, sendBulkNotification, getAdminUserIds } from "../lib/notificationEngine";
 import { getNextUniqueId } from "../lib/idGenerator";
 import { env } from "../lib/env";
@@ -27,9 +27,22 @@ export const userRouter = createRouter({
         offset: z.number().default(0),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = getDb();
       const filters = [];
+
+      if (ctx.user.role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, ctx.user.id),
+          with: { departmentTeachers: true }
+        });
+        if (!dept || dept.departmentTeachers.length === 0) {
+           return []; // No teachers assigned
+        }
+        const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+        filters.push(inArray(users.id, teacherIds));
+      }
+
       if (input?.role && input.role !== "all") {
         if ((input.role as string) === "sales_executive") {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Sales executives must be managed through Sales Executive Module." });

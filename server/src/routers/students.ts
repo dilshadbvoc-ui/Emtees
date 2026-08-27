@@ -4,7 +4,7 @@ import { eq, desc, and, sql, count, inArray, ne, or, isNull, isNotNull, asc } fr
 import XLSX from "xlsx";
 import { createRouter, authedQuery, adminQuery, teacherQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { users, profiles, batchEnrollments, batches, classes, modules, payments, attendance, privateMessages, feedback, sessionAllocationLogs, oneToOneSessions, studentCourseAuditLogs, studentClassAllocations, attendanceAlerts, qualifications } from "@db/schema";
+import { users, profiles, batchEnrollments, batches, classes, modules, payments, attendance, privateMessages, feedback, sessionAllocationLogs, oneToOneSessions, studentCourseAuditLogs, studentClassAllocations, attendanceAlerts, qualifications, departments, departmentTeachers } from "@db/schema";
 import { updateStudentSessionBalances } from "../lib/sessionHelper";
 import { sendNotification, sendBulkNotification, getAdminUserIds } from "../lib/notificationEngine";
 import { getNextUniqueId } from "../lib/idGenerator";
@@ -42,11 +42,31 @@ export const studentsRouter = createRouter({
       const offset = input?.offset || 0;
       const filters = [eq(users.role, "student")];
 
-      // Enforce assigned student restrictions for Teachers
+      // Enforce assigned student restrictions for Teachers and Academic Heads
+      let allowedTeacherIds: number[] | null = null;
+
       if (ctx.user.role === "teacher") {
+        allowedTeacherIds = [ctx.user.id];
+      } else if (ctx.user.role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, ctx.user.id),
+          with: { departmentTeachers: true }
+        });
+        if (dept) {
+          allowedTeacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+        } else {
+          allowedTeacherIds = []; // No department assigned, see no students
+        }
+      }
+
+      if (allowedTeacherIds !== null) {
+        if (allowedTeacherIds.length === 0) {
+          return { items: [], total: 0 };
+        }
+
         const teacherBatches = await db.select({ id: batches.id })
           .from(batches)
-          .where(eq(batches.teacherId, ctx.user.id));
+          .where(inArray(batches.teacherId, allowedTeacherIds));
         const batchIds = teacherBatches.map((b) => b.id);
 
         let groupStudentIds: number[] = [];
@@ -68,7 +88,7 @@ export const studentsRouter = createRouter({
         const o2oStudentIds = o2oAllocations
           .filter((row: any) => {
             const alloc = typeof row.allocation === "string" ? JSON.parse(row.allocation) : row.allocation;
-            return Number(alloc?.oneToOne?.teacherId) === ctx.user.id;
+            return alloc?.oneToOne?.teacherId && allowedTeacherIds!.includes(Number(alloc.oneToOne.teacherId));
           })
           .map(row => row.studentId);
 
@@ -809,11 +829,10 @@ export const studentsRouter = createRouter({
         }
       }
 
-      const profileUpdate: any = {
-        gender,
-        parentName,
-        notes,
-      };
+      const profileUpdate: any = {};
+      if (gender !== undefined) profileUpdate.gender = gender;
+      if (parentName !== undefined) profileUpdate.parentName = parentName;
+      if (notes !== undefined) profileUpdate.notes = notes;
 
       if (address !== undefined) {
         updateData.address = address;
@@ -927,7 +946,9 @@ export const studentsRouter = createRouter({
 
       await db.transaction(async (tx) => {
         // Apply user table update
-        await tx.update(users).set(updateData).where(eq(users.id, id));
+        if (Object.keys(updateData).length > 0) {
+          await tx.update(users).set(updateData).where(eq(users.id, id));
+        }
 
         // If batch is changing, handle transfer logic
         if (isBatchChanged && batchId && selectedBatch) {
@@ -1102,7 +1123,9 @@ export const studentsRouter = createRouter({
 
         // Apply profile table updates
         if (existingProfile) {
-          await tx.update(profiles).set(profileUpdate).where(eq(profiles.userId, id));
+          if (Object.keys(profileUpdate).length > 0) {
+            await tx.update(profiles).set(profileUpdate).where(eq(profiles.userId, id));
+          }
         } else {
           await tx.insert(profiles).values({
             userId: id,

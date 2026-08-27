@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
 import { createRouter, authedQuery, adminQuery, teacherQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { modules, batches, batchEnrollments, messages, learningMaterials, profiles, users, flexibilityRequests, classes, oneToOneSessions, feedback, batchFeeAuditLogs, batchAuditLogs, payments, learningNotes, learningVideos, assignments, assignmentSubmissions, classBatches, studentFeeConfigurations } from "@db/schema";
+import { modules, batches, batchEnrollments, messages, learningMaterials, profiles, users, flexibilityRequests, classes, oneToOneSessions, feedback, batchFeeAuditLogs, batchAuditLogs, payments, learningNotes, learningVideos, assignments, assignmentSubmissions, classBatches, studentFeeConfigurations, departments, departmentModules } from "@db/schema";
 import { sendBulkNotification, getAdminUserIds } from "../lib/notificationEngine";
 import { getIo } from "../lib/socketInstance";
 import { isStudentFeeRestricted, recalculateStudentFees } from "../lib/feeHelper";
@@ -39,9 +39,24 @@ function parseTimeSlot(timeSlot: string) {
 
 export const learningRouter = createRouter({
   // Modules
-  listModules: authedQuery.query(async () => {
+  listModules: authedQuery.query(async ({ ctx }) => {
     const db = getDb();
+    
+    let where;
+    if (ctx.user.role === "academic_head") {
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: { departmentModules: true }
+      });
+      if (!dept || dept.departmentModules.length === 0) {
+        return [];
+      }
+      const moduleIds = dept.departmentModules.map((dm: any) => dm.moduleId);
+      where = inArray(modules.id, moduleIds);
+    }
+
     return db.query.modules.findMany({
+      where,
       orderBy: desc(modules.createdAt),
       with: { batches: true, teacher: true },
     });
@@ -109,9 +124,24 @@ export const learningRouter = createRouter({
   // Batches
   listBatches: authedQuery
     .input(z.object({ moduleId: z.number().optional() }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = getDb();
-      const where = input?.moduleId ? eq(batches.moduleId, input.moduleId) : undefined;
+      let conditions = [];
+      if (input?.moduleId) conditions.push(eq(batches.moduleId, input.moduleId));
+
+      if (ctx.user.role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, ctx.user.id),
+          with: { departmentModules: true }
+        });
+        if (!dept || dept.departmentModules.length === 0) {
+          return [];
+        }
+        const moduleIds = dept.departmentModules.map((dm: any) => dm.moduleId);
+        conditions.push(inArray(batches.moduleId, moduleIds));
+      }
+
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
       return db.query.batches.findMany({
         where,
         with: {

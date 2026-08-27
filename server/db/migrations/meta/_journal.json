@@ -64,6 +64,13 @@
       "when": 1787044116187,
       "tag": "0008_flowery_mandroid",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787754923573,
+      "tag": "0009_first_stardust",
+      "breakpoints": true
     }
   ]
 }

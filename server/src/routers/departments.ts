@@ -85,7 +85,10 @@ export const departmentRouter = createRouter({
       teacherIds: z.array(z.number()).default([]),
       isActive: z.boolean().default(true),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role === "academic_head") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Academic heads cannot create departments" });
+      }
       const db = getDb();
       const [dept] = await db.insert(departments).values({
         name: input.name,
@@ -113,7 +116,10 @@ export const departmentRouter = createRouter({
       teacherIds: z.array(z.number()).optional(),
       isActive: z.boolean().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role === "academic_head") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Academic heads cannot update departments" });
+      }
       const db = getDb();
       const { id, moduleIds, teacherIds, ...fields } = input;
       const updateData: any = { updatedAt: new Date() };
@@ -140,7 +146,10 @@ export const departmentRouter = createRouter({
   // 5. Delete department
   delete: adminQuery
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role === "academic_head") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Academic heads cannot delete departments" });
+      }
       const db = getDb();
       await db.delete(departments).where(eq(departments.id, input.id));
       return { success: true };

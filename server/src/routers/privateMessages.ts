@@ -1,3 +1,4 @@
+import { departments, studentClassAllocations } from "@db/schema";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, and, or, desc, isNull, inArray, sql } from "drizzle-orm";
@@ -229,12 +230,44 @@ export const privateMessageRouter = createRouter({
     const userId = ctx.user.id;
 
     if (ctx.user.role === "super_admin" || ctx.user.role === "academic_head") {
+      let conditions = [];
+      conditions.push(isNull(privateMessages.deletedAt));
+
+      if (ctx.user.role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, ctx.user.id),
+          with: { departmentTeachers: true }
+        });
+        if (!dept || dept.departmentTeachers.length === 0) {
+          return [];
+        }
+        const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+        
+        const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+          .from(batchEnrollments)
+          .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+          .where(inArray(batches.teacherId, teacherIds));
+        const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+          .from(studentClassAllocations)
+          .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+          
+        const allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+        const allDepartmentUserIds = [...teacherIds, ...allStudentIds];
+        
+        if (allDepartmentUserIds.length === 0) {
+          return [];
+        }
+        conditions.push(or(
+          inArray(privateMessages.senderId, allDepartmentUserIds),
+          inArray(privateMessages.receiverId, allDepartmentUserIds)
+        ));
+      }
+
       const allMessages = await db.query.privateMessages.findMany({
-        where: isNull(privateMessages.deletedAt),
+        where: and(...conditions),
         orderBy: desc(privateMessages.createdAt),
         with: { sender: true, receiver: true },
       });
-
       const conversationsMap = new Map<
         string,
         {
@@ -369,7 +402,7 @@ export const privateMessageRouter = createRouter({
           orderBy: desc(users.name),
           with: { profile: true },
         });
-      } else if (["admin", "academic_head"].includes(user.role)) {
+      } else if (user.role === "admin") {
         // Admins can message any student
         const filters = [eq(users.role, "student")];
         if (searchFilter) filters.push(searchFilter);
@@ -379,6 +412,37 @@ export const privateMessageRouter = createRouter({
           orderBy: desc(users.name),
           with: { profile: true },
         });
+      } else if (user.role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, user.id),
+          with: { departmentTeachers: true }
+        });
+        
+        let allStudentIds: number[] = [];
+        
+        if (dept && dept.departmentTeachers.length > 0) {
+          const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+          const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+            .from(batchEnrollments)
+            .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+            .where(inArray(batches.teacherId, teacherIds));
+          const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+            .from(studentClassAllocations)
+            .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+            
+          allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+        }
+        
+        if (allStudentIds.length > 0) {
+          const filters = [eq(users.role, "student"), inArray(users.id, allStudentIds)];
+          if (searchFilter) filters.push(searchFilter);
+  
+          allowedUsers = await db.query.users.findMany({
+            where: and(...filters),
+            orderBy: desc(users.name),
+            with: { profile: true },
+          });
+        }
       } else if (user.role === "teacher") {
         // Teachers can message students enrolled in their batches
         const teacherBatches = await db

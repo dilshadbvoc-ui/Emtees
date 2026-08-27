@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, and, desc, sql, count, gte, lte, ne, inArray } from "drizzle-orm";
-import { createRouter, authedQuery, adminQuery, publicQuery } from "../middleware";
+import { createRouter, authedQuery, strictAdminQuery, publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import { recalculateSalaryInternal } from "./admin";
 import {
@@ -35,7 +35,7 @@ const salesExecQuery = authedQuery.use(async ({ ctx, next }) => {
 
 export const salesExecutiveRouter = createRouter({
   // 1. List Sales Executives (Admin only)
-  listExecutives: adminQuery
+  listExecutives: strictAdminQuery
     .input(
       z.object({
         search: z.string().optional(),
@@ -88,7 +88,7 @@ export const salesExecutiveRouter = createRouter({
     }),
 
   // 2. Add Sales Executive (Admin only)
-  createExecutive: adminQuery
+  createExecutive: strictAdminQuery
     .input(
       z.object({
         name: z.string().min(2),
@@ -221,7 +221,7 @@ export const salesExecutiveRouter = createRouter({
     }),
 
   // 3. Edit Sales Executive (Admin only)
-  editExecutive: adminQuery
+  editExecutive: strictAdminQuery
     .input(
       z.object({
         id: z.number(),
@@ -338,7 +338,7 @@ export const salesExecutiveRouter = createRouter({
     }),
 
   // 4. Toggle Status (Admin only)
-  toggleStatus: adminQuery
+  toggleStatus: strictAdminQuery
     .input(z.object({ id: z.number(), status: z.enum(["active", "inactive"]) }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -360,7 +360,7 @@ export const salesExecutiveRouter = createRouter({
     }),
 
   // 5. Reset Password (Admin only)
-  resetPassword: adminQuery
+  resetPassword: strictAdminQuery
     .input(z.object({ id: z.number(), newPassword: z.string().trim().min(6).optional(), username: z.string().trim().optional() }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -399,7 +399,7 @@ export const salesExecutiveRouter = createRouter({
     }),
 
   // 6. Regenerate Referral Code (Admin only)
-  regenerateReferralCode: adminQuery
+  regenerateReferralCode: strictAdminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -420,7 +420,7 @@ export const salesExecutiveRouter = createRouter({
     }),
 
   // 7. Get Performance Dashboard (Admin only)
-  getPerformanceDashboard: adminQuery
+  getPerformanceDashboard: strictAdminQuery
     .input(
       z.object({
         salesExecutiveId: z.number().optional(),
@@ -813,7 +813,7 @@ export const salesExecutiveRouter = createRouter({
       });
     }),
 
-  deleteExecutive: adminQuery
+  deleteExecutive: strictAdminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== "super_admin" && ctx.user.role !== "admin") {

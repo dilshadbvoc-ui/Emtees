@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, desc, and, sql, or, lte, gte, lt, gt, ilike, inArray, isNotNull, asc } from "drizzle-orm";
-import { createRouter, adminQuery, teacherQuery } from "../middleware";
+import { createRouter, adminQuery, teacherQuery, strictAdminQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import {
   payments,
@@ -29,6 +29,8 @@ import {
   classLedgerTransactions,
   salesClosures,
   demoClasses,
+  departments,
+  departmentTeachers,
 } from "@db/schema";
 import { sendNotification } from "../lib/notificationEngine";
 import { updateStudentSessionBalances } from "../lib/sessionHelper";
@@ -1155,7 +1157,7 @@ export async function fetchFullTeacherReportData(db: ReturnType<typeof getDb>, u
 export const adminRouter = createRouter({
   // ─── Payments / Fees ────────────────────────────────────────────────────────
 
-  listPayments: adminQuery
+  listPayments: strictAdminQuery
     .input(z.object({
       studentId: z.number().optional(),
       status: z.string().optional(),
@@ -1195,7 +1197,7 @@ export const adminRouter = createRouter({
       });
     }),
 
-  createPayment: adminQuery
+  createPayment: strictAdminQuery
     .input(z.object({
       studentId: z.number(),
       amount: z.number(),
@@ -1224,7 +1226,7 @@ export const adminRouter = createRouter({
     }),
 
   // Task 9.4 — reactivate enrollments and update profile fees on payment
-  recordPayment: adminQuery
+  recordPayment: strictAdminQuery
     .input(z.object({
       paymentId: z.number(),
       amount: z.number(),
@@ -1329,7 +1331,7 @@ export const adminRouter = createRouter({
       return { success: true };
     }),
 
-  listOverdueStudents: adminQuery.query(async ({ ctx }) => {
+  listOverdueStudents: strictAdminQuery.query(async ({ ctx }) => {
     if (ctx.user.role === "academic_head") {
       throw new TRPCError({ code: "FORBIDDEN", message: "Access Denied" });
     }
@@ -1359,7 +1361,7 @@ export const adminRouter = createRouter({
     }));
   }),
 
-  adjustStudentFees: adminQuery
+  adjustStudentFees: strictAdminQuery
     .input(z.object({
       studentId: z.number(),
       feesTotal: z.number().optional(),
@@ -1467,7 +1469,7 @@ export const adminRouter = createRouter({
       return { success: true };
     }),
 
-  updateStudentFeeRules: adminQuery
+  updateStudentFeeRules: strictAdminQuery
     .input(z.object({
       studentId: z.number(),
       paymentType: z.enum(["FULL_PAYMENT", "INSTALLMENT"]),
@@ -1703,7 +1705,7 @@ export const adminRouter = createRouter({
       return { success: true };
     }),
 
-  sendManualReminder: adminQuery
+  sendManualReminder: strictAdminQuery
     .input(z.object({ studentId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       if (ctx.user.role === "academic_head") {
@@ -1737,7 +1739,7 @@ export const adminRouter = createRouter({
       return { success: true };
     }),
 
-  exportPaymentReport: adminQuery
+  exportPaymentReport: strictAdminQuery
     .input(z.object({
       batchId: z.number().optional(),
       status: z.string().optional(),
@@ -1799,7 +1801,7 @@ export const adminRouter = createRouter({
 
   // ─── Flexibility Requests ────────────────────────────────────────────────────
 
-  listRequests: adminQuery
+  listRequests: strictAdminQuery
     .input(z.object({ status: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
       if (!["super_admin", "admin"].includes(ctx.user.role)) {
@@ -1831,7 +1833,7 @@ export const adminRouter = createRouter({
     }),
 
   // Tasks 10.1–10.3 — apply enrollment state changes, notify, append timeline
-  resolveRequest: adminQuery
+  resolveRequest: strictAdminQuery
     .input(z.object({
       requestId: z.number(),
       status: z.enum(["approved", "rejected"]),
@@ -1975,7 +1977,7 @@ export const adminRouter = createRouter({
 
   // ─── Teacher Salaries ────────────────────────────────────────────────────────
 
-  listSalaries: adminQuery
+  listSalaries: strictAdminQuery
     .input(z.object({ teacherId: z.number().optional(), month: z.string().optional() }).optional())
     .query(async ({ input, ctx }) => {
       if (ctx.user.role === "academic_head") {
@@ -1992,7 +1994,7 @@ export const adminRouter = createRouter({
       });
     }),
 
-  calculateSalary: adminQuery
+  calculateSalary: strictAdminQuery
     .input(z.object({
       teacherId: z.number(),
       month: z.string(),
@@ -2011,7 +2013,7 @@ export const adminRouter = createRouter({
       return res;
     }),
 
-  getSalaryConfig: adminQuery
+  getSalaryConfig: strictAdminQuery
     .input(z.object({ teacherId: z.number() }))
     .query(async ({ input, ctx }) => {
       if (ctx.user.role === "academic_head") {
@@ -2033,7 +2035,7 @@ export const adminRouter = createRouter({
       };
     }),
 
-  updateSalaryConfig: adminQuery
+  updateSalaryConfig: strictAdminQuery
     .input(z.object({
       teacherId: z.number(),
       basicSalary: z.number().nonnegative(),
@@ -2135,7 +2137,7 @@ export const adminRouter = createRouter({
       return { success: true };
     }),
 
-  listConfigAuditLogs: adminQuery
+  listConfigAuditLogs: strictAdminQuery
     .input(z.object({ teacherId: z.number().optional() }).optional())
     .query(async ({ input, ctx }) => {
       if (ctx.user.role === "academic_head") {
@@ -2155,7 +2157,7 @@ export const adminRouter = createRouter({
       });
     }),
 
-  markSalaryPaid: adminQuery
+  markSalaryPaid: strictAdminQuery
     .input(z.object({
       salaryId: z.number(),
       paymentDate: z.date().optional(),
@@ -2183,7 +2185,7 @@ export const adminRouter = createRouter({
     }),
 
   // Task 12.1 — salary report export (structured JSON for client-side generation)
-  exportSalaryReport: adminQuery
+  exportSalaryReport: strictAdminQuery
     .input(z.object({
       teacherId: z.number(),
       month: z.string(),
@@ -2404,7 +2406,7 @@ export const adminRouter = createRouter({
     }),
 
   // Academic Rule Settings (class duration threshold + consecutive absent threshold)
-  getAcademicRuleSettings: adminQuery.query(async () => {
+  getAcademicRuleSettings: strictAdminQuery.query(async () => {
     const db = getDb();
     const settingsList = await db.query.systemSettings.findMany({
       where: (s, { inArray }) => inArray(s.key, ["class_duration_threshold", "absent_consecutive_threshold"]),
@@ -2416,7 +2418,7 @@ export const adminRouter = createRouter({
     };
   }),
 
-  updateAcademicRuleSettings: adminQuery
+  updateAcademicRuleSettings: strictAdminQuery
     .input(z.object({
       class_duration_threshold: z.number().int().min(1).max(120),
       absent_consecutive_threshold: z.number().int().min(1).max(30),
@@ -2436,7 +2438,7 @@ export const adminRouter = createRouter({
       return { success: true };
     }),
 
-  getStudentIdConfig: adminQuery
+  getStudentIdConfig: strictAdminQuery
     .query(async () => {
       const db = getDb();
       const activePrefixRow = await db.query.systemSettings.findFirst({
@@ -2455,7 +2457,7 @@ export const adminRouter = createRouter({
       };
     }),
 
-  updateStudentIdConfig: adminQuery
+  updateStudentIdConfig: strictAdminQuery
     .input(z.object({
       prefix: z.string().min(1).max(50),
       startingNumber: z.number().int().nonnegative(),
@@ -2498,7 +2500,7 @@ export const adminRouter = createRouter({
       return { success: true };
     }),
 
-  getDefaultCountry: adminQuery
+  getDefaultCountry: strictAdminQuery
     .query(async () => {
       const db = getDb();
       const codeRow = await db.query.systemSettings.findFirst({
@@ -2513,7 +2515,7 @@ export const adminRouter = createRouter({
       };
     }),
 
-  updateDefaultCountry: adminQuery
+  updateDefaultCountry: strictAdminQuery
     .input(z.object({
       code: z.string(),
       iso: z.string(),
@@ -2604,7 +2606,7 @@ export const adminRouter = createRouter({
 
   // ─── Notifications ───────────────────────────────────────────────────────────
 
-  listNotifications: adminQuery
+  listNotifications: strictAdminQuery
     .input(z.object({ userId: z.number().optional() }).optional())
     .query(async ({ input }) => {
       const db = getDb();
@@ -2616,7 +2618,7 @@ export const adminRouter = createRouter({
       });
     }),
 
-  sendNotification: adminQuery
+  sendNotification: strictAdminQuery
     .input(z.object({
       userId: z.number(),
       title: z.string(),
@@ -2632,9 +2634,39 @@ export const adminRouter = createRouter({
 
   // ─── Violations / Discipline ─────────────────────────────────────────────────
 
-  listViolations: adminQuery.query(async () => {
+  listViolations: adminQuery.query(async ({ ctx }) => {
     const db = getDb();
+    
+    let violationConds = [];
+    if (ctx.user.role === "academic_head") {
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: { departmentTeachers: true }
+      });
+      if (!dept || dept.departmentTeachers.length === 0) {
+        return [];
+      }
+      const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+      
+      const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+        .from(batchEnrollments)
+        .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+        .where(inArray(batches.teacherId, teacherIds));
+      const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+        .from(studentClassAllocations)
+        .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+        
+      const allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+      const allDepartmentUserIds = [...teacherIds, ...allStudentIds];
+      
+      if (allDepartmentUserIds.length === 0) {
+        return [];
+      }
+      violationConds.push(inArray(violations.userId, allDepartmentUserIds));
+    }
+    
     return db.query.violations.findMany({
+      where: violationConds.length > 0 ? and(...violationConds) : undefined,
       orderBy: desc(violations.createdAt),
       with: { user: true, reporter: true },
     });
@@ -2677,7 +2709,7 @@ export const adminRouter = createRouter({
     }),
 
   // Task 14.3 — suspend user
-  suspendUser: adminQuery
+  suspendUser: strictAdminQuery
     .input(z.object({ userId: z.number() }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -2689,22 +2721,106 @@ export const adminRouter = createRouter({
 
   // ─── Reports & Analytics ─────────────────────────────────────────────────────
 
-  getDashboardStats: adminQuery.query(async () => {
+  getDashboardStats: adminQuery.query(async ({ ctx }) => {
     const db = getDb();
-    const totalStudents = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, "student"));
-    const totalTeachers = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, "teacher"));
-    const totalBatches = await db.select({ count: sql<number>`count(*)` }).from(batches);
-    const totalGroupClasses = await db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.status, "completed"));
-    const totalOneToOnes = await db.select({ count: sql<number>`count(*)` }).from(oneToOneSessions).where(eq(oneToOneSessions.status, "completed"));
-    const totalClassesCount = Number(totalGroupClasses[0]?.count || 0) + Number(totalOneToOnes[0]?.count || 0);
-    const pendingFees = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(payments).where(eq(payments.status, "unpaid"));
     
-    // 20-min Metrics & Ledger Balances
-    const validClassesResult = await db.select({ count: sql<number>`count(DISTINCT ${attendance.classId})` }).from(attendance).where(eq(attendance.status, "present"));
+    let teacherIds: number[] = [];
+    let moduleIds: number[] = [];
+    let batchIds: number[] = [];
+    
+    const isAcademicHead = ctx.user.role === "academic_head";
+    if (isAcademicHead) {
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: {
+          departmentTeachers: true,
+          departmentModules: true
+        }
+      });
+      if (dept) {
+        teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+        moduleIds = dept.departmentModules.map((dm: any) => dm.moduleId);
+        if (moduleIds.length > 0) {
+          const deptBatches = await db.query.batches.findMany({
+            where: inArray(batches.moduleId, moduleIds)
+          });
+          batchIds = deptBatches.map(b => b.id);
+        }
+      }
+    }
+
+    // Scoped condition helpers
+    const teacherCond = isAcademicHead ? (teacherIds.length > 0 ? inArray(users.id, teacherIds) : sql`false`) : undefined;
+    const batchCond = isAcademicHead ? (batchIds.length > 0 ? inArray(batches.id, batchIds) : sql`false`) : undefined;
+    const groupClassesCond = isAcademicHead ? (teacherIds.length > 0 ? and(eq(classes.status, "completed"), inArray(classes.teacherId, teacherIds)) : sql`false`) : eq(classes.status, "completed");
+    const otoCond = isAcademicHead ? (teacherIds.length > 0 ? and(eq(oneToOneSessions.status, "completed"), inArray(oneToOneSessions.teacherId, teacherIds)) : sql`false`) : eq(oneToOneSessions.status, "completed");
+    const classIdsQuery = isAcademicHead && teacherIds.length > 0 ? db.select({ id: classes.id }).from(classes).where(inArray(classes.teacherId, teacherIds)) : null;
+
+    // Students
+    let totalStudentsQuery = db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, "student"));
+    if (isAcademicHead) {
+      if (teacherIds.length > 0) {
+        // Find students enrolled in batches taught by department teachers or oto sessions
+        const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+          .from(batchEnrollments)
+          .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+          .where(inArray(batches.teacherId, teacherIds));
+        const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+          .from(studentClassAllocations)
+          .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+        const allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+        totalStudentsQuery = db.select({ count: sql<number>`count(*)` }).from(users).where(and(eq(users.role, "student"), allStudentIds.length > 0 ? inArray(users.id, allStudentIds) : sql`false`));
+      } else {
+        totalStudentsQuery = db.select({ count: sql<number>`count(*)` }).from(users).where(sql`false`);
+      }
+    }
+    const totalStudents = await totalStudentsQuery;
+    
+    // Teachers
+    const totalTeachers = await db.select({ count: sql<number>`count(*)` }).from(users).where(teacherCond ? and(eq(users.role, "teacher"), teacherCond) : eq(users.role, "teacher"));
+    
+    // Batches
+    const totalBatches = await db.select({ count: sql<number>`count(*)` }).from(batches).where(batchCond);
+    
+    // Classes
+    const totalGroupClasses = await db.select({ count: sql<number>`count(*)` }).from(classes).where(groupClassesCond);
+    const totalOneToOnes = await db.select({ count: sql<number>`count(*)` }).from(oneToOneSessions).where(otoCond);
+    const totalClassesCount = Number(totalGroupClasses[0]?.count || 0) + Number(totalOneToOnes[0]?.count || 0);
+    
+    // Pending Fees
+    let pendingFeesQuery = db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(payments).where(eq(payments.status, "unpaid"));
+    let deptStudentIds: number[] = [];
+    if (isAcademicHead) {
+      if (teacherIds.length > 0) {
+        const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+          .from(batchEnrollments)
+          .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+          .where(inArray(batches.teacherId, teacherIds));
+        const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+          .from(studentClassAllocations)
+          .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+        deptStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+        pendingFeesQuery = db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(payments).where(and(eq(payments.status, "unpaid"), deptStudentIds.length > 0 ? inArray(payments.studentId, deptStudentIds) : sql`false`));
+      } else {
+        pendingFeesQuery = db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(payments).where(sql`false`);
+      }
+    }
+    const pendingFees = await pendingFeesQuery;
+
+    // Valid classes
+    const validClassesResult = await db.select({ count: sql<number>`count(DISTINCT ${attendance.classId})` }).from(attendance)
+      .where(classIdsQuery ? and(eq(attendance.status, "present"), inArray(attendance.classId, classIdsQuery)) : eq(attendance.status, "present"));
     const totalValidClasses = Number(validClassesResult[0]?.count || 0);
     
-    const ledgerCreditsResult = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(classLedgerTransactions).where(eq(classLedgerTransactions.type, "credit"));
-    const ledgerDebitsResult = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(classLedgerTransactions).where(eq(classLedgerTransactions.type, "debit"));
+    // Ledger
+    let ledgerCreditsQuery = db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(classLedgerTransactions).where(eq(classLedgerTransactions.type, "credit"));
+    let ledgerDebitsQuery = db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(classLedgerTransactions).where(eq(classLedgerTransactions.type, "debit"));
+    if (isAcademicHead) {
+      ledgerCreditsQuery = db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(classLedgerTransactions).where(deptStudentIds.length > 0 ? and(eq(classLedgerTransactions.type, "credit"), inArray(classLedgerTransactions.studentId, deptStudentIds)) : sql`false`);
+      ledgerDebitsQuery = db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(classLedgerTransactions).where(deptStudentIds.length > 0 ? and(eq(classLedgerTransactions.type, "debit"), inArray(classLedgerTransactions.studentId, deptStudentIds)) : sql`false`);
+    }
+    const ledgerCreditsResult = await ledgerCreditsQuery;
+    const ledgerDebitsResult = await ledgerDebitsQuery;
     const totalLedgerBalance = Number(ledgerCreditsResult[0]?.total || 0) - Number(ledgerDebitsResult[0]?.total || 0);
 
     const startOfToday = new Date();
@@ -2712,15 +2828,20 @@ export const adminRouter = createRouter({
     const endOfToday = new Date();
     endOfToday.setHours(23,59,59,999);
 
+    const attendanceConds = [gte(attendance.attendanceDate, startOfToday), lte(attendance.attendanceDate, endOfToday)];
+    if (isAcademicHead) {
+      if (teacherIds.length > 0) {
+        // attendance has studentId and classId, we can filter by classIdsQuery
+        attendanceConds.push(inArray(attendance.classId, classIdsQuery!));
+      } else {
+        attendanceConds.push(sql`false`);
+      }
+    }
+    
     const todayAttendanceList = await db
       .select({ status: attendance.status })
       .from(attendance)
-      .where(
-        and(
-          gte(attendance.attendanceDate, startOfToday),
-          lte(attendance.attendanceDate, endOfToday)
-        )
-      );
+      .where(and(...attendanceConds));
 
     const todayTotalAttendance = todayAttendanceList.length;
     const todayPresentCount = todayAttendanceList.filter(
@@ -2879,10 +3000,72 @@ export const adminRouter = createRouter({
 
   searchStudents: adminQuery
     .input(z.object({ search: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = getDb();
       const query = `%${input.search.trim()}%`;
       
+      const filters = [
+        eq(users.role, "student"),
+        or(
+          ilike(users.name, query),
+          ilike(users.unionId, query),
+          ilike(profiles.enrollmentId, query),
+          ilike(profiles.preferredClassTime, query),
+          ilike(profiles.paymentType, query)
+        )
+      ];
+
+      if (ctx.user.role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, ctx.user.id),
+          with: { departmentTeachers: true }
+        });
+        
+        let allowedTeacherIds: number[] = [];
+        if (dept) {
+          allowedTeacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+        }
+
+        if (allowedTeacherIds.length === 0) {
+          return [];
+        }
+
+        const teacherBatches = await db.select({ id: batches.id })
+          .from(batches)
+          .where(inArray(batches.teacherId, allowedTeacherIds));
+        const batchIds = teacherBatches.map((b) => b.id);
+
+        let groupStudentIds: number[] = [];
+        if (batchIds.length > 0) {
+          const enrolledStudents = await db.selectDistinct({ studentId: batchEnrollments.studentId })
+            .from(batchEnrollments)
+            .where(and(
+              inArray(batchEnrollments.batchId, batchIds),
+              eq(batchEnrollments.status, "active")
+            ));
+          groupStudentIds = enrolledStudents.map((e) => e.studentId);
+        }
+
+        const o2oAllocations = await db
+          .select({ studentId: studentClassAllocations.studentId, allocation: studentClassAllocations.allocation })
+          .from(studentClassAllocations);
+
+        const o2oStudentIds = o2oAllocations
+          .filter((row: any) => {
+            const alloc = typeof row.allocation === "string" ? JSON.parse(row.allocation) : row.allocation;
+            return alloc?.oneToOne?.teacherId && allowedTeacherIds.includes(Number(alloc.oneToOne.teacherId));
+          })
+          .map(row => row.studentId);
+
+        const allStudentIds = Array.from(new Set([...groupStudentIds, ...o2oStudentIds]));
+
+        if (allStudentIds.length === 0) {
+          return [];
+        }
+
+        filters.push(inArray(users.id, allStudentIds));
+      }
+
       const results = await db
         .select({
           id: users.id,
@@ -2898,18 +3081,7 @@ export const adminRouter = createRouter({
         })
         .from(users)
         .leftJoin(profiles, eq(users.id, profiles.userId))
-        .where(
-          and(
-            eq(users.role, "student"),
-            or(
-              ilike(users.name, query),
-              ilike(users.unionId, query),
-              ilike(profiles.enrollmentId, query),
-              ilike(profiles.preferredClassTime, query),
-              ilike(profiles.paymentType, query)
-            )
-          )
-        )
+        .where(and(...filters))
         .limit(20);
 
       return results;
@@ -2980,9 +3152,21 @@ export const adminRouter = createRouter({
       status: z.string().optional(),
       batchId: z.number().optional()
     }).default({}))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = getDb();
       let conditions = [eq(users.role, "teacher")];
+
+      if (ctx.user.role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, ctx.user.id),
+          with: { departmentTeachers: true }
+        });
+        if (!dept || dept.departmentTeachers.length === 0) {
+          return [];
+        }
+        const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+        conditions.push(inArray(users.id, teacherIds));
+      }
 
       if (input.search && input.search.trim()) {
         const query = `%${input.search.trim()}%`;
@@ -3080,10 +3264,24 @@ export const adminRouter = createRouter({
     }),
 
   // Task 13.3 — ranked teacher list by studentCompletionRate
-  listTeachersByPerformance: adminQuery.query(async () => {
+  listTeachersByPerformance: adminQuery.query(async ({ ctx }) => {
     const db = getDb();
+
+    let teacherCond: any = eq(users.role, "teacher");
+    if (ctx.user.role === "academic_head") {
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: { departmentTeachers: true }
+      });
+      if (!dept || dept.departmentTeachers.length === 0) {
+        return [];
+      }
+      const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+      teacherCond = and(eq(users.role, "teacher"), inArray(users.id, teacherIds));
+    }
+
     const teachers = await db.query.users.findMany({
-      where: eq(users.role, "teacher"),
+      where: teacherCond,
     });
 
     const results = [];
@@ -3131,10 +3329,38 @@ export const adminRouter = createRouter({
   }),
 
   // Task 13.4 — student leaderboard with composite score
-  getLeaderboard: adminQuery.query(async () => {
+  getLeaderboard: adminQuery.query(async ({ ctx }) => {
     const db = getDb();
+    
+    let studentCond: any = eq(users.role, "student");
+    if (ctx.user.role === "academic_head") {
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: { departmentTeachers: true }
+      });
+      if (!dept || dept.departmentTeachers.length === 0) {
+        return [];
+      }
+      const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+      
+      const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+        .from(batchEnrollments)
+        .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+        .where(inArray(batches.teacherId, teacherIds));
+      const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+        .from(studentClassAllocations)
+        .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+        
+      const allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+      
+      if (allStudentIds.length === 0) {
+        return [];
+      }
+      studentCond = and(eq(users.role, "student"), inArray(users.id, allStudentIds));
+    }
+    
     const students = await db.query.users.findMany({
-      where: eq(users.role, "student"),
+      where: studentCond,
     });
 
     const results = [];

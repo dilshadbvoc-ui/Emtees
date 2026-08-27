@@ -37,6 +37,14 @@ export const adminQuery = authedQuery.use(async ({ ctx, next }) => {
   return next({ ctx });
 });
 
+export const strictAdminQuery = authedQuery.use(async ({ ctx, next }) => {
+  const allowedRoles = ["super_admin", "admin"];
+  if (!allowedRoles.includes(ctx.user.role)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Strict Admin access required" });
+  }
+  return next({ ctx });
+});
+
 export const teacherQuery = authedQuery.use(async ({ ctx, next }) => {
   const allowedRoles = ["super_admin", "admin", "academic_head", "teacher"];
   if (!allowedRoles.includes(ctx.user.role)) {

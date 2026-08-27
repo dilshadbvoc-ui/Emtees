@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 import { createRouter, authedQuery, adminQuery, teacherQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { violations, users } from "@db/schema";
+import { violations, users, departments, batchEnrollments, batches, studentClassAllocations } from "@db/schema";
 import { sendNotification } from "../lib/notificationEngine";
 
 export const disciplineRouter = createRouter({
@@ -12,8 +12,38 @@ export const disciplineRouter = createRouter({
     const db = getDb();
     const role = ctx.user.role;
 
+    let condition = undefined;
+
+    if (role === "academic_head") {
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: { departmentTeachers: true }
+      });
+      if (!dept || dept.departmentTeachers.length === 0) {
+        return [];
+      }
+      const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+      
+      const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+        .from(batchEnrollments)
+        .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+        .where(inArray(batches.teacherId, teacherIds));
+      const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+        .from(studentClassAllocations)
+        .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+        
+      const allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+      const allDepartmentUserIds = [...teacherIds, ...allStudentIds];
+      
+      if (allDepartmentUserIds.length === 0) {
+        return [];
+      }
+      condition = inArray(violations.userId, allDepartmentUserIds);
+    }
+
     if (["super_admin", "admin", "academic_head"].includes(role)) {
       return db.query.violations.findMany({
+        where: condition,
         orderBy: desc(violations.createdAt),
         with: {
           user: {
@@ -184,6 +214,33 @@ export const disciplineRouter = createRouter({
       } else {
         // Student role
         condition = eq(violations.userId, ctx.user.id);
+      }
+    } else if (role === "academic_head") {
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: { departmentTeachers: true }
+      });
+      if (!dept || dept.departmentTeachers.length === 0) {
+        condition = sql`false`;
+      } else {
+        const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+        
+        const studentIdsFromBatches = await db.select({ studentId: batchEnrollments.studentId })
+          .from(batchEnrollments)
+          .innerJoin(batches, eq(batches.id, batchEnrollments.batchId))
+          .where(inArray(batches.teacherId, teacherIds));
+        const studentIdsFromOto = await db.select({ studentId: studentClassAllocations.studentId })
+          .from(studentClassAllocations)
+          .where(or(inArray(sql`CAST(${studentClassAllocations.allocation}->\'oneToOne\'->>\'teacherId\' AS INTEGER)`, teacherIds), inArray(sql`CAST(${studentClassAllocations.allocation}->\'group\'->>\'teacherId\' AS INTEGER)`, teacherIds)));
+          
+        const allStudentIds = [...new Set([...studentIdsFromBatches.map(s => s.studentId), ...studentIdsFromOto.map(s => s.studentId)])];
+        const allDepartmentUserIds = [...teacherIds, ...allStudentIds];
+        
+        if (allDepartmentUserIds.length === 0) {
+          condition = sql`false`;
+        } else {
+          condition = inArray(violations.userId, allDepartmentUserIds);
+        }
       }
     }
 

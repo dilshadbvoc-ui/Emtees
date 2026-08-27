@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, or, and, gte, lte, desc, sql, asc, inArray } from "drizzle-orm";
-import { createRouter, authedQuery, adminQuery } from "../middleware";
+import { createRouter, authedQuery, strictAdminQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import {
   salesClosures,
@@ -35,7 +35,7 @@ export const salesRouter = createRouter({
     });
   }),
 
-  createGroup: adminQuery
+  createGroup: strictAdminQuery
     .input(z.object({ name: z.string().min(1), asmId: z.number().optional(), managerId: z.number().optional(), description: z.string().optional() }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -47,7 +47,7 @@ export const salesRouter = createRouter({
       }).returning();
     }),
 
-  updateGroup: adminQuery
+  updateGroup: strictAdminQuery
     .input(z.object({ id: z.number(), name: z.string(), asmId: z.number().nullable().optional(), managerId: z.number().nullable().optional(), description: z.string().optional(), isActive: z.boolean().optional() }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -64,7 +64,7 @@ export const salesRouter = createRouter({
         .returning();
     }),
 
-  deleteGroup: adminQuery
+  deleteGroup: strictAdminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -111,14 +111,14 @@ export const salesRouter = createRouter({
   // ----------------------------------------------------
   // POINTS RULES
   // ----------------------------------------------------
-  listPointsRules: adminQuery.query(async () => {
+  listPointsRules: strictAdminQuery.query(async () => {
     const db = getDb();
     return db.query.salesPointsRules.findMany({
       orderBy: desc(salesPointsRules.priority),
     });
   }),
 
-  createPointsRule: adminQuery
+  createPointsRule: strictAdminQuery
     .input(z.object({
       name: z.string().min(1),
       caCategoryMatch: z.string().nullable().optional(),
@@ -147,7 +147,7 @@ export const salesRouter = createRouter({
       }).returning();
     }),
 
-  updatePointsRule: adminQuery
+  updatePointsRule: strictAdminQuery
     .input(z.object({
       id: z.number(),
       name: z.string().min(1),
@@ -181,7 +181,7 @@ export const salesRouter = createRouter({
         .returning();
     }),
 
-  deletePointsRule: adminQuery
+  deletePointsRule: strictAdminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -342,7 +342,7 @@ export const salesRouter = createRouter({
       return report.filter(e => e.leads > 0 || e.closures > 0).sort((a, b) => b.closures - a.closures);
     }),
 
-  compareIqedData: adminQuery
+  compareIqedData: strictAdminQuery
     .input(z.array(z.object({
       admNo: z.string().optional(),
       studentName: z.string().optional(),

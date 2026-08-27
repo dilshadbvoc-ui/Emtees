@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
 import { createRouter, authedQuery, adminQuery, teacherQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { classes, attendance, oneToOneSessions, batchEnrollments, batches, profiles, users, classBatches, classJoinRequests, attendanceAlerts, oneToOneRescheduleRequests, notifications, studentClassAllocations, holidays, modules, classLedgerTransactions, systemSettings } from "@db/schema";
+import { classes, attendance, oneToOneSessions, batchEnrollments, batches, profiles, users, classBatches, classJoinRequests, attendanceAlerts, oneToOneRescheduleRequests, notifications, studentClassAllocations, holidays, modules, classLedgerTransactions, systemSettings, departments, departmentTeachers } from "@db/schema";
 import { sendBulkNotification, sendNotification, getAdminUserIds } from "../lib/notificationEngine";
 import { getIo } from "../lib/socketInstance";
 import { isStudentFeeRestricted } from "../lib/feeHelper";
@@ -25,7 +25,20 @@ export const classRouter = createRouter({
       // ─── PART 1: QUERY GROUP CLASSES ───
       const filters = [];
       if (input?.status) filters.push(eq(classes.status, input.status as "scheduled" | "ongoing" | "completed" | "cancelled"));
-      if (ctx.user.role === "teacher") filters.push(eq(classes.teacherId, ctx.user.id));
+      if (ctx.user.role === "teacher") {
+        filters.push(eq(classes.teacherId, ctx.user.id));
+      } else if (ctx.user.role === "academic_head") {
+        const dept = await db.query.departments.findFirst({
+          where: eq(departments.headUserId, ctx.user.id),
+          with: { departmentTeachers: true }
+        });
+        if (dept && dept.departmentTeachers.length > 0) {
+          const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+          filters.push(inArray(classes.teacherId, teacherIds));
+        } else {
+          filters.push(sql`false`);
+        }
+      }
 
       let visibleGroupBatchIds: number[] = [];
       const isStudentQuery = ctx.user.role === "student";
@@ -120,7 +133,18 @@ export const classRouter = createRouter({
           oToFilters.push(eq(oneToOneSessions.studentId, ctx.user.id));
         } else if (ctx.user.role === "teacher") {
           oToFilters.push(eq(oneToOneSessions.teacherId, ctx.user.id));
-        } else if (!["super_admin", "admin", "academic_head"].includes(ctx.user.role)) {
+        } else if (ctx.user.role === "academic_head") {
+          const dept = await db.query.departments.findFirst({
+            where: eq(departments.headUserId, ctx.user.id),
+            with: { departmentTeachers: true }
+          });
+          if (dept && dept.departmentTeachers.length > 0) {
+            const teacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+            oToFilters.push(inArray(oneToOneSessions.teacherId, teacherIds));
+          } else {
+            oToFilters.push(sql`false`);
+          }
+        } else if (!["super_admin", "admin"].includes(ctx.user.role)) {
           oToFilters.push(sql`false`);
         }
 
