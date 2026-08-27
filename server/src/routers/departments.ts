@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, inArray, gte, lte } from "drizzle-orm";
+import { eq, and, inArray, gte, lte, or, sql } from "drizzle-orm";
 import { createRouter, authedQuery, adminQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import {
@@ -186,14 +186,9 @@ export const departmentRouter = createRouter({
       if (!dept) return [];
       const moduleIds = dept.departmentModules.map((dm) => dm.moduleId);
       if (moduleIds.length === 0) return [];
-      const batchRows = await db
-        .select({ id: batches.id, name: batches.name, moduleId: batches.moduleId })
-        .from(batches)
-        .where(inArray(batches.moduleId, moduleIds));
-      const batchIds = batchRows.map((b) => b.id);
-      if (batchIds.length === 0) return [];
 
       const { profiles } = await import("@db/schema");
+      
       const enrollments = await db
         .select({
           id: users.id,
@@ -205,12 +200,20 @@ export const departmentRouter = createRouter({
           enrolledAt: batchEnrollments.joinedAt,
           allocation: studentClassAllocations.allocation,
         })
-        .from(batchEnrollments)
-        .innerJoin(users, eq(batchEnrollments.studentId, users.id))
-        .innerJoin(batches, eq(batchEnrollments.batchId, batches.id))
-        .leftJoin(profiles, eq(users.id, profiles.userId))
+        .from(users)
+        .innerJoin(profiles, eq(users.id, profiles.userId))
+        .leftJoin(batchEnrollments, and(eq(batchEnrollments.studentId, users.id), eq(batchEnrollments.status, "active")))
+        .leftJoin(batches, eq(batchEnrollments.batchId, batches.id))
         .leftJoin(studentClassAllocations, eq(users.id, studentClassAllocations.studentId))
-        .where(and(inArray(batchEnrollments.batchId, batchIds), eq(batchEnrollments.status, "active")));
+        .where(
+          and(
+            eq(users.role, "student"),
+            or(
+              inArray(profiles.moduleId, moduleIds),
+              inArray(batches.moduleId, moduleIds)
+            )
+          )
+        );
 
       // Deduplicate by student id
       const seen = new Set<number>();
@@ -246,21 +249,45 @@ export const departmentRouter = createRouter({
       const batchRows = await db.select({ id: batches.id }).from(batches).where(inArray(batches.moduleId, moduleIds));
       const batchIds = batchRows.map((b) => b.id);
       
-      if (batchIds.length === 0) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "No batches found for your department" });
-      }
+      const { profiles } = await import("@db/schema");
+      
+      const isMyStudent = await db
+        .select({ 
+          id: users.id,
+          oneOnOne30Allocated: batchEnrollments.oneOnOne30Allocated,
+          oneOnOne45Allocated: batchEnrollments.oneOnOne45Allocated,
+          oneOnOne60Allocated: batchEnrollments.oneOnOne60Allocated,
+          oneOnOne30Used: batchEnrollments.oneOnOne30Used,
+          oneOnOne45Used: batchEnrollments.oneOnOne45Used,
+          oneOnOne60Used: batchEnrollments.oneOnOne60Used,
+          group30Allocated: batchEnrollments.group30Allocated,
+          group45Allocated: batchEnrollments.group45Allocated,
+          group60Allocated: batchEnrollments.group60Allocated,
+          group30Used: batchEnrollments.group30Used,
+          group45Used: batchEnrollments.group45Used,
+          group60Used: batchEnrollments.group60Used,
+        })
+        .from(users)
+        .innerJoin(profiles, eq(users.id, profiles.userId))
+        .leftJoin(batchEnrollments, and(eq(batchEnrollments.studentId, users.id), eq(batchEnrollments.status, "active")))
+        .leftJoin(batches, eq(batchEnrollments.batchId, batches.id))
+        .where(
+          and(
+            eq(users.id, input.studentId),
+            eq(users.role, "student"),
+            or(
+              inArray(profiles.moduleId, moduleIds),
+              inArray(batches.moduleId, moduleIds)
+            )
+          )
+        )
+        .limit(1);
 
-      const isMyStudent = await db.query.batchEnrollments.findFirst({
-        where: and(
-          eq(batchEnrollments.studentId, input.studentId),
-          inArray(batchEnrollments.batchId, batchIds),
-          eq(batchEnrollments.status, "active")
-        ),
-      });
-
-      if (!isMyStudent) {
+      if (isMyStudent.length === 0) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Student does not belong to your department" });
       }
+      
+      const studentData = isMyStudent[0];
 
       const deptTeachers = await db.query.departmentTeachers.findMany({
         where: eq(departmentTeachers.departmentId, dept.id)
@@ -321,29 +348,29 @@ export const departmentRouter = createRouter({
             oneToOne: {
               teacherId: newAllocPayload.oneToOne.teacherId || null,
               designatedTime: newAllocPayload.oneToOne.designatedTime || "",
-              sessions30: isMyStudent.oneOnOne30Allocated || 0,
-              sessions45: isMyStudent.oneOnOne45Allocated || 0,
-              sessions60: isMyStudent.oneOnOne60Allocated || 0,
-              completed30: isMyStudent.oneOnOne30Used || 0,
-              completed45: isMyStudent.oneOnOne45Used || 0,
-              completed60: isMyStudent.oneOnOne60Used || 0,
-              remaining30: Math.max(0, (isMyStudent.oneOnOne30Allocated || 0) - (isMyStudent.oneOnOne30Used || 0)),
-              remaining45: Math.max(0, (isMyStudent.oneOnOne45Allocated || 0) - (isMyStudent.oneOnOne45Used || 0)),
-              remaining60: Math.max(0, (isMyStudent.oneOnOne60Allocated || 0) - (isMyStudent.oneOnOne60Used || 0)),
+              sessions30: studentData.oneOnOne30Allocated || 0,
+              sessions45: studentData.oneOnOne45Allocated || 0,
+              sessions60: studentData.oneOnOne60Allocated || 0,
+              completed30: studentData.oneOnOne30Used || 0,
+              completed45: studentData.oneOnOne45Used || 0,
+              completed60: studentData.oneOnOne60Used || 0,
+              remaining30: Math.max(0, (studentData.oneOnOne30Allocated || 0) - (studentData.oneOnOne30Used || 0)),
+              remaining45: Math.max(0, (studentData.oneOnOne45Allocated || 0) - (studentData.oneOnOne45Used || 0)),
+              remaining60: Math.max(0, (studentData.oneOnOne60Allocated || 0) - (studentData.oneOnOne60Used || 0)),
             },
             group: {
               teacherId: newAllocPayload.group.teacherId || null,
               batchId: newAllocPayload.group.batchId || null,
               designatedTime: newAllocPayload.group.designatedTime || "",
-              sessions30: isMyStudent.group30Allocated || 0,
-              sessions45: isMyStudent.group45Allocated || 0,
-              sessions60: isMyStudent.group60Allocated || 0,
-              completed30: isMyStudent.group30Used || 0,
-              completed45: isMyStudent.group45Used || 0,
-              completed60: isMyStudent.group60Used || 0,
-              remaining30: Math.max(0, (isMyStudent.group30Allocated || 0) - (isMyStudent.group30Used || 0)),
-              remaining45: Math.max(0, (isMyStudent.group45Allocated || 0) - (isMyStudent.group45Used || 0)),
-              remaining60: Math.max(0, (isMyStudent.group60Allocated || 0) - (isMyStudent.group60Used || 0)),
+              sessions30: studentData.group30Allocated || 0,
+              sessions45: studentData.group45Allocated || 0,
+              sessions60: studentData.group60Allocated || 0,
+              completed30: studentData.group30Used || 0,
+              completed45: studentData.group45Used || 0,
+              completed60: studentData.group60Used || 0,
+              remaining30: Math.max(0, (studentData.group30Allocated || 0) - (studentData.group30Used || 0)),
+              remaining45: Math.max(0, (studentData.group45Allocated || 0) - (studentData.group45Used || 0)),
+              remaining60: Math.max(0, (studentData.group60Allocated || 0) - (studentData.group60Used || 0)),
             }
           };
           newOneToOne = (defaultAlloc.oneToOne.sessions30) + (defaultAlloc.oneToOne.sessions45) + (defaultAlloc.oneToOne.sessions60);
@@ -388,15 +415,22 @@ export const departmentRouter = createRouter({
       if (!dept) return [];
       const moduleIds = dept.departmentModules.map((dm) => dm.moduleId);
       if (moduleIds.length === 0) return [];
-      const batchRows = await db.select({ id: batches.id }).from(batches).where(inArray(batches.moduleId, moduleIds));
-      const batchIds = batchRows.map((b) => b.id);
-      if (batchIds.length === 0) return [];
-
-      // Get student ids in these batches
+      const { profiles } = await import("@db/schema");
       const enrollmentRows = await db
-        .select({ studentId: batchEnrollments.studentId })
-        .from(batchEnrollments)
-        .where(and(inArray(batchEnrollments.batchId, batchIds), eq(batchEnrollments.status, "active")));
+        .select({ studentId: users.id })
+        .from(users)
+        .innerJoin(profiles, eq(users.id, profiles.userId))
+        .leftJoin(batchEnrollments, and(eq(batchEnrollments.studentId, users.id), eq(batchEnrollments.status, "active")))
+        .leftJoin(batches, eq(batchEnrollments.batchId, batches.id))
+        .where(
+          and(
+            eq(users.role, "student"),
+            or(
+              inArray(profiles.moduleId, moduleIds),
+              inArray(batches.moduleId, moduleIds)
+            )
+          )
+        );
       const studentIds = [...new Set(enrollmentRows.map((e) => e.studentId))];
       if (studentIds.length === 0) return [];
 
