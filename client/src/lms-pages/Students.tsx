@@ -410,7 +410,7 @@ export default function StudentsPage() {
     if (!moduleId || !departmentsQuery.data) return null;
     
     const dept = departmentsQuery.data.find((d: any) => 
-      d.departmentModules.some((dm: any) => dm.moduleId === moduleId)
+      d.modules?.some((m: any) => m.id === moduleId)
     );
     return dept?.id || null;
   }, [configStudentId, detailsStudentId, studentsQuery.data, departmentsQuery.data]);
