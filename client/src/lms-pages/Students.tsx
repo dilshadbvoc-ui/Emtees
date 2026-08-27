@@ -406,7 +406,7 @@ export default function StudentsPage() {
     const studentId = configStudentId || detailsStudentId;
     if (!studentId || !studentsQuery.data?.items) return null;
     const student = studentsQuery.data.items.find((s: any) => s.id === studentId);
-    const moduleId = (student?.profile as any)?.moduleId;
+    const moduleId = student?.courseId;
     if (!moduleId || !departmentsQuery.data) return null;
     
     const dept = departmentsQuery.data.find((d: any) => 

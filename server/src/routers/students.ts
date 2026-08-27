@@ -44,23 +44,29 @@ export const studentsRouter = createRouter({
 
       // Enforce assigned student restrictions for Teachers and Academic Heads
       let allowedTeacherIds: number[] | null = null;
+      let allowedModuleIds: number[] | null = null;
 
       if (ctx.user.role === "teacher") {
         allowedTeacherIds = [ctx.user.id];
       } else if (ctx.user.role === "academic_head") {
         const dept = await db.query.departments.findFirst({
           where: eq(departments.headUserId, ctx.user.id),
-          with: { departmentTeachers: true }
+          with: { 
+            departmentTeachers: true,
+            departmentModules: true
+          }
         });
         if (dept) {
           allowedTeacherIds = dept.departmentTeachers.map((dt: any) => dt.teacherId);
+          allowedModuleIds = dept.departmentModules.map((dm: any) => dm.moduleId);
         } else {
           allowedTeacherIds = []; // No department assigned, see no students
+          allowedModuleIds = [];
         }
       }
 
       if (allowedTeacherIds !== null) {
-        if (allowedTeacherIds.length === 0) {
+        if (allowedTeacherIds.length === 0 && (!allowedModuleIds || allowedModuleIds.length === 0)) {
           return { items: [], total: 0 };
         }
 
@@ -92,7 +98,17 @@ export const studentsRouter = createRouter({
           })
           .map(row => row.studentId);
 
-        const allStudentIds = Array.from(new Set([...groupStudentIds, ...o2oStudentIds]));
+        let moduleStudentIds: number[] = [];
+        if (allowedModuleIds && allowedModuleIds.length > 0) {
+          const modStudents = await db.selectDistinct({ userId: profiles.userId })
+            .from(profiles)
+            .leftJoin(users, eq(users.id, profiles.userId))
+            .where(and(inArray(profiles.moduleId, allowedModuleIds), eq(users.role, "student")));
+            
+          moduleStudentIds = modStudents.filter((s: any) => s.userId !== null).map((s: any) => Number(s.userId));
+        }
+
+        const allStudentIds = Array.from(new Set([...groupStudentIds, ...o2oStudentIds, ...moduleStudentIds]));
 
         if (allStudentIds.length === 0) {
           return { items: [], total: 0 };

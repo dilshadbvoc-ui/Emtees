@@ -495,6 +495,7 @@ export default function UsersPage() {
                             <div className="space-y-1">
                               <label className="text-xs font-semibold text-gray-600">Department <span className="text-red-500">*</span></label>
                               <select
+                                required
                                 className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                                 value={form.departmentId}
                                 onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
@@ -781,6 +782,7 @@ export default function UsersPage() {
                         <div className="space-y-1">
                           <label className="text-xs font-semibold text-gray-600">Department <span className="text-red-500">*</span></label>
                           <select
+                            required
                             className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             value={editUser.departmentId}
                             onChange={(e) => setEditUser({ ...editUser, departmentId: e.target.value })}

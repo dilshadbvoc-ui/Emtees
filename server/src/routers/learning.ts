@@ -58,7 +58,7 @@ export const learningRouter = createRouter({
     return db.query.modules.findMany({
       where,
       orderBy: desc(modules.createdAt),
-      with: { batches: true, teacher: true },
+      with: { batches: true, teacher: true, departmentModules: true },
     });
   }),
 
@@ -75,17 +75,27 @@ export const learningRouter = createRouter({
       status: z.string().optional(),
       courseFee: z.number().or(z.string()).optional(),
       minimumDownPayment: z.number().or(z.string()).optional(),
+      departmentId: z.number(),
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const { courseFee, minimumDownPayment, ...rest } = input;
+      const { courseFee, minimumDownPayment, departmentId, ...rest } = input;
       const values: any = { ...rest };
       if (courseFee !== undefined) values.courseFee = String(courseFee);
       if (minimumDownPayment !== undefined) values.minimumDownPayment = String(minimumDownPayment);
 
       const result = await db.insert(modules).values(values).returning({ id: modules.id });
+      const moduleId = result[0]?.id;
+
+      if (moduleId && departmentId) {
+        await db.insert(departmentModules).values({
+          departmentId,
+          moduleId,
+        });
+      }
+
       return db.query.modules.findFirst({
-        where: eq(modules.id, result[0]?.id),
+        where: eq(modules.id, moduleId),
         with: { teacher: true },
       });
     }),
@@ -104,10 +114,11 @@ export const learningRouter = createRouter({
       status: z.string().optional(),
       courseFee: z.number().or(z.string()).optional(),
       minimumDownPayment: z.number().or(z.string()).optional(),
+      departmentId: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const { id, courseFee, minimumDownPayment, ...rest } = input;
+      const { id, courseFee, minimumDownPayment, departmentId, ...rest } = input;
       const data: any = { ...rest };
       if (courseFee !== undefined) data.courseFee = String(courseFee);
       if (minimumDownPayment !== undefined) data.minimumDownPayment = String(minimumDownPayment);
@@ -115,6 +126,18 @@ export const learningRouter = createRouter({
       await db.update(modules)
         .set(data)
         .where(eq(modules.id, id));
+
+      if (departmentId !== undefined) {
+        // Delete old mapping if exists, then insert new one
+        await db.delete(departmentModules).where(eq(departmentModules.moduleId, id));
+        if (departmentId > 0) {
+          await db.insert(departmentModules).values({
+            departmentId,
+            moduleId: id,
+          });
+        }
+      }
+
       return db.query.modules.findFirst({
         where: eq(modules.id, id),
         with: { teacher: true },

@@ -299,6 +299,7 @@ export default function BatchesPage() {
   const isStrictAdmin = ["super_admin", "admin"].includes(user?.role || "");
 
   const modulesQuery = trpc.learning.listModules.useQuery();
+  const departmentsQuery = trpc.department.list.useQuery(undefined, { enabled: isAdmin });
   const batchesQuery = trpc.learning.listBatches.useQuery(
     selectedModule ? { moduleId: selectedModule } : undefined
   );
@@ -321,6 +322,7 @@ export default function BatchesPage() {
         minStudents: 5,
         courseFee: 0,
         minimumDownPayment: 0,
+        departmentId: 0,
       });
       modulesQuery.refetch();
     },
@@ -395,6 +397,7 @@ export default function BatchesPage() {
     minStudents: 5,
     courseFee: 0,
     minimumDownPayment: 0,
+    departmentId: 0,
   });
 
   const [moduleForm, setModuleForm] = useState({
@@ -409,6 +412,7 @@ export default function BatchesPage() {
     minStudents: 5,
     courseFee: 0,
     minimumDownPayment: 0,
+    departmentId: 0,
   });
   const [batchForm, setBatchForm] = useState({ moduleId: 0, name: "", timeSlot: "", sessionType: "group", maxStudents: 30, teacherId: 0, startDate: "", duration: "", courseFee: 0 });
   const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
@@ -474,10 +478,17 @@ export default function BatchesPage() {
                 </DialogTrigger>
                 <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>Create Module</DialogTitle></DialogHeader>
-                  <form onSubmit={(e) => { e.preventDefault(); createModule.mutate({ ...moduleForm, teacherId: moduleForm.teacherId || undefined }); }} className="space-y-4 mt-2">
+                  <form onSubmit={(e) => { e.preventDefault(); createModule.mutate({ ...moduleForm, teacherId: moduleForm.teacherId || undefined, departmentId: Number(moduleForm.departmentId) }); }} className="space-y-4 mt-2">
                     <div>
                       <label className="text-xs font-semibold text-gray-500 uppercase">Module Name *</label>
                       <Input required placeholder="Module Name" value={moduleForm.name} onChange={(e) => setModuleForm({ ...moduleForm, name: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Department *</label>
+                      <select required className="w-full border rounded-md px-3 py-2 text-sm" value={moduleForm.departmentId} onChange={(e) => setModuleForm({ ...moduleForm, departmentId: Number(e.target.value) })}>
+                        <option value="">Select Department</option>
+                        {departmentsQuery.data?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 uppercase">Description</label>
@@ -834,6 +845,7 @@ export default function BatchesPage() {
                                       minStudents: mod.minStudents || 5,
                                       courseFee: mod.courseFee ? Number(mod.courseFee) : 0,
                                       minimumDownPayment: mod.minimumDownPayment ? Number(mod.minimumDownPayment) : 0,
+                                      departmentId: mod.departmentModules?.[0]?.departmentId || 0,
                                     });
                                     setOpenEditModule(true);
                                   }}
@@ -1288,10 +1300,17 @@ export default function BatchesPage() {
       <Dialog open={openEditModule} onOpenChange={setOpenEditModule}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Module</DialogTitle></DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); updateModule.mutate({ ...editModuleData, teacherId: editModuleData.teacherId || null }); }} className="space-y-4 mt-2">
+          <form onSubmit={(e) => { e.preventDefault(); updateModule.mutate({ ...editModuleData, teacherId: editModuleData.teacherId || null, departmentId: Number(editModuleData.departmentId) }); }} className="space-y-4 mt-2">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase">Module Name *</label>
               <Input required placeholder="Module Name" value={editModuleData.name} onChange={(e) => setEditModuleData({ ...editModuleData, name: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase">Department *</label>
+              <select required className="w-full border rounded-md px-3 py-2 text-sm" value={editModuleData.departmentId} onChange={(e) => setEditModuleData({ ...editModuleData, departmentId: Number(e.target.value) })}>
+                <option value="">Select Department</option>
+                {departmentsQuery.data?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase">Description</label>

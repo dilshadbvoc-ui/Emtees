@@ -51,6 +51,7 @@ import {
   studentFeeConfigurations,
   departmentTeachers,
   departments,
+  departmentModules,
 } from "./schema";
 
 export const qualificationsRelations = relations(qualifications, ({ many }) => ({
@@ -121,6 +122,7 @@ export const profilesRelations = relations(profiles, ({ one }) => ({
 
 export const modulesRelations = relations(modules, ({ one, many }) => ({
   batches: many(batches),
+  departmentModules: many(departmentModules),
   teacher: one(users, {
     fields: [modules.teacherId],
     references: [users.id],
