@@ -240,7 +240,7 @@ export const studentsRouter = createRouter({
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
           batchId: batchEnrollments.batchId,
-          courseId: batches.moduleId,
+          courseId: sql<number | null>`COALESCE(${profiles.moduleId}, ${batches.moduleId})`.as("course_id"),
           classAllocation: studentClassAllocations.allocation,
           profile: {
             id: profiles.id,
