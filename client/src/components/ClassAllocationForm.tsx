@@ -27,11 +27,18 @@ interface ClassAllocationFormProps {
   value: ClassAllocationValue;
   onChange: (value: ClassAllocationValue) => void;
   readOnlySessions?: boolean;
+  departmentId?: number | null;
 }
 
-export function ClassAllocationForm({ value, onChange, readOnlySessions = false }: ClassAllocationFormProps) {
+export function ClassAllocationForm({ value, onChange, readOnlySessions = false, departmentId }: ClassAllocationFormProps) {
   const teachersQuery = trpc.user.list.useQuery({ role: "teacher", status: "active", limit: 200 });
   const batchesQuery = trpc.learning.listBatches.useQuery(undefined);
+
+  const filteredTeachers = React.useMemo(() => {
+    if (!teachersQuery.data) return [];
+    if (!departmentId) return teachersQuery.data;
+    return teachersQuery.data.filter((t: any) => t.departmentId === departmentId);
+  }, [teachersQuery.data, departmentId]);
 
   const handleO2OChange = (field: string, val: any) => {
     onChange({
@@ -67,14 +74,14 @@ export function ClassAllocationForm({ value, onChange, readOnlySessions = false 
               className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none"
             >
               <option value="">Select Teacher</option>
-              {teachersQuery.data?.map((t: any) => (
+              {filteredTeachers.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name} ({t.unionId})</option>
               ))}
             </select>
             {value.oneToOne.teacherId !== "" && value.oneToOne.teacherId !== null && (
               <div className="flex items-center justify-between text-[10px] bg-slate-100 rounded px-2 py-1 mt-1">
                 <span className="text-slate-600 font-medium truncate">
-                  Current: {teachersQuery.data?.find((t: any) => t.id === value.oneToOne.teacherId)?.name || "Selected"}
+                  Current: {filteredTeachers.find((t: any) => t.id === value.oneToOne.teacherId)?.name || "Selected"}
                 </span>
                 <button
                   type="button"
@@ -148,14 +155,14 @@ export function ClassAllocationForm({ value, onChange, readOnlySessions = false 
               className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none"
             >
               <option value="">Select Teacher</option>
-              {teachersQuery.data?.map((t: any) => (
+              {filteredTeachers.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name} ({t.unionId})</option>
               ))}
             </select>
             {value.group.teacherId !== "" && value.group.teacherId !== null && (
               <div className="flex items-center justify-between text-[10px] bg-slate-100 rounded px-2 py-1 mt-1">
                 <span className="text-slate-600 font-medium truncate">
-                  Current: {teachersQuery.data?.find((t: any) => t.id === value.group.teacherId)?.name || "Selected"}
+                  Current: {filteredTeachers.find((t: any) => t.id === value.group.teacherId)?.name || "Selected"}
                 </span>
                 <button
                   type="button"

@@ -156,10 +156,10 @@ export const authRouter = createRouter({
     });
     if (!user) return null;
 
-    // Validate session token matches stored device token
-    if (ctx.user.sessionToken && user.deviceToken !== ctx.user.sessionToken) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Your account has been logged in from another device. You have been signed out." });
-    }
+    // Validate session token matches stored device token (disabled to allow multiple sessions without auto-logout)
+    // if (ctx.user.sessionToken && user.deviceToken !== ctx.user.sessionToken) {
+    //   throw new TRPCError({ code: "UNAUTHORIZED", message: "Your account has been logged in from another device. You have been signed out." });
+    // }
 
     return { id: user.id, name: user.name, role: user.role, phone: user.phone, username: user.username, status: user.status, unionId: user.unionId, email: user.email, notificationsPausedUntil: user.notificationsPausedUntil, mustChangePassword: user.mustChangePassword };
   }),

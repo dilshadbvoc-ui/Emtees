@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/providers/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -400,6 +400,20 @@ export default function StudentsPage() {
   );
 
   const batchesQuery = trpc.learning.listBatches.useQuery(undefined);
+  const departmentsQuery = trpc.department.list.useQuery();
+
+  const studentDepartmentId = useMemo(() => {
+    const studentId = configStudentId || detailsStudentId;
+    if (!studentId || !studentsQuery.data?.items) return null;
+    const student = studentsQuery.data.items.find((s: any) => s.id === studentId);
+    const moduleId = (student?.profile as any)?.moduleId;
+    if (!moduleId || !departmentsQuery.data) return null;
+    
+    const dept = departmentsQuery.data.find((d: any) => 
+      d.departmentModules.some((dm: any) => dm.moduleId === moduleId)
+    );
+    return dept?.id || null;
+  }, [configStudentId, detailsStudentId, studentsQuery.data, departmentsQuery.data]);
 
   const getTeacherName = (id: number | null | undefined) => {
     if (!id) return "Unassigned";
@@ -2966,6 +2980,7 @@ export default function StudentsPage() {
             <ClassAllocationForm
               value={tempAllocation}
               onChange={setTempAllocation}
+              departmentId={studentDepartmentId}
             />
           </div>
           <DialogFooter className="gap-2">

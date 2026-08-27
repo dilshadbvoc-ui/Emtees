@@ -49,6 +49,8 @@ import {
   performanceReports,
   qualifications,
   studentFeeConfigurations,
+  departmentTeachers,
+  departments,
 } from "./schema";
 
 export const qualificationsRelations = relations(qualifications, ({ many }) => ({
@@ -99,6 +101,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     references: [salesExecutives.id],
     relationName: "referredStudents",
   }),
+  departmentTeachers: many(departmentTeachers),
   feeConfig: one(studentFeeConfigurations, {
     fields: [users.id],
     references: [studentFeeConfigurations.studentId],
@@ -681,3 +684,5 @@ export const performanceReportsRelations = relations(performanceReports, ({ one,
 
 
 
+
+export const departmentTeachersRelations = relations(departmentTeachers, ({ one }) => ({ teacher: one(users, { fields: [departmentTeachers.teacherId], references: [users.id] }), department: one(departments, { fields: [departmentTeachers.departmentId], references: [departments.id] }) }));

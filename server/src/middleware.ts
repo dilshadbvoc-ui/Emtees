@@ -17,14 +17,14 @@ export const authedQuery = t.procedure.use(async ({ ctx, next }) => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Please sign in" });
   }
 
-  // Validate session token matches stored device token
-  if (ctx.user.sessionToken) {
-    const db = getDb();
-    const dbUser = await db.query.users.findFirst({ where: eq(users.id, ctx.user.id) });
-    if (!dbUser || dbUser.deviceToken !== ctx.user.sessionToken) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Your account has been logged in from another device. You have been signed out." });
-    }
-  }
+  // Validate session token matches stored device token (disabled to allow multiple sessions)
+  // if (ctx.user.sessionToken) {
+  //   const db = getDb();
+  //   const dbUser = await db.query.users.findFirst({ where: eq(users.id, ctx.user.id) });
+  //   if (!dbUser || dbUser.deviceToken !== ctx.user.sessionToken) {
+  //     throw new TRPCError({ code: "UNAUTHORIZED", message: "Your account has been logged in from another device. You have been signed out." });
+  //   }
+  // }
 
   return next({ ctx: { ...ctx, user: ctx.user } });
 });

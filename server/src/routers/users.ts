@@ -64,9 +64,12 @@ export const userRouter = createRouter({
         limit: input?.limit || 50,
         offset: input?.offset || 0,
         orderBy: desc(users.createdAt),
-        with: { profile: true },
+        with: { profile: true, departmentTeachers: true },
       });
-      return list;
+      return list.map((u: any) => ({
+        ...u,
+        departmentId: u.departmentTeachers?.[0]?.departmentId
+      }));
     }),
 
   getById: authedQuery
@@ -75,7 +78,7 @@ export const userRouter = createRouter({
       const db = getDb();
       const user = await db.query.users.findFirst({
         where: eq(users.id, input.id),
-        with: { profile: true },
+        with: { profile: true, departmentTeachers: true },
       });
       if (!user) throw new TRPCError({ code: "NOT_FOUND" });
 
@@ -164,7 +167,10 @@ export const userRouter = createRouter({
         };
       }
 
-      return user;
+      return {
+        ...user,
+        departmentId: (user as any).departmentTeachers?.[0]?.departmentId
+      };
     }),
 
   create: adminQuery
@@ -205,6 +211,7 @@ export const userRouter = createRouter({
         address: z.string().optional(),
         postalCode: z.string().optional(),
         status: z.enum(["active", "inactive", "suspended", "on_hold"]).optional(),
+        departmentId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -292,6 +299,9 @@ export const userRouter = createRouter({
         }
         if (input.name.trim().length < 3) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Full Name must be at least 3 characters." });
+        }
+        if (!input.departmentId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Department is required for teachers." });
         }
       }
 
@@ -387,6 +397,13 @@ export const userRouter = createRouter({
 
       const userId = result[0]?.id;
 
+      if (input.role === "teacher" && input.departmentId) {
+        await db.insert(departmentTeachers).values({
+          teacherId: userId,
+          departmentId: input.departmentId,
+        });
+      }
+
       // Handle profile fee population and enrollment
       if (input.role === "student" && input.courseId && input.batchId) {
         const course = await db.query.modules.findFirst({
@@ -432,6 +449,7 @@ export const userRouter = createRouter({
           remainingOneToOneSessions: allocatedOneToOne,
           remainingGroupSessions: allocatedGroup,
           totalRemainingSessions: totalAllocated,
+          moduleId: input.courseId,
           attendedOneToOneSessions: 0,
           attendedGroupSessions: 0,
           totalAttendedSessions: 0,
@@ -585,6 +603,7 @@ export const userRouter = createRouter({
         teachingExperience: z.number().optional(),
         address: z.string().optional(),
         postalCode: z.string().optional(),
+        departmentId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -741,6 +760,14 @@ export const userRouter = createRouter({
       }
 
       await db.update(users).set(updateData).where(eq(users.id, id));
+
+      if (currentUser.role === "teacher" && input.departmentId !== undefined) {
+        await db.delete(departmentTeachers).where(eq(departmentTeachers.teacherId, id));
+        await db.insert(departmentTeachers).values({
+          teacherId: id,
+          departmentId: input.departmentId,
+        });
+      }
 
       let profileEnrollmentId: string | undefined = undefined;
       if (enrollmentId !== undefined && currentUser.role === "student") {

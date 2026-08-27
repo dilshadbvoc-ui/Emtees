@@ -50,6 +50,7 @@ export default function UsersPage() {
     teachingExperience: "",
     address: "",
     status: "active",
+    departmentId: "",
   });
 
   const [detailsTeacherId, setDetailsTeacherId] = useState<number | null>(null);
@@ -64,6 +65,8 @@ export default function UsersPage() {
     limit: 50,
     offset: 0,
   }, { enabled: canViewUsers });
+
+  const departmentsQuery = trpc.department.list.useQuery();
 
   const teacherDetailsQuery = trpc.user.getById.useQuery(
     { id: detailsTeacherId || 0 },
@@ -116,6 +119,7 @@ export default function UsersPage() {
         teachingExperience: "",
         address: "",
         status: "active",
+        departmentId: "",
       });
       usersQuery.refetch();
     },
@@ -182,6 +186,10 @@ export default function UsersPage() {
         toast.error("Specialization is required (min 2 characters).");
         return;
       }
+      if (!form.departmentId) {
+        toast.error("Department is required.");
+        return;
+      }
       if (form.teachingExperience === "" || Number(form.teachingExperience) < 0) {
         toast.error("Teaching Experience cannot be negative.");
         return;
@@ -196,6 +204,7 @@ export default function UsersPage() {
       ...form,
       email: form.email || undefined,
       teachingExperience: form.role === "teacher" ? Number(form.teachingExperience) : undefined,
+      departmentId: form.role === "teacher" && form.departmentId ? Number(form.departmentId) : undefined,
       status: form.status as any,
     });
   };
@@ -226,6 +235,7 @@ export default function UsersPage() {
       specialization: u.specialization || "",
       teachingExperience: u.teachingExperience !== undefined && u.teachingExperience !== null ? String(u.teachingExperience) : "",
       address: u.address || "",
+      departmentId: u.departmentId || "",
     });
     setEditOpen(true);
   };
@@ -273,6 +283,10 @@ export default function UsersPage() {
         toast.error("Specialization is required (min 2 characters).");
         return;
       }
+      if (!editUser.departmentId) {
+        toast.error("Department is required.");
+        return;
+      }
       if (editUser.teachingExperience === "" || Number(editUser.teachingExperience) < 0) {
         toast.error("Teaching Experience cannot be negative.");
         return;
@@ -287,6 +301,7 @@ export default function UsersPage() {
       ...editUser,
       password: editUser.password || undefined,
       teachingExperience: editUser.role === "teacher" ? Number(editUser.teachingExperience) : undefined,
+      departmentId: editUser.role === "teacher" && editUser.departmentId ? Number(editUser.departmentId) : undefined,
       status: editUser.status as any,
     });
   };
@@ -403,7 +418,7 @@ export default function UsersPage() {
                             <User className="w-3.5 h-3.5" />
                             Personal Information
                           </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
                               <label className="text-xs font-semibold text-gray-600">Full Name <span className="text-red-500">*</span></label>
                               <Input placeholder="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -472,9 +487,26 @@ export default function UsersPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-600">Educational Qualification <span className="text-red-500">*</span></label>
-                            <Textarea placeholder="Educational Qualification" value={form.educationalQualification} onChange={(e) => setForm({ ...form, educationalQualification: e.target.value })} className="min-h-[60px]" />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-semibold text-gray-600">Educational Qualification <span className="text-red-500">*</span></label>
+                              <Textarea placeholder="Educational Qualification" value={form.educationalQualification} onChange={(e) => setForm({ ...form, educationalQualification: e.target.value })} className="min-h-[60px]" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-semibold text-gray-600">Department <span className="text-red-500">*</span></label>
+                              <select
+                                className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                value={form.departmentId}
+                                onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+                              >
+                                <option value="">Select a Department...</option>
+                                {departmentsQuery.data?.map((dept) => (
+                                  <option key={dept.id} value={dept.id}>
+                                    {dept.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                         </div>
 
@@ -741,9 +773,26 @@ export default function UsersPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-600">Educational Qualification <span className="text-red-500">*</span></label>
-                        <Textarea placeholder="Educational Qualification" value={editUser.educationalQualification} onChange={(e) => setEditUser({ ...editUser, educationalQualification: e.target.value })} className="min-h-[60px]" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-600">Educational Qualification <span className="text-red-500">*</span></label>
+                          <Textarea placeholder="Educational Qualification" value={editUser.educationalQualification} onChange={(e) => setEditUser({ ...editUser, educationalQualification: e.target.value })} className="min-h-[60px]" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-600">Department <span className="text-red-500">*</span></label>
+                          <select
+                            className="h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            value={editUser.departmentId}
+                            onChange={(e) => setEditUser({ ...editUser, departmentId: e.target.value })}
+                          >
+                            <option value="">Select a Department...</option>
+                            {departmentsQuery.data?.map((dept) => (
+                              <option key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
 
