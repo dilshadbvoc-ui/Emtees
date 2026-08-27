@@ -26,9 +26,10 @@ export interface ClassAllocationValue {
 interface ClassAllocationFormProps {
   value: ClassAllocationValue;
   onChange: (value: ClassAllocationValue) => void;
+  readOnlySessions?: boolean;
 }
 
-export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProps) {
+export function ClassAllocationForm({ value, onChange, readOnlySessions = false }: ClassAllocationFormProps) {
   const teachersQuery = trpc.user.list.useQuery({ role: "teacher", status: "active", limit: 200 });
   const batchesQuery = trpc.learning.listBatches.useQuery(undefined);
 
@@ -94,35 +95,40 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
               className="h-9 text-xs bg-white"
             />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-gray-600">30 Min Classes</Label>
-            <Input
-              type="number"
-              value={value.oneToOne.sessions30}
-              onChange={(e) => handleO2OChange("sessions30", Math.max(0, Number(e.target.value)))}
-              min={0}
-              className="h-9 text-xs bg-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-gray-600">45 Min Classes</Label>
-            <Input
-              type="number"
-              value={value.oneToOne.sessions45}
-              onChange={(e) => handleO2OChange("sessions45", Math.max(0, Number(e.target.value)))}
-              min={0}
-              className="h-9 text-xs bg-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-gray-600">60 Min Classes</Label>
-            <Input
-              type="number"
-              value={value.oneToOne.sessions60}
-              onChange={(e) => handleO2OChange("sessions60", Math.max(0, Number(e.target.value)))}
-              min={0}
-              className="h-9 text-xs bg-white"
-            />
+          <div className="space-y-4 border rounded-md p-4 bg-white col-span-2">
+            <h4 className="text-sm font-semibold text-gray-700">Allocated Sessions</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">30 Min Sessions</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={value.oneToOne.sessions30}
+                  onChange={(e) => handleO2OChange("sessions30", Number(e.target.value))}
+                  disabled={readOnlySessions}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">45 Min Sessions</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={value.oneToOne.sessions45}
+                  onChange={(e) => handleO2OChange("sessions45", Number(e.target.value))}
+                  disabled={readOnlySessions}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">60 Min Sessions</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={value.oneToOne.sessions60}
+                  onChange={(e) => handleO2OChange("sessions60", Number(e.target.value))}
+                  disabled={readOnlySessions}
+                />
+              </div>
+            </div>
           </div>
         </div>
         <p className="text-[10px] text-right font-semibold text-slate-500">
@@ -133,7 +139,7 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
       {/* Group Allocation Section */}
       <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-4">
         <h4 className="font-bold text-xs text-emerald-800 uppercase tracking-wider">Group Sessions Allocation</h4>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-gray-600">Assigned Teacher</Label>
             <select
@@ -197,35 +203,40 @@ export function ClassAllocationForm({ value, onChange }: ClassAllocationFormProp
               className="h-9 text-xs bg-white"
             />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-gray-600">30 Min Classes</Label>
-            <Input
-              type="number"
-              value={value.group.sessions30}
-              onChange={(e) => handleGroupChange("sessions30", Math.max(0, Number(e.target.value)))}
-              min={0}
-              className="h-9 text-xs bg-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-gray-600">45 Min Classes</Label>
-            <Input
-              type="number"
-              value={value.group.sessions45}
-              onChange={(e) => handleGroupChange("sessions45", Math.max(0, Number(e.target.value)))}
-              min={0}
-              className="h-9 text-xs bg-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-gray-600">60 Min Classes</Label>
-            <Input
-              type="number"
-              value={value.group.sessions60}
-              onChange={(e) => handleGroupChange("sessions60", Math.max(0, Number(e.target.value)))}
-              min={0}
-              className="h-9 text-xs bg-white"
-            />
+          <div className="space-y-4 border rounded-md p-4 bg-white col-span-3">
+            <h4 className="text-sm font-semibold text-gray-700">Allocated Sessions</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">30 Min Sessions</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={value.group.sessions30}
+                  onChange={(e) => handleGroupChange("sessions30", Number(e.target.value))}
+                  disabled={readOnlySessions}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">45 Min Sessions</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={value.group.sessions45}
+                  onChange={(e) => handleGroupChange("sessions45", Number(e.target.value))}
+                  disabled={readOnlySessions}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">60 Min Sessions</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={value.group.sessions60}
+                  onChange={(e) => handleGroupChange("sessions60", Number(e.target.value))}
+                  disabled={readOnlySessions}
+                />
+              </div>
+            </div>
           </div>
         </div>
         <p className="text-[10px] text-right font-semibold text-slate-500">

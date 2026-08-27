@@ -146,7 +146,7 @@ export async function updateStudentSessionBalances(db: any, studentId: number) {
     },
     group: {
       teacherId: existingAlloc ? (existingAllocData?.group?.teacherId || null) : (enrollment ? ((enrollment.assignedTeachers as any)?.[1] || (enrollment.assignedTeachers as any)?.[0] || null) : null),
-      batchId: enrollment ? enrollment.batchId : null,
+      batchId: existingAlloc ? (existingAllocData?.group?.batchId || null) : (enrollment ? enrollment.batchId : null),
       designatedTime: existingAllocData?.group?.designatedTime || "",
       sessions30: existingAlloc ? (existingAllocData?.group?.sessions30 || 0) : sessionsGroup30,
       sessions45: existingAlloc ? (existingAllocData?.group?.sessions45 || 0) : sessionsGroup45,

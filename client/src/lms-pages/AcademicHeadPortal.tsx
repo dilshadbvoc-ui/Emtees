@@ -12,7 +12,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { ClassAllocationForm, ClassAllocationValue } from "@/components/ClassAllocationForm";
 import {
   GraduationCap, Users, BarChart2, BookOpen,
   Phone, IdCard, RefreshCw, Download, Search,
@@ -56,6 +63,54 @@ export default function AcademicHeadPortal() {
     { from: from || undefined, to: to || undefined },
     { enabled: tab === "report" },
   );
+
+  const [allocationModalOpen, setAllocationModalOpen] = useState(false);
+  const [selectedStudentForAllocation, setSelectedStudentForAllocation] = useState<any>(null);
+  const [allocationForm, setAllocationForm] = useState<ClassAllocationValue>({
+    oneToOne: { teacherId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
+    group: { teacherId: "", batchId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 }
+  });
+
+  const updateAllocationMutation = trpc.department.updateStudentAllocation.useMutation({
+    onSuccess: () => {
+      toast.success("Teacher allocation updated successfully");
+      setAllocationModalOpen(false);
+      studentsQuery.refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update teacher allocation");
+    }
+  });
+
+  const handleOpenAllocationModal = (student: any) => {
+    setSelectedStudentForAllocation(student);
+    const a = student.allocation;
+    if (a) {
+      setAllocationForm({
+        oneToOne: {
+          teacherId: a.oneToOne?.teacherId || "",
+          designatedTime: a.oneToOne?.designatedTime || "",
+          sessions30: a.oneToOne?.sessions30 || 0,
+          sessions45: a.oneToOne?.sessions45 || 0,
+          sessions60: a.oneToOne?.sessions60 || 0,
+        },
+        group: {
+          teacherId: a.group?.teacherId || "",
+          batchId: a.group?.batchId || "",
+          designatedTime: a.group?.designatedTime || "",
+          sessions30: a.group?.sessions30 || 0,
+          sessions45: a.group?.sessions45 || 0,
+          sessions60: a.group?.sessions60 || 0,
+        },
+      });
+    } else {
+      setAllocationForm({
+        oneToOne: { teacherId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
+        group: { teacherId: "", batchId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 }
+      });
+    }
+    setAllocationModalOpen(true);
+  };
 
   const dept = deptQuery.data;
 
@@ -255,6 +310,7 @@ export default function AcademicHeadPortal() {
                         <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</TableHead>
                         <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Batch</TableHead>
                         <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Enrolled</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -287,6 +343,16 @@ export default function AcademicHeadPortal() {
                             {s.enrolledAt
                               ? new Date(s.enrolledAt).toLocaleDateString()
                               : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
+                              onClick={() => handleOpenAllocationModal(s)}
+                            >
+                              Assign Teacher
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -435,6 +501,44 @@ export default function AcademicHeadPortal() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={allocationModalOpen} onOpenChange={setAllocationModalOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-slate-50">
+          <DialogHeader className="p-6 bg-white border-b border-slate-100 pb-4">
+            <DialogTitle className="text-xl font-bold text-slate-800">
+              Assign Teacher for {selectedStudentForAllocation?.name || selectedStudentForAllocation?.username}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 overflow-y-auto max-h-[70vh]">
+            <ClassAllocationForm
+              value={allocationForm}
+              onChange={setAllocationForm}
+              readOnlySessions={true}
+            />
+          </div>
+          <div className="p-6 bg-white border-t border-slate-100 flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setAllocationModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={updateAllocationMutation.isPending}
+              onClick={() => {
+                if (!selectedStudentForAllocation) return;
+                updateAllocationMutation.mutate({
+                  studentId: selectedStudentForAllocation.id,
+                  allocation: allocationForm,
+                });
+              }}
+            >
+              {updateAllocationMutation.isPending ? "Saving..." : "Save Assignments"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

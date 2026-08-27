@@ -12,7 +12,10 @@ import {
   batchEnrollments,
   attendance,
   classes,
+  studentClassAllocations,
+  sessionAllocationLogs,
 } from "@db/schema";
+import { updateStudentSessionBalances } from "../lib/sessionHelper";
 
 export const departmentRouter = createRouter({
   // 1. List all departments
@@ -200,11 +203,13 @@ export const departmentRouter = createRouter({
           studentId: profiles.enrollmentId,
           batchName: batches.name,
           enrolledAt: batchEnrollments.joinedAt,
+          allocation: studentClassAllocations.allocation,
         })
         .from(batchEnrollments)
         .innerJoin(users, eq(batchEnrollments.studentId, users.id))
         .innerJoin(batches, eq(batchEnrollments.batchId, batches.id))
         .leftJoin(profiles, eq(users.id, profiles.userId))
+        .leftJoin(studentClassAllocations, eq(users.id, studentClassAllocations.studentId))
         .where(and(inArray(batchEnrollments.batchId, batchIds), eq(batchEnrollments.status, "active")));
 
       // Deduplicate by student id
@@ -214,6 +219,157 @@ export const departmentRouter = createRouter({
         .map((e) => ({
           ...e
         }));
+    }),
+
+  // 7b. Update student class allocation (Academic Head)
+  updateStudentAllocation: authedQuery
+    .input(z.object({
+      studentId: z.number(),
+      allocation: z.any(), // expecting ClassAllocationValue structure
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      if (ctx.user.role !== "academic_head") throw new TRPCError({ code: "FORBIDDEN" });
+
+      // Verify the student belongs to the academic head's department
+      const dept = await db.query.departments.findFirst({
+        where: eq(departments.headUserId, ctx.user.id),
+        with: { departmentModules: true },
+      });
+      if (!dept) throw new TRPCError({ code: "FORBIDDEN", message: "No department assigned" });
+
+      const moduleIds = dept.departmentModules.map((dm) => dm.moduleId);
+      if (moduleIds.length === 0) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No modules assigned to your department" });
+      }
+      
+      const batchRows = await db.select({ id: batches.id }).from(batches).where(inArray(batches.moduleId, moduleIds));
+      const batchIds = batchRows.map((b) => b.id);
+      
+      if (batchIds.length === 0) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No batches found for your department" });
+      }
+
+      const isMyStudent = await db.query.batchEnrollments.findFirst({
+        where: and(
+          eq(batchEnrollments.studentId, input.studentId),
+          inArray(batchEnrollments.batchId, batchIds),
+          eq(batchEnrollments.status, "active")
+        ),
+      });
+
+      if (!isMyStudent) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Student does not belong to your department" });
+      }
+
+      const deptTeachers = await db.query.departmentTeachers.findMany({
+        where: eq(departmentTeachers.departmentId, dept.id)
+      });
+      const validTeacherIds = deptTeachers.map(dt => dt.teacherId);
+
+      const newAllocPayload = input.allocation;
+
+      if (newAllocPayload.oneToOne?.teacherId && !validTeacherIds.includes(newAllocPayload.oneToOne.teacherId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Selected One-to-One teacher is not in your department" });
+      }
+      if (newAllocPayload.group?.teacherId && !validTeacherIds.includes(newAllocPayload.group.teacherId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Selected Group teacher is not in your department" });
+      }
+      if (newAllocPayload.group?.batchId && !batchIds.includes(newAllocPayload.group.batchId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Selected Group batch is not in your department" });
+      }
+
+      await db.transaction(async (tx: any) => {
+        const existingAlloc = await tx.query.studentClassAllocations.findFirst({
+          where: eq(studentClassAllocations.studentId, input.studentId),
+        });
+
+        let prevOneToOne = 0;
+        let prevGroup = 0;
+        let newOneToOne = 0;
+        let newGroup = 0;
+
+        if (existingAlloc && existingAlloc.allocation) {
+          const old = existingAlloc.allocation as any;
+          prevOneToOne = (old.oneToOne?.sessions30 || 0) + (old.oneToOne?.sessions45 || 0) + (old.oneToOne?.sessions60 || 0);
+          prevGroup = (old.group?.sessions30 || 0) + (old.group?.sessions45 || 0) + (old.group?.sessions60 || 0);
+          
+          newOneToOne = prevOneToOne;
+          newGroup = prevGroup;
+
+          const mergedAlloc = {
+            oneToOne: {
+              ...old.oneToOne,
+              teacherId: newAllocPayload.oneToOne.teacherId || null,
+              designatedTime: newAllocPayload.oneToOne.designatedTime || "",
+              // Academic Head cannot change allocated session counts
+            },
+            group: {
+              ...old.group,
+              teacherId: newAllocPayload.group.teacherId || null,
+              batchId: newAllocPayload.group.batchId || null,
+              designatedTime: newAllocPayload.group.designatedTime || "",
+            }
+          };
+
+          await tx.update(studentClassAllocations)
+            .set({ allocation: mergedAlloc, updatedAt: new Date() })
+            .where(eq(studentClassAllocations.studentId, input.studentId));
+        } else {
+          // If no existing alloc, initialize with zero completed but read counts from batchEnrollments
+          const defaultAlloc = {
+            oneToOne: {
+              teacherId: newAllocPayload.oneToOne.teacherId || null,
+              designatedTime: newAllocPayload.oneToOne.designatedTime || "",
+              sessions30: isMyStudent.oneOnOne30Allocated || 0,
+              sessions45: isMyStudent.oneOnOne45Allocated || 0,
+              sessions60: isMyStudent.oneOnOne60Allocated || 0,
+              completed30: isMyStudent.oneOnOne30Used || 0,
+              completed45: isMyStudent.oneOnOne45Used || 0,
+              completed60: isMyStudent.oneOnOne60Used || 0,
+              remaining30: Math.max(0, (isMyStudent.oneOnOne30Allocated || 0) - (isMyStudent.oneOnOne30Used || 0)),
+              remaining45: Math.max(0, (isMyStudent.oneOnOne45Allocated || 0) - (isMyStudent.oneOnOne45Used || 0)),
+              remaining60: Math.max(0, (isMyStudent.oneOnOne60Allocated || 0) - (isMyStudent.oneOnOne60Used || 0)),
+            },
+            group: {
+              teacherId: newAllocPayload.group.teacherId || null,
+              batchId: newAllocPayload.group.batchId || null,
+              designatedTime: newAllocPayload.group.designatedTime || "",
+              sessions30: isMyStudent.group30Allocated || 0,
+              sessions45: isMyStudent.group45Allocated || 0,
+              sessions60: isMyStudent.group60Allocated || 0,
+              completed30: isMyStudent.group30Used || 0,
+              completed45: isMyStudent.group45Used || 0,
+              completed60: isMyStudent.group60Used || 0,
+              remaining30: Math.max(0, (isMyStudent.group30Allocated || 0) - (isMyStudent.group30Used || 0)),
+              remaining45: Math.max(0, (isMyStudent.group45Allocated || 0) - (isMyStudent.group45Used || 0)),
+              remaining60: Math.max(0, (isMyStudent.group60Allocated || 0) - (isMyStudent.group60Used || 0)),
+            }
+          };
+          newOneToOne = (defaultAlloc.oneToOne.sessions30) + (defaultAlloc.oneToOne.sessions45) + (defaultAlloc.oneToOne.sessions60);
+          newGroup = (defaultAlloc.group.sessions30) + (defaultAlloc.group.sessions45) + (defaultAlloc.group.sessions60);
+          
+          await tx.insert(studentClassAllocations).values({
+            studentId: input.studentId,
+            allocation: defaultAlloc,
+          });
+        }
+
+        await tx.insert(sessionAllocationLogs).values({
+          studentId: input.studentId,
+          changedBy: ctx.user.id,
+          previousOneToOne: prevOneToOne,
+          newOneToOne: newOneToOne,
+          previousGroup: prevGroup,
+          newGroup: newGroup,
+          reason: "Academic Head Allocation Update",
+        });
+
+        await updateStudentSessionBalances(tx, input.studentId);
+      });
+
+      await updateStudentSessionBalances(db, input.studentId);
+      return { success: true };
     }),
 
   // 8. Get attendance report for students in my department
