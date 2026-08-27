@@ -16,7 +16,6 @@ const generateToken = async (user: { id: number; role: string; name: string; dev
     .setSubject(String(user.id))
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
     .sign(jwtSecret);
 };
 
