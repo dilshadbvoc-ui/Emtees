@@ -240,7 +240,7 @@ export const studentsRouter = createRouter({
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
           batchId: batchEnrollments.batchId,
-          courseId: sql<number | null>`COALESCE(${profiles.moduleId}, ${batches.moduleId})`.as("course_id"),
+          courseId: sql<number | null>`COALESCE(${profiles.moduleId}, ${batches.moduleId})`,
           classAllocation: studentClassAllocations.allocation,
           profile: {
             id: profiles.id,
@@ -296,7 +296,10 @@ export const studentsRouter = createRouter({
         .orderBy(desc(users.createdAt));
 
       return {
-        items,
+        items: items.map(item => ({
+          ...item,
+          courseId: item.courseId ? Number(item.courseId) : null
+        })),
         total,
       };
     }),
@@ -1269,7 +1272,7 @@ export const studentsRouter = createRouter({
 
       // Header mapping
       const rawHeaders = jsonData[0] || [];
-      const headers = rawHeaders.map((h: any) => String(h).trim().toLowerCase());
+      const headers = rawHeaders.map((h: any) => String(h).trim().toLowerCase().replace(/\s*\(optional\)$/, ""));
 
       const fullNameIndex = headers.indexOf("full name");
       const phoneIndex = headers.indexOf("phone number");
@@ -1295,12 +1298,7 @@ export const studentsRouter = createRouter({
       const missingHeaders = [];
       if (fullNameIndex === -1) missingHeaders.push("Full Name");
       if (phoneIndex === -1) missingHeaders.push("Phone Number");
-      if (usernameIndex === -1) missingHeaders.push("Username");
-      if (passwordIndex === -1) missingHeaders.push("Password");
-      if (enrollmentIdIndex === -1) missingHeaders.push("Student Enrollment ID");
       if (moduleIndex === -1) missingHeaders.push("Module");
-      if (preferredTimeIndex === -1) missingHeaders.push("Preferred Time");
-      if (typeIndex === -1) missingHeaders.push("Type");
 
       if (missingHeaders.length > 0) {
         throw new TRPCError({
@@ -1327,9 +1325,14 @@ export const studentsRouter = createRouter({
 
         const name = getVal(row, fullNameIndex);
         const phone = getVal(row, phoneIndex);
-        const username = getVal(row, usernameIndex);
+        let username = getVal(row, usernameIndex);
         const enrollmentId = getVal(row, enrollmentIdIndex);
         const email = getVal(row, emailIndex);
+
+        const parsedPhoneGen = parseFullPhone(phone);
+        if (parsedPhoneGen && !username) {
+          username = `${parsedPhoneGen.countryCode}${parsedPhoneGen.phoneNumber}`.replace(/\s+/g, "");
+        }
 
         // Skip purely empty rows
         if (!name && !phone && !username) continue;
@@ -1446,20 +1449,18 @@ export const studentsRouter = createRouter({
         if (!name) rowErrors.push("Full Name is required.");
         if (!phone) rowErrors.push("Phone Number is required.");
         if (!username) rowErrors.push("Username is required.");
-        const password = getVal(row, passwordIndex);
-        if (!password) rowErrors.push("Password is required.");
+        let password = getVal(row, passwordIndex);
+        if (!password) password = "student123";
         else if (password.length < 6) rowErrors.push("Password must be at least 6 characters long.");
-
-        if (!enrollmentId) rowErrors.push("Student Enrollment ID is required.");
 
         const moduleNameOrId = getVal(row, moduleIndex);
         if (!moduleNameOrId) rowErrors.push("Module is required.");
 
-        const preferredTime = getVal(row, preferredTimeIndex);
-        if (!preferredTime) rowErrors.push("Preferred Time is required.");
+        let preferredTime = getVal(row, preferredTimeIndex);
+        if (!preferredTime) preferredTime = "To Be Decided";
 
-        const typeStr = getVal(row, typeIndex);
-        if (!typeStr) rowErrors.push("Type is required.");
+        let typeStr = getVal(row, typeIndex);
+        if (!typeStr) typeStr = "Group";
 
         // Skip duplicate check if mandatory fields are missing
         if (rowErrors.length > 0) {
@@ -1507,18 +1508,20 @@ export const studentsRouter = createRouter({
         }
 
         // Enrollment ID duplicate checks
-        const enrollLower = enrollmentId.toLowerCase();
-        if (seenEnrollmentIds.has(enrollLower)) {
-          rowErrors.push(`Duplicate Enrollment ID '${enrollmentId}' inside the uploaded file.`);
-        } else {
-          if (dbEnrollmentIds.has(enrollLower)) {
-            rowErrors.push(`Enrollment ID '${enrollmentId}' is already taken in the database.`);
+        if (enrollmentId) {
+          const enrollLower = enrollmentId.toLowerCase();
+          if (seenEnrollmentIds.has(enrollLower)) {
+            rowErrors.push(`Duplicate Enrollment ID '${enrollmentId}' inside the uploaded file.`);
+          } else {
+            if (dbEnrollmentIds.has(enrollLower)) {
+              rowErrors.push(`Enrollment ID '${enrollmentId}' is already taken in the database.`);
+            }
+            if (dbStudentIds.has(enrollLower)) {
+              rowErrors.push(`Enrollment ID '${enrollmentId}' conflicts with an existing Student ID.`);
+            }
           }
-          if (dbStudentIds.has(enrollLower)) {
-            rowErrors.push(`Enrollment ID '${enrollmentId}' conflicts with an existing Student ID.`);
-          }
+          seenEnrollmentIds.add(enrollLower);
         }
-        seenEnrollmentIds.add(enrollLower);
 
         // Email duplicate checks
         if (email) {

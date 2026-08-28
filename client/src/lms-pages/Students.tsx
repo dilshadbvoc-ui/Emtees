@@ -926,14 +926,14 @@ export default function StudentsPage() {
     const headers = [
       "Full Name",
       "Phone Number",
-      "Username",
-      "Password",
-      "Student Enrollment ID",
+      "Username (Optional)",
+      "Password (Optional)",
+      "Student Enrollment ID (Optional)",
       "Module",
-      "Preferred Time",
-      "Type",
-      "Email",
-      "Gender",
+      "Preferred Time (Optional)",
+      "Type (Optional)",
+      "Email (Optional)",
+      "Gender (Optional)",
       "DOB",
       "Address",
       "Postal Code",
@@ -1668,9 +1668,9 @@ export default function StudentsPage() {
             <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-4 space-y-2">
               <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">Important Guidelines</span>
               <ul className="text-xs text-amber-700 list-disc list-inside space-y-1">
-                <li><strong className="text-amber-800">Mandatory columns:</strong> Full Name, Phone Number, Username, Password, Student Enrollment ID, Module, Preferred Time, Type.</li>
-                <li><strong className="text-amber-800">Preferred Time:</strong> Must match active LMS batch timeslots (e.g. "9:00 AM" or "7 PM").</li>
-                <li><strong className="text-amber-800">Type:</strong> Must be "Group", "1 on 1", or "Both".</li>
+                <li><strong className="text-amber-800">Mandatory columns:</strong> Full Name, Phone Number, Module. All others are optional.</li>
+                <li><strong className="text-amber-800">Preferred Time:</strong> If provided, must match active LMS batch timeslots (e.g. "9:00 AM" or "7 PM"). Defaults to "To Be Decided".</li>
+                <li><strong className="text-amber-800">Type:</strong> Must be "Group", "1 on 1", or "Both". Defaults to "Group".</li>
                 <li>Each record will process inside its own database transaction. Valid rows will import even if others fail.</li>
               </ul>
             </div>
