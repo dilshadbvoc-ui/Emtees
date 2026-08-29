@@ -1294,6 +1294,10 @@ export const studentsRouter = createRouter({
       const feesTotalIndex = headers.indexOf("total course fee");
       const paymentOptionIndex = headers.indexOf("payment option");
 
+      const totalClassAssignedIndex = headers.indexOf("total class assigned");
+      const classesCompletedIndex = headers.indexOf("classes completed");
+      const assignedTeacherIndex = headers.indexOf("assigned teacher");
+
       // Check if all mandatory header columns are present
       const missingHeaders = [];
       if (fullNameIndex === -1) missingHeaders.push("Full Name");
@@ -1311,6 +1315,16 @@ export const studentsRouter = createRouter({
         if (index === -1 || row[index] === undefined || row[index] === null) return "";
         return String(row[index]).trim();
       };
+
+      // Fetch all active teachers for lookups
+      const allTeachers = await db.query.users.findMany({
+        where: eq(users.role, "teacher"),
+      });
+      const teacherMap = new Map<string, number>();
+      allTeachers.forEach(t => {
+        if (t.username) teacherMap.set(t.username.toLowerCase(), t.id);
+        teacherMap.set(t.name.toLowerCase(), t.id);
+      });
 
       // 1. Collect candidates for validation
       const candidates = [];
@@ -1602,6 +1616,9 @@ export const studentsRouter = createRouter({
             parentPhone: getVal(row, parentPhoneIndex) || null,
             feesTotalStr,
             paymentOptStr,
+            totalClassAssigned: getVal(row, totalClassAssignedIndex),
+            classesCompleted: getVal(row, classesCompletedIndex),
+            assignedTeacher: getVal(row, assignedTeacherIndex),
           });
         }
       }
@@ -1630,6 +1647,9 @@ export const studentsRouter = createRouter({
           parentPhone,
           feesTotalStr,
           paymentOptStr,
+          totalClassAssigned,
+          classesCompleted,
+          assignedTeacher,
         } = data;
 
         // Do NOT assign to batch during bulk import based on Preferred Time
@@ -1638,6 +1658,15 @@ export const studentsRouter = createRouter({
         // Prepare fees and installments
         const feesTotal = feesTotalStr ? parseFloat(feesTotalStr) : null;
         const paymentType = paymentOptStr ? mapPaymentOption(paymentOptStr) : undefined;
+
+        // Prepare bulk allocation overrides
+        const bulkTotalClassAssigned = totalClassAssigned ? parseInt(totalClassAssigned, 10) : undefined;
+        const bulkClassesCompleted = classesCompleted ? parseInt(classesCompleted, 10) : undefined;
+        let bulkAssignedTeacherId: number | undefined = undefined;
+        if (assignedTeacher) {
+          const tId = teacherMap.get(assignedTeacher.toLowerCase());
+          if (tId) bulkAssignedTeacherId = tId;
+        }
 
         let txCompleted = false;
         let userId = 0;
@@ -1670,6 +1699,9 @@ export const studentsRouter = createRouter({
               parentPhone,
               registrationSource: "direct",
               isBulkImport: true,
+              bulkTotalClassAssigned: isNaN(bulkTotalClassAssigned as any) ? undefined : bulkTotalClassAssigned,
+              bulkClassesCompleted: isNaN(bulkClassesCompleted as any) ? undefined : bulkClassesCompleted,
+              bulkAssignedTeacherId,
             });
           });
           userId = result.id;
@@ -2203,6 +2235,9 @@ export const studentsRouter = createRouter({
           sessions30: z.number().nonnegative(),
           sessions45: z.number().nonnegative(),
           sessions60: z.number().nonnegative(),
+          completed30: z.number().nonnegative().optional(),
+          completed45: z.number().nonnegative().optional(),
+          completed60: z.number().nonnegative().optional(),
         }),
         group: z.object({
           teacherId: z.number().nullable().optional(),
@@ -2211,6 +2246,9 @@ export const studentsRouter = createRouter({
           sessions30: z.number().nonnegative(),
           sessions45: z.number().nonnegative(),
           sessions60: z.number().nonnegative(),
+          completed30: z.number().nonnegative().optional(),
+          completed45: z.number().nonnegative().optional(),
+          completed60: z.number().nonnegative().optional(),
         }),
       })
     }))
@@ -2324,13 +2362,13 @@ export const studentsRouter = createRouter({
       }
       
       await db.transaction(async (tx) => {
-        const completedO2O30 = oldAlloc.oneToOne.completed30 || 0;
-        const completedO2O45 = oldAlloc.oneToOne.completed45 || 0;
-        const completedO2O60 = oldAlloc.oneToOne.completed60 || 0;
+        const completedO2O30 = allocation.oneToOne.completed30 ?? oldAlloc.oneToOne.completed30 ?? 0;
+        const completedO2O45 = allocation.oneToOne.completed45 ?? oldAlloc.oneToOne.completed45 ?? 0;
+        const completedO2O60 = allocation.oneToOne.completed60 ?? oldAlloc.oneToOne.completed60 ?? 0;
 
-        const completedGroup30 = oldAlloc.group.completed30 || 0;
-        const completedGroup45 = oldAlloc.group.completed45 || 0;
-        const completedGroup60 = oldAlloc.group.completed60 || 0;
+        const completedGroup30 = allocation.group.completed30 ?? oldAlloc.group.completed30 ?? 0;
+        const completedGroup45 = allocation.group.completed45 ?? oldAlloc.group.completed45 ?? 0;
+        const completedGroup60 = allocation.group.completed60 ?? oldAlloc.group.completed60 ?? 0;
 
         const teacherIds: number[] = [];
         if (allocation.oneToOne.teacherId) teacherIds.push(allocation.oneToOne.teacherId);
@@ -2345,6 +2383,12 @@ export const studentsRouter = createRouter({
               group30Allocated: allocation.group.sessions30,
               group45Allocated: allocation.group.sessions45,
               group60Allocated: allocation.group.sessions60,
+              oneOnOne30Used: completedO2O30,
+              oneOnOne45Used: completedO2O45,
+              oneOnOne60Used: completedO2O60,
+              group30Used: completedGroup30,
+              group45Used: completedGroup45,
+              group60Used: completedGroup60,
               assignedTeachers: teacherIds,
             })
             .where(eq(batchEnrollments.id, activeEnrollment.id));

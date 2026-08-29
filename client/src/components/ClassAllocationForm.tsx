@@ -12,6 +12,9 @@ export interface ClassAllocationValue {
     sessions30: number;
     sessions45: number;
     sessions60: number;
+    completed30?: number;
+    completed45?: number;
+    completed60?: number;
   };
   group: {
     teacherId: number | "";
@@ -20,6 +23,9 @@ export interface ClassAllocationValue {
     sessions30: number;
     sessions45: number;
     sessions60: number;
+    completed30?: number;
+    completed45?: number;
+    completed60?: number;
   };
 }
 
@@ -136,11 +142,52 @@ export function ClassAllocationForm({ value, onChange, readOnlySessions = false,
                 />
               </div>
             </div>
+            
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <h4 className="text-sm font-semibold text-emerald-700 mb-3">Already Taken (Completed)</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-emerald-700">30 Min Sessions</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={value.oneToOne.completed30 || 0}
+                    onChange={(e) => handleO2OChange("completed30", Number(e.target.value))}
+                    disabled={readOnlySessions}
+                    className="border-emerald-200 focus-visible:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-emerald-700">45 Min Sessions</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={value.oneToOne.completed45 || 0}
+                    onChange={(e) => handleO2OChange("completed45", Number(e.target.value))}
+                    disabled={readOnlySessions}
+                    className="border-emerald-200 focus-visible:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-emerald-700">60 Min Sessions</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={value.oneToOne.completed60 || 0}
+                    onChange={(e) => handleO2OChange("completed60", Number(e.target.value))}
+                    disabled={readOnlySessions}
+                    className="border-emerald-200 focus-visible:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <p className="text-[10px] text-right font-semibold text-slate-500">
-          Total One-to-One: {value.oneToOne.sessions30 + value.oneToOne.sessions45 + value.oneToOne.sessions60} Sessions
-        </p>
+        <div className="flex justify-end gap-4 text-[10px] font-semibold text-slate-500">
+          <span>Total Allocated: {value.oneToOne.sessions30 + value.oneToOne.sessions45 + value.oneToOne.sessions60}</span>
+          <span className="text-emerald-600">Total Completed: {(value.oneToOne.completed30 || 0) + (value.oneToOne.completed45 || 0) + (value.oneToOne.completed60 || 0)}</span>
+          <span className="text-blue-600">Remaining: {Math.max(0, (value.oneToOne.sessions30 + value.oneToOne.sessions45 + value.oneToOne.sessions60) - ((value.oneToOne.completed30 || 0) + (value.oneToOne.completed45 || 0) + (value.oneToOne.completed60 || 0)))}</span>
+        </div>
       </div>
 
       {/* Group Allocation Section */}
@@ -244,11 +291,52 @@ export function ClassAllocationForm({ value, onChange, readOnlySessions = false,
                 />
               </div>
             </div>
+            
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <h4 className="text-sm font-semibold text-emerald-700 mb-3">Already Taken (Completed)</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-emerald-700">30 Min Sessions</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={value.group.completed30 || 0}
+                    onChange={(e) => handleGroupChange("completed30", Number(e.target.value))}
+                    disabled={readOnlySessions}
+                    className="border-emerald-200 focus-visible:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-emerald-700">45 Min Sessions</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={value.group.completed45 || 0}
+                    onChange={(e) => handleGroupChange("completed45", Number(e.target.value))}
+                    disabled={readOnlySessions}
+                    className="border-emerald-200 focus-visible:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-emerald-700">60 Min Sessions</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={value.group.completed60 || 0}
+                    onChange={(e) => handleGroupChange("completed60", Number(e.target.value))}
+                    disabled={readOnlySessions}
+                    className="border-emerald-200 focus-visible:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <p className="text-[10px] text-right font-semibold text-slate-500">
-          Total Group: {value.group.sessions30 + value.group.sessions45 + value.group.sessions60} Sessions
-        </p>
+        <div className="flex justify-end gap-4 text-[10px] font-semibold text-slate-500">
+          <span>Total Allocated: {value.group.sessions30 + value.group.sessions45 + value.group.sessions60}</span>
+          <span className="text-emerald-600">Total Completed: {(value.group.completed30 || 0) + (value.group.completed45 || 0) + (value.group.completed60 || 0)}</span>
+          <span className="text-blue-600">Remaining: {Math.max(0, (value.group.sessions30 + value.group.sessions45 + value.group.sessions60) - ((value.group.completed30 || 0) + (value.group.completed45 || 0) + (value.group.completed60 || 0)))}</span>
+        </div>
       </div>
     </div>
   );

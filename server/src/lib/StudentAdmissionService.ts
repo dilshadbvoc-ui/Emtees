@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { users, profiles, studentClassAllocations, modules, batches, qualifications } from "@db/schema";
 import { generateNextEnrollmentId } from "./studentIdGenerator";
 import { getNextUniqueId } from "./idGenerator";
@@ -41,6 +41,9 @@ export interface AdmitStudentInput {
   referralCode?: string | null;
   registrationSource?: "direct" | "referral" | "self";
   isBulkImport?: boolean;
+  bulkTotalClassAssigned?: number;
+  bulkClassesCompleted?: number;
+  bulkAssignedTeacherId?: number | null;
 }
 
 function parseSafeDate(dateInput: any): Date | null {
@@ -252,31 +255,46 @@ export class StudentAdmissionService {
       }
     });
 
-    // 10. Sync sessions / class allocation if not enrolled in batch (skip for bulk import)
-    if (!input.batchId && !input.isBulkImport) {
+    // 10. Sync sessions / class allocation if not enrolled in batch
+    // During bulk import, we skip the default allocation UNLESS explicit overrides were provided via spreadsheet
+    const hasBulkOverrides = input.isBulkImport && (input.bulkTotalClassAssigned !== undefined || input.bulkClassesCompleted !== undefined || input.bulkAssignedTeacherId !== undefined);
+    
+    if (!input.batchId && (!input.isBulkImport || hasBulkOverrides)) {
+      const isOneToOne = input.sessionType === "one_on_one" || input.sessionType === "both";
+      const isGroup = input.sessionType === "group" || input.sessionType === "both";
+
+      const tId = input.bulkAssignedTeacherId || null;
+      const t30 = input.bulkTotalClassAssigned !== undefined ? input.bulkTotalClassAssigned : (input.allocatedOneToOneSessions || 0);
+      const c30 = input.bulkClassesCompleted || 0;
+      const r30 = Math.max(0, t30 - c30);
+
+      const gt30 = input.bulkTotalClassAssigned !== undefined ? input.bulkTotalClassAssigned : (input.allocatedGroupSessions || 0);
+      const gc30 = input.bulkClassesCompleted || 0;
+      const gr30 = Math.max(0, gt30 - gc30);
+
       const newAllocationJson = {
         oneToOne: {
-          teacherId: null,
-          sessions30: input.allocatedOneToOneSessions || 0,
+          teacherId: isOneToOne ? tId : null,
+          sessions30: isOneToOne ? t30 : 0,
           sessions45: 0,
           sessions60: 0,
-          completed30: 0,
+          completed30: isOneToOne ? c30 : 0,
           completed45: 0,
           completed60: 0,
-          remaining30: input.allocatedOneToOneSessions || 0,
+          remaining30: isOneToOne ? r30 : 0,
           remaining45: 0,
           remaining60: 0
         },
         group: {
-          teacherId: null,
+          teacherId: isGroup ? tId : null,
           batchId: null,
-          sessions30: input.allocatedGroupSessions || 0,
+          sessions30: isGroup ? gt30 : 0,
           sessions45: 0,
           sessions60: 0,
-          completed30: 0,
+          completed30: isGroup ? gc30 : 0,
           completed45: 0,
           completed60: 0,
-          remaining30: input.allocatedGroupSessions || 0,
+          remaining30: isGroup ? gr30 : 0,
           remaining45: 0,
           remaining60: 0
         }
@@ -284,7 +302,13 @@ export class StudentAdmissionService {
       await tx.insert(studentClassAllocations).values({
         studentId: userId,
         allocation: newAllocationJson,
-      }).onConflictDoNothing();
+      }).onConflictDoUpdate({
+        target: studentClassAllocations.studentId,
+        set: {
+          allocation: newAllocationJson,
+          updatedAt: new Date(),
+        },
+      });
     }
 
     // 11. Recalculate fees

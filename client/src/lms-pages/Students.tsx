@@ -941,7 +941,11 @@ export default function StudentsPage() {
       "Parent Name",
       "Parent Phone Number",
       "Total Course Fee",
-      "Payment Option"
+      "Payment Option",
+      "Total Class Assigned (Optional)",
+      "Classes Completed (Optional)",
+      "Balance Classes (Optional)",
+      "Assigned Teacher (Optional)"
     ];
     const sampleRow = [
       "John Doe",
@@ -961,7 +965,11 @@ export default function StudentsPage() {
       "Richard Doe",
       "+919876543211",
       "15000",
-      "Full Payment"
+      "Full Payment",
+      "30",
+      "0",
+      "30",
+      "Teacher Username"
     ];
     
     const csvContent = [
@@ -1425,8 +1433,8 @@ export default function StudentsPage() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Assigned Teacher</TableHead>
                 <TableHead>Designated Time</TableHead>
-                <TableHead>Qualification</TableHead>
-                <TableHead>Postal Code</TableHead>
+                <TableHead className="whitespace-nowrap">Total Classes</TableHead>
+                <TableHead className="whitespace-nowrap">Classes Taken</TableHead>
                 <TableHead>Course</TableHead>
                 <TableHead>Session Type</TableHead>
                 <TableHead>Batch</TableHead>
@@ -1441,8 +1449,16 @@ export default function StudentsPage() {
                 const isGrp = s.profile?.groupSessionEnabled;
                 const sessionLabel = isO2O && isGrp ? "Both" : isO2O ? "One-on-One" : isGrp ? "Group" : "None";
                 const sessionBadgeClass = isO2O && isGrp ? "bg-purple-100 text-purple-800 border-purple-200" : isO2O ? "bg-blue-100 text-blue-800 border-blue-200" : isGrp ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-gray-100 text-gray-600";
-                const qualDisplay = s.qualificationName || s.profile?.educationalQualification || "-";
-                const postalDisplay = s.postalCode || s.profile?.postalCode || "-";
+                const alloc = s.classAllocation as any;
+                const totalClasses = alloc 
+                  ? ((alloc.oneToOne?.sessions30 || 0) + (alloc.oneToOne?.sessions45 || 0) + (alloc.oneToOne?.sessions60 || 0) +
+                     (alloc.group?.sessions30 || 0) + (alloc.group?.sessions45 || 0) + (alloc.group?.sessions60 || 0))
+                  : ((s.profile?.allocatedOneToOneSessions || 0) + (s.profile?.allocatedGroupSessions || 0));
+
+                const classesTaken = alloc
+                  ? ((alloc.oneToOne?.completed30 || 0) + (alloc.oneToOne?.completed45 || 0) + (alloc.oneToOne?.completed60 || 0) +
+                     (alloc.group?.completed30 || 0) + (alloc.group?.completed45 || 0) + (alloc.group?.completed60 || 0))
+                  : ((s.profile?.attendedOneToOneSessions || 0) + (s.profile?.attendedGroupSessions || 0));
 
                 return (
                   <TableRow
@@ -1472,6 +1488,9 @@ export default function StudentsPage() {
                               sessions30: (alloc as any).oneToOne?.sessions30 ?? 0,
                               sessions45: (alloc as any).oneToOne?.sessions45 ?? 0,
                               sessions60: (alloc as any).oneToOne?.sessions60 ?? 0,
+                              completed30: (alloc as any).oneToOne?.completed30 ?? 0,
+                              completed45: (alloc as any).oneToOne?.completed45 ?? 0,
+                              completed60: (alloc as any).oneToOne?.completed60 ?? 0,
                             },
                             group: {
                               teacherId: (alloc as any).group?.teacherId ?? "",
@@ -1480,6 +1499,9 @@ export default function StudentsPage() {
                               sessions30: (alloc as any).group?.sessions30 ?? 0,
                               sessions45: (alloc as any).group?.sessions45 ?? 0,
                               sessions60: (alloc as any).group?.sessions60 ?? 0,
+                              completed30: (alloc as any).group?.completed30 ?? 0,
+                              completed45: (alloc as any).group?.completed45 ?? 0,
+                              completed60: (alloc as any).group?.completed60 ?? 0,
                             }
                           });
                           setIsConfiguringAllocation(true);
@@ -1507,8 +1529,8 @@ export default function StudentsPage() {
                       )}
                       {(!isO2O || !(s.classAllocation as any)?.oneToOne?.designatedTime) && (!isGrp || !(s.classAllocation as any)?.group?.designatedTime) && "-"}
                     </TableCell>
-                    <TableCell>{qualDisplay}</TableCell>
-                    <TableCell className="font-mono text-xs">{postalDisplay}</TableCell>
+                    <TableCell className="font-semibold text-center">{totalClasses}</TableCell>
+                    <TableCell className="font-semibold text-center text-emerald-600">{classesTaken}</TableCell>
                     <TableCell>{s.profile?.course || "-"}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${sessionBadgeClass}`}>
@@ -1558,8 +1580,16 @@ export default function StudentsPage() {
               const isGrp = s.profile?.groupSessionEnabled;
               const sessionLabel = isO2O && isGrp ? "Both" : isO2O ? "One-on-One" : isGrp ? "Group" : "None";
               const sessionBadgeClass = isO2O && isGrp ? "bg-purple-100 text-purple-800 border-purple-200" : isO2O ? "bg-blue-100 text-blue-800 border-blue-200" : isGrp ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-gray-100 text-gray-600";
-              const qualDisplay = s.qualificationName || s.profile?.educationalQualification || "-";
-              const postalDisplay = s.postalCode || s.profile?.postalCode || "-";
+              const alloc = s.classAllocation as any;
+              const totalClasses = alloc 
+                ? ((alloc.oneToOne?.sessions30 || 0) + (alloc.oneToOne?.sessions45 || 0) + (alloc.oneToOne?.sessions60 || 0) +
+                   (alloc.group?.sessions30 || 0) + (alloc.group?.sessions45 || 0) + (alloc.group?.sessions60 || 0))
+                : ((s.profile?.allocatedOneToOneSessions || 0) + (s.profile?.allocatedGroupSessions || 0));
+
+              const classesTaken = alloc
+                ? ((alloc.oneToOne?.completed30 || 0) + (alloc.oneToOne?.completed45 || 0) + (alloc.oneToOne?.completed60 || 0) +
+                   (alloc.group?.completed30 || 0) + (alloc.group?.completed45 || 0) + (alloc.group?.completed60 || 0))
+                : ((s.profile?.attendedOneToOneSessions || 0) + (s.profile?.attendedGroupSessions || 0));
 
               return (
                 <Card key={s.id} className="border border-slate-100 shadow-sm rounded-xl overflow-hidden p-4 space-y-3 bg-white" onClick={() => setDetailsStudentId(s.id)}>
@@ -1574,8 +1604,8 @@ export default function StudentsPage() {
                   <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs">
                     <div className="flex justify-between"><span className="text-gray-500">Course:</span> <span className="font-medium text-gray-800">{s.profile?.course || "-"}</span></div>
                     <div className="flex justify-between"><span className="text-gray-500">Batch:</span> <span className="font-medium text-gray-800">{s.profile?.batch || "Waiting for Batch"}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Qualification:</span> <span className="font-medium text-gray-800">{qualDisplay}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Postal Code:</span> <span className="font-mono font-medium text-gray-800">{postalDisplay}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Total Classes:</span> <span className="font-semibold text-gray-800">{totalClasses}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Classes Taken:</span> <span className="font-semibold text-emerald-600">{classesTaken}</span></div>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${sessionBadgeClass}`}>
@@ -1665,13 +1695,14 @@ export default function StudentsPage() {
             </div>
 
             {/* Field guidelines */}
-            <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-4 space-y-2">
-              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">Important Guidelines</span>
-              <ul className="text-xs text-amber-700 list-disc list-inside space-y-1">
-                <li><strong className="text-amber-800">Mandatory columns:</strong> Full Name, Phone Number, Module. All others are optional.</li>
-                <li><strong className="text-amber-800">Preferred Time:</strong> If provided, must match active LMS batch timeslots (e.g. "9:00 AM" or "7 PM"). Defaults to "To Be Decided".</li>
-                <li><strong className="text-amber-800">Type:</strong> Must be "Group", "1 on 1", or "Both". Defaults to "Group".</li>
-                <li>Each record will process inside its own database transaction. Valid rows will import even if others fail.</li>
+            <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 text-sm">
+              <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-1.5">Important Guidelines</h4>
+              <ul className="list-disc pl-5 space-y-1.5 text-blue-800">
+                <li><span className="font-medium text-blue-950">Mandatory Columns:</span> <span className="font-semibold text-red-600">Full Name</span>, <span className="font-semibold text-red-600">Phone Number</span>, and <span className="font-semibold text-red-600">Module</span> must be filled for every student.</li>
+                <li><span className="font-medium text-blue-950">Username / Password:</span> Can be left blank. Usernames will automatically generate from the phone number. Passwords default to student123.</li>
+                <li><span className="font-medium text-blue-950">Class Allocations:</span> You can specify <span className="italic">Total Class Assigned</span> and <span className="italic">Classes Completed</span> directly. <span className="italic">Balance Classes</span> is calculated automatically if left blank.</li>
+                <li><span className="font-medium text-blue-950">Assigned Teacher:</span> Enter the exact name or username of the teacher. It is safer to use the username.</li>
+                <li>Do not rename or rearrange the column headers from the downloaded template.</li>
               </ul>
             </div>
 
@@ -2250,6 +2281,9 @@ export default function StudentsPage() {
                                 sessions30: (alloc as any).oneToOne?.sessions30 ?? 0,
                                 sessions45: (alloc as any).oneToOne?.sessions45 ?? 0,
                                 sessions60: (alloc as any).oneToOne?.sessions60 ?? 0,
+                                completed30: (alloc as any).oneToOne?.completed30 ?? 0,
+                                completed45: (alloc as any).oneToOne?.completed45 ?? 0,
+                                completed60: (alloc as any).oneToOne?.completed60 ?? 0,
                               },
                               group: {
                                 teacherId: (alloc as any).group?.teacherId ?? "",
@@ -2258,6 +2292,9 @@ export default function StudentsPage() {
                                 sessions30: (alloc as any).group?.sessions30 ?? 0,
                                 sessions45: (alloc as any).group?.sessions45 ?? 0,
                                 sessions60: (alloc as any).group?.sessions60 ?? 0,
+                                completed30: (alloc as any).group?.completed30 ?? 0,
+                                completed45: (alloc as any).group?.completed45 ?? 0,
+                                completed60: (alloc as any).group?.completed60 ?? 0,
                               }
                             });
                             setIsConfiguringAllocation(true);
@@ -2998,6 +3035,9 @@ export default function StudentsPage() {
                       sessions30: Number(tempAllocation.oneToOne.sessions30),
                       sessions45: Number(tempAllocation.oneToOne.sessions45),
                       sessions60: Number(tempAllocation.oneToOne.sessions60),
+                      completed30: Number(tempAllocation.oneToOne.completed30 || 0),
+                      completed45: Number(tempAllocation.oneToOne.completed45 || 0),
+                      completed60: Number(tempAllocation.oneToOne.completed60 || 0),
                     },
                     group: {
                       teacherId: tempAllocation.group.teacherId !== "" ? Number(tempAllocation.group.teacherId) : null,
@@ -3006,6 +3046,9 @@ export default function StudentsPage() {
                       sessions30: Number(tempAllocation.group.sessions30),
                       sessions45: Number(tempAllocation.group.sessions45),
                       sessions60: Number(tempAllocation.group.sessions60),
+                      completed30: Number(tempAllocation.group.completed30 || 0),
+                      completed45: Number(tempAllocation.group.completed45 || 0),
+                      completed60: Number(tempAllocation.group.completed60 || 0),
                     }
                   }
                 });
