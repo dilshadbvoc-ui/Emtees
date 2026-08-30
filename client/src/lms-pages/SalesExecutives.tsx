@@ -55,6 +55,9 @@ import {
   Coins,
   Users,
   Trash2,
+  Eye,
+  EyeOff,
+  ShieldCheck,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -99,6 +102,11 @@ export default function SalesExecutivesAdminPage() {
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [selectedExecForDelete, setSelectedExecForDelete] = useState<any>(null);
+
+  // Credentials modal
+  const [credsModalOpen, setCredsModalOpen] = useState(false);
+  const [selectedExecForCreds, setSelectedExecForCreds] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form states
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -511,7 +519,23 @@ export default function SalesExecutivesAdminPage() {
                           Performance
                         </Button>
 
-                        {/* Credentials Button */}
+                        {/* View Credentials Button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs border-violet-100 text-violet-700 hover:bg-violet-50 px-2.5 font-medium"
+                          onClick={() => {
+                            setSelectedExecForCreds(exec);
+                            setShowPassword(false);
+                            setCredsModalOpen(true);
+                          }}
+                          title="View Login Credentials"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                          Credentials
+                        </Button>
+
+                        {/* Edit Credentials Button */}
                         <Button
                           variant="outline"
                           size="sm"
@@ -1360,6 +1384,122 @@ export default function SalesExecutivesAdminPage() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Credentials Modal ── */}
+      <Dialog open={credsModalOpen} onOpenChange={(o) => { setCredsModalOpen(o); if (!o) setShowPassword(false); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-violet-700">
+              <ShieldCheck className="w-5 h-5" />
+              Login Credentials
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Credentials for <span className="font-semibold text-slate-700">{selectedExecForCreds?.name}</span> ({selectedExecForCreds?.employeeId})
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Username */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Username</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-800 select-all">
+                  {selectedExecForCreds?.username || "—"}
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 shrink-0 text-slate-500 hover:text-violet-700"
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedExecForCreds?.username || "");
+                    toast.success("Username copied!");
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Password</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-800 select-all tracking-widest">
+                  {showPassword
+                    ? (selectedExecForCreds?.rawPassword || <span className="text-slate-400 italic tracking-normal text-xs">Not stored</span>)
+                    : "••••••••••••"}
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 shrink-0 text-slate-500 hover:text-violet-700"
+                  onClick={() => setShowPassword((v) => !v)}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 shrink-0 text-slate-500 hover:text-violet-700"
+                  onClick={() => {
+                    if (selectedExecForCreds?.rawPassword) {
+                      navigator.clipboard.writeText(selectedExecForCreds.rawPassword);
+                      toast.success("Password copied!");
+                    } else {
+                      toast.error("Password not available");
+                    }
+                  }}
+                  title="Copy password"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              {!selectedExecForCreds?.rawPassword && (
+                <p className="text-[10px] text-amber-600 mt-1">⚠ Raw password not stored. Use "Edit Credentials" to set a new one.</p>
+              )}
+            </div>
+
+            {/* Summary row */}
+            <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Employee ID</span>
+                <span className="font-mono font-bold text-slate-800">{selectedExecForCreds?.employeeId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Email</span>
+                <span className="font-mono text-slate-700">{selectedExecForCreds?.email || "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Phone</span>
+                <span className="font-mono text-slate-700">{selectedExecForCreds?.phone || "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Status</span>
+                <Badge className={selectedExecForCreds?.status === "active" ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[10px]" : "bg-red-100 text-red-700 hover:bg-red-100 text-[10px]"}>
+                  {selectedExecForCreds?.status}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setCredsModalOpen(false)}>Close</Button>
+            <Button
+              size="sm"
+              className="bg-violet-600 hover:bg-violet-700 text-white"
+              onClick={() => {
+                const text = `Username: ${selectedExecForCreds?.username}\nPassword: ${selectedExecForCreds?.rawPassword || "(not stored)"}`;
+                navigator.clipboard.writeText(text);
+                toast.success("Credentials copied to clipboard!");
+              }}
+            >
+              <Copy className="w-3.5 h-3.5 mr-1.5" />
+              Copy All
             </Button>
           </DialogFooter>
         </DialogContent>

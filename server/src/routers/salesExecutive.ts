@@ -64,7 +64,7 @@ export const salesExecutiveRouter = createRouter({
         orderBy: desc(salesExecutives.createdAt),
       });
 
-      // Augment with student count
+      // Augment with student count + rawPassword from linked user
       const result = [];
       for (const exec of list) {
         const [{ value: studentCount }] = await db
@@ -78,10 +78,17 @@ export const salesExecutiveRouter = createRouter({
           managedGroupIds = mGroups.map(g => g.id);
         }
 
+        // Fetch rawPassword from the users table (admin-only use)
+        const linkedUser = await db.query.users.findFirst({
+          where: eq(users.id, exec.userId),
+          columns: { rawPassword: true },
+        });
+
         result.push({
           ...exec,
           studentCount,
           managedGroupIds,
+          rawPassword: linkedUser?.rawPassword || null,
         });
       }
       return result;
