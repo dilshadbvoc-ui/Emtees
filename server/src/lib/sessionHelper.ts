@@ -128,35 +128,54 @@ export async function updateStudentSessionBalances(db: any, studentId: number) {
       .where(eq(batchEnrollments.id, enrollment.id));
   }
 
-  // Sync studentClassAllocations table — preserve designatedTime from existing allocation
+  // Sync studentClassAllocations table — preserve designatedTime and manually-set
+  // completed counts from existing allocation. Use Math.max so that:
+  //   - Real DB-recorded sessions always win when they exceed the manual count
+  //   - Manually-entered historical counts are preserved when DB shows 0
   const existingAllocData = existingAlloc?.allocation as any;
+
+  const finalO2OCompleted30 = Math.max(completedO2O30, existingAllocData?.oneToOne?.completed30 || 0);
+  const finalO2OCompleted45 = Math.max(completedO2O45, existingAllocData?.oneToOne?.completed45 || 0);
+  const finalO2OCompleted60 = Math.max(completedO2O60, existingAllocData?.oneToOne?.completed60 || 0);
+
+  const finalGroupCompleted30 = Math.max(completedGroup30, existingAllocData?.group?.completed30 || 0);
+  const finalGroupCompleted45 = Math.max(completedGroup45, existingAllocData?.group?.completed45 || 0);
+  const finalGroupCompleted60 = Math.max(completedGroup60, existingAllocData?.group?.completed60 || 0);
+
+  const o2oSessions30 = existingAlloc ? (existingAllocData?.oneToOne?.sessions30 || 0) : sessionsO2O30;
+  const o2oSessions45 = existingAlloc ? (existingAllocData?.oneToOne?.sessions45 || 0) : sessionsO2O45;
+  const o2oSessions60 = existingAlloc ? (existingAllocData?.oneToOne?.sessions60 || 0) : sessionsO2O60;
+  const groupSessions30 = existingAlloc ? (existingAllocData?.group?.sessions30 || 0) : sessionsGroup30;
+  const groupSessions45 = existingAlloc ? (existingAllocData?.group?.sessions45 || 0) : sessionsGroup45;
+  const groupSessions60 = existingAlloc ? (existingAllocData?.group?.sessions60 || 0) : sessionsGroup60;
+
   const newAllocationJson = {
     oneToOne: {
       teacherId: existingAlloc ? (existingAllocData?.oneToOne?.teacherId || null) : (enrollment ? ((enrollment.assignedTeachers as any)?.[0] || null) : null),
       designatedTime: existingAllocData?.oneToOne?.designatedTime || "",
-      sessions30: existingAlloc ? (existingAllocData?.oneToOne?.sessions30 || 0) : sessionsO2O30,
-      sessions45: existingAlloc ? (existingAllocData?.oneToOne?.sessions45 || 0) : sessionsO2O45,
-      sessions60: existingAlloc ? (existingAllocData?.oneToOne?.sessions60 || 0) : sessionsO2O60,
-      completed30: completedO2O30,
-      completed45: completedO2O45,
-      completed60: completedO2O60,
-      remaining30: Math.max(0, (existingAlloc ? (existingAllocData?.oneToOne?.sessions30 || 0) : sessionsO2O30) - completedO2O30),
-      remaining45: Math.max(0, (existingAlloc ? (existingAllocData?.oneToOne?.sessions45 || 0) : sessionsO2O45) - completedO2O45),
-      remaining60: Math.max(0, (existingAlloc ? (existingAllocData?.oneToOne?.sessions60 || 0) : sessionsO2O60) - completedO2O60)
+      sessions30: o2oSessions30,
+      sessions45: o2oSessions45,
+      sessions60: o2oSessions60,
+      completed30: finalO2OCompleted30,
+      completed45: finalO2OCompleted45,
+      completed60: finalO2OCompleted60,
+      remaining30: Math.max(0, o2oSessions30 - finalO2OCompleted30),
+      remaining45: Math.max(0, o2oSessions45 - finalO2OCompleted45),
+      remaining60: Math.max(0, o2oSessions60 - finalO2OCompleted60)
     },
     group: {
       teacherId: existingAlloc ? (existingAllocData?.group?.teacherId || null) : (enrollment ? ((enrollment.assignedTeachers as any)?.[1] || (enrollment.assignedTeachers as any)?.[0] || null) : null),
       batchId: existingAlloc ? (existingAllocData?.group?.batchId || null) : (enrollment ? enrollment.batchId : null),
       designatedTime: existingAllocData?.group?.designatedTime || "",
-      sessions30: existingAlloc ? (existingAllocData?.group?.sessions30 || 0) : sessionsGroup30,
-      sessions45: existingAlloc ? (existingAllocData?.group?.sessions45 || 0) : sessionsGroup45,
-      sessions60: existingAlloc ? (existingAllocData?.group?.sessions60 || 0) : sessionsGroup60,
-      completed30: completedGroup30,
-      completed45: completedGroup45,
-      completed60: completedGroup60,
-      remaining30: Math.max(0, (existingAlloc ? (existingAllocData?.group?.sessions30 || 0) : sessionsGroup30) - completedGroup30),
-      remaining45: Math.max(0, (existingAlloc ? (existingAllocData?.group?.sessions45 || 0) : sessionsGroup45) - completedGroup45),
-      remaining60: Math.max(0, (existingAlloc ? (existingAllocData?.group?.sessions60 || 0) : sessionsGroup60) - completedGroup60)
+      sessions30: groupSessions30,
+      sessions45: groupSessions45,
+      sessions60: groupSessions60,
+      completed30: finalGroupCompleted30,
+      completed45: finalGroupCompleted45,
+      completed60: finalGroupCompleted60,
+      remaining30: Math.max(0, groupSessions30 - finalGroupCompleted30),
+      remaining45: Math.max(0, groupSessions45 - finalGroupCompleted45),
+      remaining60: Math.max(0, groupSessions60 - finalGroupCompleted60)
     }
   };
 
