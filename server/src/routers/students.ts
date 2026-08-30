@@ -310,6 +310,11 @@ export const studentsRouter = createRouter({
       const db = getDb();
       const userId = input.id;
 
+      // Guard: id=0 means not yet loaded on client — return null gracefully
+      if (!userId || userId <= 0) {
+        return null;
+      }
+
       // Permission check: Students can only view their own profile
       if (ctx.user.role === "student" && ctx.user.id !== userId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Students can only access their own profile." });

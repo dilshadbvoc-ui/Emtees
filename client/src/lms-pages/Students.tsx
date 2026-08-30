@@ -271,8 +271,8 @@ export default function StudentsPage() {
   }, { enabled: isStaff });
 
   const profileQuery = trpc.students.getProfile.useQuery(
-    { id: detailsStudentId ?? 0 },
-    { enabled: !!detailsStudentId && detailsStudentId > 0 }
+    { id: detailsStudentId || 0 },
+    { enabled: typeof detailsStudentId === "number" && detailsStudentId > 0 }
   );
 
   // tRPC Mutations
@@ -2478,7 +2478,7 @@ export default function StudentsPage() {
                           <TableRow key={rec.id}>
                             <TableCell className="font-mono text-gray-500">{rec.class?.scheduledAt ? new Date(rec.class.scheduledAt).toLocaleDateString() : "-"}</TableCell>
                             <TableCell className="font-medium">{rec.class?.title || "Live Class"}</TableCell>
-                            <TableCell>{profileQuery.data.student.profile?.batch}</TableCell>
+                            <TableCell>{profileQuery.data!.student.profile?.batch}</TableCell>
                             <TableCell className="text-center">
                               <Badge className={
                                 rec.status === "present"
@@ -2922,7 +2922,7 @@ export default function StudentsPage() {
                             return;
                           }
                           addDocumentMutation.mutate({
-                            studentId: profileQuery.data.student.id,
+                            studentId: profileQuery.data!.student.id,
                             name: newDoc.name,
                             url: newDoc.url,
                           });
@@ -2951,7 +2951,7 @@ export default function StudentsPage() {
                           {isAdmin && (
                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-500 hover:text-red-700" onClick={() => {
                               deleteDocumentMutation.mutate({
-                                studentId: profileQuery.data.student.id,
+                                studentId: profileQuery.data!.student.id,
                                 documentId: doc.id,
                               });
                             }}>
@@ -2973,7 +2973,7 @@ export default function StudentsPage() {
                 <TabsContent value="communication" className="space-y-4 outline-none">
                   <div className="border rounded-xl bg-slate-50 p-4 max-h-[350px] overflow-y-auto space-y-3">
                     {profileQuery.data.chatHistory.map((msg) => {
-                      const isOutgoing = msg.senderId !== profileQuery.data.student.id;
+                      const isOutgoing = msg.senderId !== profileQuery.data!.student.id;
                       return (
                         <div key={msg.id} className={`flex ${isOutgoing ? "justify-end" : "justify-start"}`}>
                           <div className={`p-3 rounded-2xl max-w-[75%] shadow-sm text-xs leading-relaxed ${

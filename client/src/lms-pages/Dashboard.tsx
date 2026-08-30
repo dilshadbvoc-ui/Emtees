@@ -44,8 +44,8 @@ export default function Dashboard() {
   const teacherStatsQuery = trpc.user.getTeacherStats.useQuery(undefined, { enabled: isTeacher });
   const classesQuery = trpc.class.list.useQuery(undefined);
   const studentProfileQuery = trpc.students.getProfile.useQuery(
-    { id: user?.id ?? 0 },
-    { enabled: user?.role === "student" && !!user?.id && user.id > 0 }
+    { id: user?.id || 0 },
+    { enabled: user?.role === "student" && typeof user?.id === "number" && user.id > 0 }
   );
   const myProfile = trpc.user.myProfile.useQuery(undefined, { enabled: user?.role === "student" });
 
