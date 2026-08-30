@@ -2213,12 +2213,25 @@ export default function StudentsPage() {
                     const auditLogs = profileQuery.data.studentCourseAuditLogs || [];
                     const classAllocation = profileQuery.data.classAllocation;
 
-                    // Calculate stats
-                    const completedCount = classHistory.filter((c: any) => c.status === "completed").length;
+                    // Calculate stats — prefer classAllocation JSON (holds manually-set completed counts
+                    // for historical/bulk-imported students) over raw classHistory DB records
+                    const alloc = classAllocation as any;
+                    const allocCompleted =
+                      (alloc?.oneToOne?.completed30 || 0) + (alloc?.oneToOne?.completed45 || 0) + (alloc?.oneToOne?.completed60 || 0) +
+                      (alloc?.group?.completed30 || 0) + (alloc?.group?.completed45 || 0) + (alloc?.group?.completed60 || 0);
+                    const allocTotal =
+                      (alloc?.oneToOne?.sessions30 || 0) + (alloc?.oneToOne?.sessions45 || 0) + (alloc?.oneToOne?.sessions60 || 0) +
+                      (alloc?.group?.sessions30 || 0) + (alloc?.group?.sessions45 || 0) + (alloc?.group?.sessions60 || 0);
+
+                    // DB-recorded session counts (from actual logged sessions)
+                    const dbCompletedCount = classHistory.filter((c: any) => c.status === "completed").length;
                     const missedCount = classHistory.filter((c: any) => c.status === "absent").length;
                     const cancelledCount = classHistory.filter((c: any) => c.status === "cancelled").length;
-                    const totalAllocated = profileQuery.data.student.profile?.totalAllocatedSessions || 0;
-                    const totalRemaining = profileQuery.data.student.profile?.totalRemainingSessions || 0;
+
+                    // Use allocation-based count if it's higher (covers historical students)
+                    const completedCount = Math.max(allocCompleted, dbCompletedCount);
+                    const totalAllocated = allocTotal > 0 ? allocTotal : (profileQuery.data.student.profile?.totalAllocatedSessions || 0);
+                    const totalRemaining = Math.max(0, totalAllocated - completedCount);
                     const pct = totalAllocated > 0 ? Math.min(100, Math.round((completedCount / totalAllocated) * 100)) : 0;
                     return (
                       <div className="space-y-6">
