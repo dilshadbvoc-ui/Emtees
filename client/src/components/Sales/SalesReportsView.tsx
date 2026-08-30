@@ -7,8 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { exportToCSV } from "@/lib/exportUtils";
 
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function getCurrentMonthStr() {
+  const now = new Date();
+  return `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+function getMonthOptions() {
+  const now = new Date();
+  const options: string[] = [];
+  // 3 months back to 3 months ahead
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    options.push(`${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`);
+  }
+  return options;
+}
+
 export default function SalesReportsView() {
-  const [monthStr, setMonthStr] = useState<string>("May 2025"); // default to May 2025 since we imported it
+  const [monthStr, setMonthStr] = useState<string>(getCurrentMonthStr());
 
   const { data: reportData, isLoading } = trpc.sales.generateDetailedReport.useQuery({
     monthStr: monthStr || undefined,
@@ -57,11 +75,9 @@ export default function SalesReportsView() {
               <SelectValue placeholder="Select Month" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="May 2025">May 2025</SelectItem>
-              <SelectItem value="June 2025">June 2025</SelectItem>
-              <SelectItem value="July 2025">July 2025</SelectItem>
-              <SelectItem value="August 2025">August 2025</SelectItem>
-              <SelectItem value="September 2025">September 2025</SelectItem>
+              {getMonthOptions().map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
