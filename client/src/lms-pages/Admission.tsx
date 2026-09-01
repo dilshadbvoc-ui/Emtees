@@ -14,20 +14,6 @@ import { GraduationCap, ArrowRight, UserCheck, ShieldCheck } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea";
 import { PhoneNumberInput } from "@/components/PhoneNumberInput";
 
-const PREFERRED_TIME_SLOTS = [
-  "7:00 AM",
-  "8:00 AM",
-  "9:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "12:00 PM",
-  "2:00 PM",
-  "4:00 PM",
-  "6:00 PM",
-  "7:00 PM",
-  "8:00 PM"
-];
-
 export default function AdmissionPage() {
   const params = useParams();
   const router = useNavigate();
@@ -235,7 +221,7 @@ export default function AdmissionPage() {
           <div className="mt-4 bg-white/10 rounded-lg p-3 text-xs flex items-center gap-2 border border-white/10">
             <ShieldCheck className="w-4 h-4 text-emerald-200 shrink-0" />
             <span>
-              Referred by: <strong className="text-white">{salesExec.name}</strong> (Sales Executive)
+              Referred by: <strong className="text-white">{salesExec.name}</strong> (Admission Manager)
             </span>
           </div>
         </div>
@@ -280,7 +266,7 @@ export default function AdmissionPage() {
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-lg border bg-white cursor-pointer hover:bg-emerald-50/20 transition-colors">
+                  {/* <label className="flex items-center gap-3 p-3 rounded-lg border bg-white cursor-pointer hover:bg-emerald-50/20 transition-colors">
                     <Checkbox
                       checked={groupSessionEnabled}
                       onCheckedChange={(checked) => setGroupSessionEnabled(!!checked)}
@@ -289,7 +275,7 @@ export default function AdmissionPage() {
                       <span className="text-xs font-semibold text-gray-800 block">Group Session</span>
                       <span className="text-[10px] text-gray-500 block">Collaborative group learning</span>
                     </div>
-                  </label>
+                  </label> */}
                 </div>
               </div>
 
@@ -297,16 +283,14 @@ export default function AdmissionPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="preferredTime" className="text-xs font-semibold text-gray-600">Preferred Class Time <span className="text-red-500">*</span></Label>
-                  <Select value={preferredClassTime} onValueChange={setPreferredClassTime}>
-                    <SelectTrigger id="preferredTime" className="bg-white rounded-lg border-gray-200 text-xs">
-                      <SelectValue placeholder="Select Preferred Timing" />
-                    </SelectTrigger>
-                    <SelectContent className="text-xs">
-                      {PREFERRED_TIME_SLOTS.map((slot) => (
-                        <SelectItem key={slot} value={slot}>{slot}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="preferredTime"
+                    type="time"
+                    value={preferredClassTime}
+                    onChange={(e) => setPreferredClassTime(e.target.value)}
+                    className="bg-white rounded-lg border-gray-200 text-xs h-9 w-36"
+                    required
+                  />
                 </div>
 
                 {/* Payment Type */}

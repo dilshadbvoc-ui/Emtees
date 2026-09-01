@@ -62,8 +62,6 @@ export default function UsersPage() {
     role: roleFilter as any,
     status: statusFilter as any,
     search: search || undefined,
-    limit: 50,
-    offset: 0,
   }, { enabled: canViewUsers });
 
   const departmentsQuery = trpc.department.list.useQuery();

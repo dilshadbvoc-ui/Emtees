@@ -42,7 +42,7 @@ const navItems = [
   { icon: Users, label: "Users", path: "/users" },
   { icon: Contact, label: "Students", path: "/students" },
   { icon: GraduationCap, label: "Qualifications", path: "/qualifications" },
-  { icon: Users, label: "Sales Executives", path: "/sales-management/executives" },
+  { icon: Users, label: "Admission Manager", path: "/sales-management/executives" },
   { icon: BarChart3, label: "Sales & Accounts", path: "/sales-management/dashboard" },
   { icon: Contact, label: "Leads", path: "/sales-management/leads" },
   { icon: Building2, label: "Departments", path: "/departments" },

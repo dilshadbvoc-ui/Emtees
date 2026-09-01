@@ -23,8 +23,8 @@ export const userRouter = createRouter({
         role: z.enum(["all", "student", "teacher", "admin", "academic_head", "super_admin"]).default("all"),
         search: z.string().optional(),
         status: z.enum(["all", "active", "inactive", "suspended", "on_hold"]).default("all"),
-        limit: z.number().default(50),
-        offset: z.number().default(0),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
       }).optional()
     )
     .query(async ({ input, ctx }) => {
@@ -61,8 +61,8 @@ export const userRouter = createRouter({
       const where = filters.length > 0 ? and(...filters) : undefined;
       const list = await db.query.users.findMany({
         where,
-        limit: input?.limit || 50,
-        offset: input?.offset || 0,
+        limit: input?.limit,
+        offset: input?.offset,
         orderBy: desc(users.createdAt),
         with: { profile: true, departmentTeachers: true },
       });
