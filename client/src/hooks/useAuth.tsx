@@ -44,7 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (token) {
       if (meQuery.isSuccess) {
-        setUser(meQuery.data);
+        if (meQuery.data) {
+          setUser(meQuery.data);
+        }
         setIsLoading(false);
       } else if (meQuery.isError) {
         setUser(null);
@@ -55,8 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (data: { token: string; user: AuthUser }) => {
     localStorage.setItem("token", data.token);
-    setToken(data.token);
     setUser(data.user);
+    setToken(data.token);
+    setIsLoading(false);
   };
 
   const logout = () => {

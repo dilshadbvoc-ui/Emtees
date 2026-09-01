@@ -529,10 +529,10 @@ export default function FeesPage() {
 
             <TabsContent value="payments" className="space-y-4">
               <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Payment Status</label>
-                    <select className="border rounded-md px-3 py-1.5 text-xs bg-white dark:bg-gray-950 max-w-[150px] w-full" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block">Payment Status</label>
+                    <select className="border rounded-md px-3 py-1.5 text-xs bg-white dark:bg-gray-950 max-w-[150px] w-full h-8 outline-none" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                       <option value="all">All Statuses</option>
                       <option value="paid">Paid</option>
                       <option value="unpaid">Unpaid</option>
@@ -541,9 +541,9 @@ export default function FeesPage() {
                     </select>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Batch Filter</label>
-                    <select className="border rounded-md px-3 py-1.5 text-xs bg-white dark:bg-gray-950 max-w-[150px] w-full" value={selectedBatchFilter} onChange={(e) => setSelectedBatchFilter(e.target.value)}>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block">Batch Filter</label>
+                    <select className="border rounded-md px-3 py-1.5 text-xs bg-white dark:bg-gray-950 max-w-[150px] w-full h-8 outline-none" value={selectedBatchFilter} onChange={(e) => setSelectedBatchFilter(e.target.value)}>
                       <option value="all">All Batches</option>
                       {batchesQuery.data?.map((b) => (
                         <option key={b.id} value={String(b.id)}>{b.name}</option>
@@ -551,8 +551,8 @@ export default function FeesPage() {
                     </select>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Due Date</label>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block">Due Date</label>
                     <Input type="date" className="h-8 text-xs max-w-[150px] py-1" value={selectedDueDateFilter} onChange={(e) => setSelectedDueDateFilter(e.target.value)} />
                   </div>
                 </div>

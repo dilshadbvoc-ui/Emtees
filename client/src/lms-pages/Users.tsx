@@ -352,7 +352,7 @@ export default function UsersPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input className="pl-9 w-full sm:w-56" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input className="pl-9 w-full sm:w-56" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} autoComplete="off" name="user-search" />
           </div>
           <select
             className="border rounded-md px-3 py-2 text-sm"
@@ -906,6 +906,8 @@ export default function UsersPage() {
                   placeholder="Enter new password (min 6 chars)" 
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
+                  name="new-password"
                 />
                 <Button 
                   className="w-full bg-amber-600 hover:bg-amber-700 text-white" 

@@ -1072,21 +1072,21 @@ export default function StudentsPage() {
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Students Management</h2>
           <p className="text-sm text-gray-500">View and manage Emtees student enrollment, profiles, and analytics.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportCSV} className="text-gray-700 border-gray-200">
-            <Download className="w-4 h-4 mr-2" />
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={handleExportCSV} className="text-gray-700 border-gray-200 text-xs sm:text-sm flex-1 sm:flex-none">
+            <Download className="w-4 h-4 mr-1.5 sm:mr-2" />
             Export CSV
           </Button>
           {isAdmin && (
             <>
-              <Button variant="outline" onClick={() => setImportOpen(true)} className="text-gray-700 border-gray-200">
-                <Upload className="w-4 h-4 mr-2" />
+              <Button variant="outline" onClick={() => setImportOpen(true)} className="text-gray-700 border-gray-200 text-xs sm:text-sm flex-1 sm:flex-none">
+                <Upload className="w-4 h-4 mr-1.5 sm:mr-2" />
                 Bulk Import
               </Button>
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={handleCreateOpen} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                    <Plus className="w-4 h-4 mr-2" />
+                  <Button onClick={handleCreateOpen} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm w-full sm:w-auto">
+                    <Plus className="w-4 h-4 mr-1.5 sm:mr-2" />
                     Add Student
                   </Button>
                 </DialogTrigger>
@@ -1357,8 +1357,8 @@ export default function StudentsPage() {
 
       {/* Tabs and Filters Section */}
       <div className="flex flex-col gap-4">
-        <div className="border-b">
-          <div className="flex gap-4">
+        <div className="border-b overflow-x-auto">
+          <div className="flex gap-4 min-w-max">
             {(["all", "active", "inactive", "pending_enrollment", "alumni"] as const).map((status) => (
               <button
                 key={status}
@@ -1379,7 +1379,7 @@ export default function StudentsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-56">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input className="pl-9 w-full" placeholder="Search ID, Name, Phone, Address..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+            <Input className="pl-9 w-full" placeholder="Search ID, Name, Phone, Address..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} autoComplete="off" name="student-search" />
           </div>
           <select
             className="border rounded-md px-3 py-2 text-sm bg-white w-full sm:w-40 outline-none"
