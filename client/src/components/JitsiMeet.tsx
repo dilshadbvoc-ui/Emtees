@@ -365,8 +365,8 @@ export default function JitsiMeet({
             configOverwrite={{
               startWithAudioMuted: false,
               startWithVideoMuted: false,
-              // Allow deep linking so mobile phones can open the native Jitsi app
-              disableDeepLinking: false,
+              // Force Jitsi to stay inside the browser on mobile, don't ask to download native app
+              disableDeepLinking: true,
               prejoinPageEnabled: false,
               hideConferenceTimer: true,
               conferenceTimer: false,
@@ -403,7 +403,7 @@ export default function JitsiMeet({
             interfaceConfigOverwrite={{
               SHOW_JITSI_WATERMARK: false,
               SHOW_WATERMARK_FOR_GUESTS: false,
-              MOBILE_APP_PROMO: true,
+              MOBILE_APP_PROMO: false,
             }}
             onApiReady={(externalApi) => {
               apiRef.current = externalApi;
