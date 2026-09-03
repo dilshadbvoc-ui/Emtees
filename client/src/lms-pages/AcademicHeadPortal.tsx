@@ -515,6 +515,7 @@ export default function AcademicHeadPortal() {
               onChange={setAllocationForm}
               readOnlySessions={true}
               departmentId={deptQuery.data?.id}
+              studentId={selectedStudentForAllocation?.id}
             />
           </div>
           <div className="p-6 bg-white border-t border-slate-100 flex justify-end gap-3">

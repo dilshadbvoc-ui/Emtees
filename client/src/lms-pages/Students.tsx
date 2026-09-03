@@ -3031,6 +3031,7 @@ export default function StudentsPage() {
               value={tempAllocation}
               onChange={setTempAllocation}
               departmentId={studentDepartmentId}
+              studentId={configStudentId || detailsStudentId}
             />
           </div>
           <DialogFooter className="gap-2">

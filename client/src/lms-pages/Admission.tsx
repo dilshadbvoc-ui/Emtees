@@ -437,11 +437,11 @@ export default function AdmissionPage() {
 
                 <PhoneNumberInput
                   id="parentPhone"
-                  label="Parent Phone Number"
+                  label="Alternative Phone Number"
                   countryCode={parentCountryCode}
                   countryISO={parentCountryISO}
                   value={parentPhoneNumber}
-                  placeholder="Parent Phone"
+                  placeholder="Alternative Number"
                   onChange={(data) => {
                     setParentCountryCode(data.countryCode);
                     setParentCountryISO(data.countryISO);
