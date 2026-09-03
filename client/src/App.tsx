@@ -112,6 +112,7 @@ export default function App() {
             <Route index element={<Navigate to="/classes/group" replace />} />
             <Route path="group" element={<Classes type="group" />} />
             <Route path="one-to-one" element={<Classes type="one-to-one" />} />
+            <Route path="demo" element={<Classes type="demo" />} />
           </Route>
           <Route path="learning" element={<Learning />} />
           <Route path="fees" element={<Fees />} />

@@ -1034,4 +1034,34 @@ export const salesExecutiveRouter = createRouter({
       });
       return { token, room: demo.jitsiRoom, jitsiHost: process.env.JITSI_HOST || "meet.gecouncil.com" };
     }),
+
+  // List demo classes assigned to the currently authenticated teacher
+  listTeacherDemoClasses: authedQuery
+    .input(z.object({
+      status: z.enum(["pending", "completed", "cancelled", "all"]).default("all"),
+    }).optional())
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const isTeacher = ctx.user.role === "teacher";
+      const isAdmin = ["super_admin", "admin"].includes(ctx.user.role);
+
+      if (!isTeacher && !isAdmin) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only teachers or admins can view assigned demo classes" });
+      }
+
+      const whereClause = isTeacher ? eq(demoClasses.teacherId, ctx.user.id) : undefined;
+
+      const demos = await db.query.demoClasses.findMany({
+        where: whereClause,
+        with: {
+          teacher: { columns: { id: true, name: true, username: true } },
+          module: { columns: { id: true, name: true } },
+        },
+        orderBy: (d, { desc }) => [desc(d.createdAt)],
+      });
+
+      const statusFilter = input?.status || "all";
+      return statusFilter === "all" ? demos : demos.filter((d) => d.status === statusFilter);
+    }),
 });
+

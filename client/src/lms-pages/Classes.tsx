@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Play, Square, Video, Calendar, Clock, XCircle, ClipboardList, Edit3, CheckCircle } from "lucide-react";
+import { Plus, Play, Square, Video, Calendar, Clock, XCircle, ClipboardList, Edit3, CheckCircle, Search } from "lucide-react";
 import JitsiMeet from "@/components/JitsiMeet";
 
 function OngoingTimer({ startedAt }: { startedAt: string }) {
@@ -44,10 +44,13 @@ function OngoingTimer({ startedAt }: { startedAt: string }) {
   );
 }
 
-export default function ClassesPage({ type }: { type?: "group" | "one-to-one" }) {
+export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | "demo" }) {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const utils = trpc.useUtils();
+  const [selectedDemoDetails, setSelectedDemoDetails] = useState<any | null>(null);
+  const [upcomingSearch, setUpcomingSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingClassId, setEditingClassId] = useState<number | null>(null);
@@ -106,6 +109,28 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
   const myClasses = trpc.class.list.useQuery(undefined, { enabled: user?.role === "student" });
   const myProfile = trpc.user.myProfile.useQuery(undefined, { enabled: user?.role === "student" });
   const oneToOneQuery = trpc.class.listOneToOne.useQuery(undefined, { enabled: !!user });
+  const teacherDemoClassesQuery = trpc.salesExecutive.listTeacherDemoClasses.useQuery(
+    { status: "all" },
+    { enabled: !!user && (type === "demo" || !type) }
+  );
+
+  const handleStartDemoClass = async (demo: any) => {
+    try {
+      const res = await utils.salesExecutive.getDemoJoinToken.fetch({ demoId: demo.id });
+      setSelectedClassForMeeting({
+        id: demo.id,
+        title: `Demo Class - ${demo.studentName}`,
+        scheduledAt: demo.scheduledAt || demo.createdAt,
+        teacherName: user?.name,
+        isOneToOne: true,
+        jwt: res.token,
+      });
+      setJitsiRoom(res.room);
+      toast.success("Demo class started");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start demo class");
+    }
+  };
 
   // Allocation flow queries & mutations
   const allocationsQuery = trpc.students.listAllocations.useQuery(
@@ -643,9 +668,44 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
   };
 
   const renderClassesList = (classesList: any[]) => {
+    const searchQuery = upcomingSearch.trim().toLowerCase();
+    const filteredList = (classesList || []).filter((cls) => {
+      if (!searchQuery) return true;
+      const studentName = (cls.student?.name || cls.studentName || "").toLowerCase();
+      const studentId = String(
+        cls.student?.unionId ||
+        cls.student?.profile?.enrollmentId ||
+        (cls.student?.profile as any)?.admissionNo ||
+        cls.student?.id ||
+        cls.studentId ||
+        ""
+      ).toLowerCase();
+      const studentEmail = (cls.student?.email || cls.studentEmail || "").toLowerCase();
+      const title = (cls.title || "").toLowerCase();
+      const description = (cls.description || "").toLowerCase();
+      const batchName = (cls.batch?.name || cls.batches?.map((b: any) => b.name).join(" ") || "").toLowerCase();
+
+      return (
+        studentName.includes(searchQuery) ||
+        studentId.includes(searchQuery) ||
+        studentEmail.includes(searchQuery) ||
+        title.includes(searchQuery) ||
+        description.includes(searchQuery) ||
+        batchName.includes(searchQuery)
+      );
+    });
+
+    if (filteredList.length === 0) {
+      return (
+        <Card className="border border-gray-100 p-8 text-center text-xs text-gray-500">
+          {upcomingSearch ? `No classes found matching "${upcomingSearch}".` : "No classes found."}
+        </Card>
+      );
+    }
+
     return (
       <div className="grid grid-cols-1 gap-4 mt-2">
-        {classesList?.map((cls) => {
+        {filteredList.map((cls) => {
           const isAssignedTeacher = isTeacher && cls.teacherId === user?.id;
           const canConductThisClass = isAdmin || isAssignedTeacher;
           
@@ -1020,6 +1080,31 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
   };
 
   const renderOneToOneList = () => {
+    const searchQuery = upcomingSearch.trim().toLowerCase();
+    const filteredSessions = (oneToOneQuery.data || []).filter((s) => {
+      if (!searchQuery) return true;
+      const studentName = (s.student?.name || "").toLowerCase();
+      const studentId = String(
+        s.student?.unionId ||
+        s.student?.profile?.enrollmentId ||
+        (s.student?.profile as any)?.admissionNo ||
+        s.student?.id ||
+        s.studentId ||
+        ""
+      ).toLowerCase();
+      const studentEmail = (s.student?.email || "").toLowerCase();
+      const title = (s.title || "").toLowerCase();
+      const remarks = (s.remarks || "").toLowerCase();
+
+      return (
+        studentName.includes(searchQuery) ||
+        studentId.includes(searchQuery) ||
+        studentEmail.includes(searchQuery) ||
+        title.includes(searchQuery) ||
+        remarks.includes(searchQuery)
+      );
+    });
+
     return (
       <Card className="border border-gray-100">
         <CardContent className="p-0 overflow-x-auto">
@@ -1036,7 +1121,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
               </TableRow>
             </TableHeader>
             <TableBody>
-              {oneToOneQuery.data?.map((s) => (
+              {filteredSessions.map((s) => (
                 <TableRow key={s.id} className="align-top hover:bg-gray-50/50">
                   <TableCell className="font-semibold text-gray-800 text-sm">
                     <div>{s.title || "1-to-1 Session"}</div>
@@ -1217,10 +1302,10 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                   </TableCell>
                 </TableRow>
               ))}
-              {(!oneToOneQuery.data || oneToOneQuery.data.length === 0) && (
+              {filteredSessions.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-gray-400 py-10 text-xs">
-                    No 1-to-1 sessions found.
+                    {upcomingSearch ? `No 1-to-1 sessions found matching "${upcomingSearch}".` : "No 1-to-1 sessions found."}
                   </TableCell>
                 </TableRow>
               )}
@@ -1231,7 +1316,105 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
     );
   };
 
+  const renderDemoClassesList = () => {
+    const demos = teacherDemoClassesQuery.data || [];
+    if (teacherDemoClassesQuery.isLoading) {
+      return <div className="p-8 text-center text-xs text-gray-500 animate-pulse">Loading assigned demo classes...</div>;
+    }
+    if (demos.length === 0) {
+      return (
+        <Card className="border border-gray-100 p-8 text-center space-y-2">
+          <Video className="w-8 h-8 text-gray-400 mx-auto" />
+          <h4 className="text-sm font-bold text-gray-700">No Demo Classes Assigned</h4>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+            Demo classes assigned to you by Sales Executives will appear here.
+          </p>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 gap-4 mt-2">
+        {demos.map((demo) => {
+          return (
+            <Card key={demo.id} className="border border-gray-100 hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between flex-col md:flex-row gap-4">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-bold text-gray-800 text-base">
+                        Demo Class - {demo.studentName}
+                      </h4>
+                      {getStatusBadge(demo.status)}
+                    </div>
+                    {demo.notes && <p className="text-sm text-gray-500">{demo.notes}</p>}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100 w-full text-left">
+                      <div>
+                        <span className="block text-[10px] text-gray-400 uppercase font-semibold">Student Name</span>
+                        <span className="font-medium text-slate-700">{demo.studentName}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-gray-400 uppercase font-semibold">Contact</span>
+                        <span className="font-medium text-slate-700">{demo.studentPhone || demo.studentEmail || "-"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-gray-400 uppercase font-semibold">Course / Module</span>
+                        <span className="font-medium text-slate-700">{demo.module?.name || "General Demo"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-gray-400 uppercase font-semibold">Assigned Teacher</span>
+                        <span className="font-medium text-slate-700">{demo.teacher?.name || "Unassigned"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-gray-400 uppercase font-semibold">Scheduled Date & Time</span>
+                        <span className="font-medium text-slate-700">
+                          {demo.scheduledAt ? (
+                            <>
+                              {new Date(demo.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                              <br />
+                              {new Date(demo.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                            </>
+                          ) : (
+                            new Date(demo.createdAt).toLocaleDateString()
+                          )}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-gray-400 uppercase font-semibold">Status</span>
+                        <span className="font-medium text-slate-700 capitalize">{demo.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap justify-end shrink-0 w-full md:w-auto mt-2 md:mt-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedDemoDetails(demo)}
+                      className="text-xs"
+                    >
+                      View Details
+                    </Button>
+                    {demo.status === "pending" && (
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                        onClick={() => handleStartDemoClass(demo)}
+                      >
+                        <Play className="w-3.5 h-3.5 mr-1" /> Start
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderUpcomingClasses = (sessionTypeFilter: "one_to_one" | "group") => {
+    const searchQuery = upcomingSearch.trim().toLowerCase();
     const list = sessionTypeFilter === "one_to_one" ? (oneToOneQuery.data || []) : (data || []);
     const upcoming = list
       .filter((cls) => {
@@ -1240,22 +1423,53 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
         const isScheduledStatus = cls.status === "scheduled" || cls.status === "rescheduled" || cls.status === "reschedule_request_pending";
         return isCorrectType && isFuture && isScheduledStatus;
       })
+      .filter((cls) => {
+        if (!searchQuery) return true;
+        const studentName = (cls.student?.name || cls.studentName || "").toLowerCase();
+        const studentId = String(
+          cls.student?.unionId ||
+          cls.student?.profile?.enrollmentId ||
+          (cls.student?.profile as any)?.admissionNo ||
+          cls.student?.id ||
+          cls.studentId ||
+          ""
+        ).toLowerCase();
+        const studentEmail = (cls.student?.email || cls.studentEmail || "").toLowerCase();
+        const title = (cls.title || "").toLowerCase();
+
+        return (
+          studentName.includes(searchQuery) ||
+          studentId.includes(searchQuery) ||
+          studentEmail.includes(searchQuery) ||
+          title.includes(searchQuery)
+        );
+      })
       .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
 
     return (
       <Card className="border border-gray-100 shadow-sm overflow-hidden mb-6">
-        <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 py-3 px-4 flex flex-row items-center justify-between">
+        <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 py-3 px-4 flex flex-row items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-emerald-600" />
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Upcoming Scheduled Classes
             </CardTitle>
           </div>
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search student name or ID..."
+              value={upcomingSearch}
+              onChange={(e) => setUpcomingSearch(e.target.value)}
+              className="h-8 pl-8 text-xs bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 rounded-lg"
+            />
+          </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {upcoming.length === 0 ? (
             <div className="text-center text-gray-500 py-8 text-sm font-medium">
-              No upcoming classes scheduled.
+              {upcomingSearch ? `No upcoming classes found matching "${upcomingSearch}".` : "No upcoming classes scheduled."}
             </div>
           ) : (
             <>
@@ -1780,29 +1994,42 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
       })()}
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <h3 className="text-lg font-semibold text-gray-800">
-            {type === "group" ? "Group Sessions" : type === "one-to-one" ? "1-on-1 Sessions" : "Classes & Sessions"}
+            {type === "group" ? "Group Sessions" : type === "one-to-one" ? "1-on-1 Sessions" : type === "demo" ? "Demo Classes" : "Classes & Sessions"}
           </h3>
-          {/* Header Action Button */}
-          {(!type || type === "group") && canManageClasses && (
-            <Dialog open={open} onOpenChange={setOpen}>
-              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleOpenCreate}>
-                <Plus className="w-4 h-4 mr-2" /> Schedule Class
+          <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
+            {/* Search Input for Student Name or Student ID */}
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search student name or ID..."
+                value={upcomingSearch}
+                onChange={(e) => setUpcomingSearch(e.target.value)}
+                className="h-9 pl-8 text-xs bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 rounded-lg"
+              />
+            </div>
+            {/* Header Action Button */}
+            {(!type || type === "group") && canManageClasses && (
+              <Dialog open={open} onOpenChange={setOpen}>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleOpenCreate}>
+                  <Plus className="w-4 h-4 mr-2" /> Schedule Class
+                </Button>
+                <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100">
+                  <DialogHeader>
+                    <DialogTitle className="text-base font-bold text-gray-800">Schedule New Class</DialogTitle>
+                  </DialogHeader>
+                  {scheduleFormContent(handleSubmitCreate, "Schedule Live Class")}
+                </DialogContent>
+              </Dialog>
+            )}
+            {type === "one-to-one" && isAdmin && (
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleOpenCreateOto}>
+                <Plus className="w-4 h-4 mr-2" /> New Session
               </Button>
-              <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100">
-                <DialogHeader>
-                  <DialogTitle className="text-base font-bold text-gray-800">Schedule New Class</DialogTitle>
-                </DialogHeader>
-                {scheduleFormContent(handleSubmitCreate, "Schedule Live Class")}
-              </DialogContent>
-            </Dialog>
-          )}
-          {type === "one-to-one" && isAdmin && (
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleOpenCreateOto}>
-              <Plus className="w-4 h-4 mr-2" /> New Session
-            </Button>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Edit Dialog (Group Class) */}
@@ -2163,7 +2390,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                 {renderBalancesTable("group")}
               </TabsContent>
             </Tabs>
-          ) : (
+          ) : type === "one-to-one" ? (
             <Tabs defaultValue="sessions" className="w-full">
               <TabsList className="bg-slate-100 p-1 rounded-lg border max-w-md mb-4">
                 <TabsTrigger value="sessions" className="text-xs py-1.5 px-3">1-on-1 Sessions</TabsTrigger>
@@ -2186,6 +2413,10 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
                 {renderBalancesTable("one_to_one")}
               </TabsContent>
             </Tabs>
+          ) : (
+            <div className="space-y-4">
+              {renderDemoClassesList()}
+            </div>
           )
         ) : (
           <Tabs defaultValue="classes">
@@ -2324,6 +2555,80 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" })
             {scheduleSessionMutation.isPending ? "Scheduling..." : "Schedule Session"}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* View Demo Class Details Dialog */}
+    <Dialog open={!!selectedDemoDetails} onOpenChange={(open) => !open && setSelectedDemoDetails(null)}>
+      <DialogContent className="w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100 p-6">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-gray-800">
+            Demo Class Details
+          </DialogTitle>
+        </DialogHeader>
+        {selectedDemoDetails && (
+          <div className="space-y-4 text-xs text-gray-700 mt-2">
+            <div className="p-3 bg-gray-50 rounded-lg space-y-1.5 border border-gray-100">
+              <div className="font-semibold text-sm text-gray-900">
+                {selectedDemoDetails.studentName}
+              </div>
+              {selectedDemoDetails.studentPhone && (
+                <p>📞 <strong>Phone:</strong> {selectedDemoDetails.studentPhone}</p>
+              )}
+              {selectedDemoDetails.studentEmail && (
+                <p>✉️ <strong>Email:</strong> {selectedDemoDetails.studentEmail}</p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="block text-[10px] text-gray-400 uppercase font-semibold">Course / Module</span>
+                <span className="font-medium text-gray-800">{selectedDemoDetails.module?.name || "General Demo"}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-gray-400 uppercase font-semibold">Teacher</span>
+                <span className="font-medium text-gray-800">{selectedDemoDetails.teacher?.name || "Unassigned"}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-gray-400 uppercase font-semibold">Scheduled Date & Time</span>
+                <span className="font-medium text-gray-800">
+                  {selectedDemoDetails.scheduledAt
+                    ? new Date(selectedDemoDetails.scheduledAt).toLocaleString()
+                    : new Date(selectedDemoDetails.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-gray-400 uppercase font-semibold">Status</span>
+                <span className="capitalize font-semibold text-gray-800">{selectedDemoDetails.status}</span>
+              </div>
+            </div>
+            {selectedDemoDetails.notes && (
+              <div>
+                <span className="block text-[10px] text-gray-400 uppercase font-semibold mb-1">Notes</span>
+                <div className="p-2.5 bg-slate-50 border rounded text-gray-600 italic">
+                  "{selectedDemoDetails.notes}"
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" size="sm" onClick={() => setSelectedDemoDetails(null)}>
+                Close
+              </Button>
+              {selectedDemoDetails.status === "pending" && (
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
+                    const demo = selectedDemoDetails;
+                    setSelectedDemoDetails(null);
+                    handleStartDemoClass(demo);
+                  }}
+                >
+                  <Play className="w-3.5 h-3.5 mr-1" /> Start Class
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
     </>

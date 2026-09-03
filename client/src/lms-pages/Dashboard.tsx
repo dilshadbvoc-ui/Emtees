@@ -18,6 +18,7 @@ import {
   UserCheck,
   BarChart3,
   Settings,
+  Search,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import JitsiMeet from "@/components/JitsiMeet";
@@ -32,6 +33,7 @@ import { Clock, Bell, Check, X } from "lucide-react";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [upcomingSearch, setUpcomingSearch] = useState("");
   const isAdmin = ["super_admin", "admin", "academic_head"].includes(user?.role || "");
   const isTeacher = user?.role === "teacher";
 
@@ -593,17 +595,29 @@ export default function Dashboard() {
 
       {/* Live & Upcoming Classes Widget */}
       <Card className="border border-emerald-100/40 dark:border-emerald-950 bg-gradient-to-br from-emerald-50/10 via-white to-white dark:from-emerald-950/5 dark:via-gray-950 dark:to-gray-950 shadow-sm rounded-xl overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-gray-50 dark:border-gray-900/50">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-gray-50 dark:border-gray-900/50">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-emerald-800 dark:text-emerald-400 shrink-0">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             Live & Upcoming Sessions
           </CardTitle>
-          <Link to="/classes" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium hover:underline flex items-center gap-1">
-            View All Classes <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search student name or ID..."
+                value={upcomingSearch}
+                onChange={(e) => setUpcomingSearch(e.target.value)}
+                className="h-8 pl-8 text-xs bg-white/80 dark:bg-gray-900/80 border-gray-200 dark:border-gray-800 rounded-lg"
+              />
+            </div>
+            <Link to="/classes" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium hover:underline flex items-center gap-1 shrink-0">
+              View All Classes <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </CardHeader>
         <CardContent className="pt-4">
           {/* Dynamic calculations for live & upcoming classes */}
@@ -614,6 +628,8 @@ export default function Dashboard() {
               if (status === "STARTING SOON") return 2;
               return 3;
             };
+
+            const searchQuery = upcomingSearch.trim().toLowerCase();
 
             const classesList = (classesQuery.data || [])
               .map((cls: any) => {
@@ -646,6 +662,27 @@ export default function Dashboard() {
                 };
               })
               .filter((cls) => !cls.isPast)
+              .filter((cls) => {
+                if (!searchQuery) return true;
+                const studentName = (cls.student?.name || cls.studentName || "").toLowerCase();
+                const studentId = String(
+                  cls.student?.unionId ||
+                  cls.student?.profile?.enrollmentId ||
+                  cls.student?.profile?.admissionNo ||
+                  cls.student?.id ||
+                  cls.studentId ||
+                  ""
+                ).toLowerCase();
+                const studentEmail = (cls.student?.email || cls.studentEmail || "").toLowerCase();
+                const title = (cls.title || "").toLowerCase();
+
+                return (
+                  studentName.includes(searchQuery) ||
+                  studentId.includes(searchQuery) ||
+                  studentEmail.includes(searchQuery) ||
+                  title.includes(searchQuery)
+                );
+              })
               .sort((a, b) => {
                 const pA = getPriority(a.statusLabel);
                 const pB = getPriority(b.statusLabel);
@@ -678,13 +715,13 @@ export default function Dashboard() {
               return (
                 <div className="flex flex-col items-center justify-center py-10 px-4 text-center space-y-2">
                   <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center text-gray-400 dark:text-gray-600 text-lg">
-                    📅
+                    {upcomingSearch ? "🔍" : "📅"}
                   </div>
                   <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                    No live or upcoming sessions available.
+                    {upcomingSearch ? `No sessions found matching "${upcomingSearch}"` : "No live or upcoming sessions available."}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
-                    Check back later for scheduled classes.
+                    {upcomingSearch ? "Try searching with a different student name or ID." : "Check back later for scheduled classes."}
                   </p>
                 </div>
               );
