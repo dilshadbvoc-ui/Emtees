@@ -33,6 +33,6 @@ export async function generateJitsiToken(params: {
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
-    .setExpirationTime("2h")
+    .setExpirationTime("6h")
     .sign(secret);
 }

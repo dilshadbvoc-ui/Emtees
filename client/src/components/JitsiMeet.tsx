@@ -365,10 +365,23 @@ export default function JitsiMeet({
             configOverwrite={{
               startWithAudioMuted: false,
               startWithVideoMuted: false,
-              disableDeepLinking: true,
+              // Allow deep linking so mobile phones can open the native Jitsi app
+              disableDeepLinking: false,
               prejoinPageEnabled: false,
               hideConferenceTimer: true,
               conferenceTimer: false,
+              // P2P mode: better quality for 1-on-1 calls between phone & PC
+              p2p: {
+                enabled: true,
+                preferH264: true,
+              },
+              // Improve mobile compatibility
+              requireDisplayName: false,
+              disableThirdPartyRequests: true,
+              enableNoAudioDetection: true,
+              enableNoisyMicDetection: true,
+              // Use VP8 codec which has best mobile support
+              preferredCodec: "VP8",
               toolbarButtons: [
                 "microphone",
                 "camera",
@@ -390,6 +403,7 @@ export default function JitsiMeet({
             interfaceConfigOverwrite={{
               SHOW_JITSI_WATERMARK: false,
               SHOW_WATERMARK_FOR_GUESTS: false,
+              MOBILE_APP_PROMO: true,
             }}
             onApiReady={(externalApi) => {
               apiRef.current = externalApi;
@@ -412,6 +426,8 @@ export default function JitsiMeet({
             getIFrameRef={(iframeRef) => {
               iframeRef.style.height = "100%";
               iframeRef.style.width = "100%";
+              // Critical for mobile browsers: allow camera & microphone inside iFrame
+              (iframeRef as unknown as HTMLIFrameElement).allow = "camera; microphone; display-capture; autoplay; fullscreen";
             }}
           />
         </div>
