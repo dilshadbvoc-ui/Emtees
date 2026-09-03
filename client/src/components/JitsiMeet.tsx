@@ -367,6 +367,9 @@ export default function JitsiMeet({
               startWithVideoMuted: false,
               // Force Jitsi to stay inside the browser on mobile, don't ask to download native app
               disableDeepLinking: true,
+              // Prevent Jitsi from auto-hiding the PC user's self-view camera when there are only 2 people
+              disableSelfView: false,
+              disableSelfViewAutohide: true,
               prejoinPageEnabled: false,
               hideConferenceTimer: true,
               conferenceTimer: false,
