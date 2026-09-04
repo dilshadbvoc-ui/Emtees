@@ -428,11 +428,17 @@ export default function StudentsPage() {
   };
 
   const updateClassAllocationMutation = trpc.students.updateClassAllocation.useMutation({
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast.success("Class allocation saved successfully!");
       setIsConfiguringAllocation(false);
       profileQuery.refetch();
       studentsQuery.refetch();
+      if (editStudent && editStudent.id === variables.studentId) {
+        setEditStudent({
+          ...editStudent,
+          classAllocation: variables.allocation
+        });
+      }
     },
     onError: (err) => {
       toast.error(err.message);
@@ -2036,6 +2042,27 @@ export default function StudentsPage() {
                       <label className="text-xs font-semibold text-gray-600">Batch Status</label>
                       <Input value={selectedEditBatch?.status || ""} disabled className="bg-gray-50 dark:bg-gray-900 cursor-not-allowed capitalize" />
                     </div>
+                    {!selectedEditBatch && (
+                      <div className="space-y-1 col-span-1 sm:col-span-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs bg-white text-blue-700 border-blue-200 hover:bg-blue-50 w-full"
+                          onClick={() => {
+                            const alloc = (editStudent.classAllocation as any) || {};
+                            setTempAllocation({
+                              oneToOne: alloc.oneToOne || { teacherId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 },
+                              group: alloc.group || { teacherId: "", batchId: "", designatedTime: "", sessions30: 0, sessions45: 0, sessions60: 0 }
+                            });
+                            setConfigStudentId(editStudent.id);
+                            setIsConfiguringAllocation(true);
+                          }}
+                        >
+                          Change Teacher & Session Allocation
+                        </Button>
+                      </div>
+                    )}
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-gray-600">Preferred Class Time</label>
                       <Input value={editStudent.preferredClassTime} onChange={(e) => setEditStudent({ ...editStudent, preferredClassTime: e.target.value })} placeholder="e.g. 7 AM or Morning" />

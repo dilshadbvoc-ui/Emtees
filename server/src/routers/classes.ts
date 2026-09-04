@@ -17,7 +17,7 @@ import { recalculateSalaryInternal } from "./admin";
 
 export const classRouter = createRouter({
   list: authedQuery
-    .input(z.object({ batchId: z.number().optional(), status: z.string().optional() }).optional())
+    .input(z.object({ batchId: z.number().optional(), status: z.string().optional(), limit: z.number().optional() }).optional())
     .query(async ({ input, ctx }) => {
       const db = getDb();
       const isRestricted = ctx.user.role === "student" ? await isStudentFeeRestricted(ctx.user.id) : false;
@@ -95,6 +95,7 @@ export const classRouter = createRouter({
         const where = groupFilters.length > 0 ? and(...groupFilters) : undefined;
         groupClassesList = await db.query.classes.findMany({
           where,
+          limit: input?.limit || 100,
           orderBy: desc(classes.scheduledAt),
           with: {
             teacher: true,
@@ -151,6 +152,7 @@ export const classRouter = createRouter({
         const oToWhere = oToFilters.length > 0 ? and(...oToFilters) : undefined;
         oneToOnesList = await db.query.oneToOneSessions.findMany({
           where: oToWhere,
+          limit: input?.limit || 100,
           orderBy: desc(oneToOneSessions.scheduledAt),
           with: {
             teacher: true,

@@ -170,6 +170,7 @@ export const profiles = pgTable(
   },
   (table) => ({
     enrollmentIdUnique: uniqueIndex("enrollment_id_unique").on(table.enrollmentId),
+    userIdIdx: index("profiles_user_id_idx").on(table.userId),
     parentFullPhoneIdx: index("parent_full_phone_idx").on(table.parentFullInternationalNumber),
   })
 );
@@ -275,6 +276,7 @@ export const batchEnrollments = pgTable(
   },
   (table) => ({
     uniqueEnrollment: uniqueIndex("unique_enrollment_idx").on(table.batchId, table.studentId),
+    studentIdIdx: index("batch_enrollments_student_id_idx").on(table.studentId),
   })
 );
 
@@ -386,7 +388,12 @@ export const oneToOneSessions = pgTable("one_to_one_sessions", {
   recordingUrl: varchar("recording_url", { length: 500 }),
   recordingDeletedAt: timestamp("recording_deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+},
+(table) => ({
+  teacherIdIdx: index("one_to_one_sessions_teacher_id_idx").on(table.teacherId),
+  studentIdIdx: index("one_to_one_sessions_student_id_idx").on(table.studentId),
+})
+);
 
 // Attendance
 export const attendance = pgTable(
