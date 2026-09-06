@@ -52,10 +52,24 @@ function parseSafeDate(dateInput: any): Date | null {
   if (dateInput instanceof Date) {
     return isNaN(dateInput.getTime()) ? null : dateInput;
   }
+  
+  const strVal = String(dateInput).trim();
+  
+  // Check for Excel serial date (e.g., "44941" or 44941)
+  if (/^\d{4,5}$/.test(strVal)) {
+    const serial = parseInt(strVal, 10);
+    // Excel's base date is Dec 30, 1899
+    const excelBaseDate = new Date(Date.UTC(1899, 11, 30));
+    excelBaseDate.setUTCDate(excelBaseDate.getUTCDate() + serial);
+    return excelBaseDate;
+  }
+
+  // Fallback 1: Native Date parsing
   const d = new Date(dateInput);
   if (!isNaN(d.getTime())) return d;
 
-  const match = String(dateInput).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  // Fallback 2: DD/MM/YYYY or DD-MM-YYYY
+  const match = strVal.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (match) {
     const day = parseInt(match[1], 10);
     const month = parseInt(match[2], 10) - 1;
