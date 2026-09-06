@@ -1715,13 +1715,22 @@ export default function StudentsPage() {
             </div>
 
             {/* Detailed Import Summary if exists */}
-            {importSummary && (
+            {importSummary && (() => {
+              const skippedRows = importSummary.errors.filter(err => err.errors.some(msg => msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("already")));
+              const failedRows = importSummary.errors.filter(err => !err.errors.some(msg => msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("already")));
+              
+              return (
               <div className="border border-slate-200 rounded-lg overflow-hidden">
                 <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
                   <h4 className="text-sm font-bold text-slate-700">Import Summary Results</h4>
                   <div className="flex gap-2">
                     <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">{importSummary.successfulImports} Success</span>
-                    <span className="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">{importSummary.failedRows} Failures</span>
+                    {skippedRows.length > 0 && (
+                      <span className="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">{skippedRows.length} Skipped (Exists)</span>
+                    )}
+                    {failedRows.length > 0 && (
+                      <span className="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">{failedRows.length} Failures</span>
+                    )}
                   </div>
                 </div>
                 
@@ -1731,23 +1740,31 @@ export default function StudentsPage() {
                       All records imported successfully with no warnings.
                     </div>
                   ) : (
-                    importSummary.errors.map((err, idx) => (
+                    importSummary.errors.map((err, idx) => {
+                      const isSkipped = err.errors.some(msg => msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("already"));
+                      return (
                       <div key={idx} className="px-4 py-3 text-xs space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-slate-700">Row {err.row} {err.name ? `(${err.name})` : ""}</span>
-                          <span className="text-rose-600 font-semibold">Failed</span>
+                          {isSkipped ? (
+                            <span className="text-amber-600 font-semibold">Skipped</span>
+                          ) : (
+                            <span className="text-rose-600 font-semibold">Failed</span>
+                          )}
                         </div>
-                        <ul className="list-disc list-inside text-rose-600 space-y-0.5 font-medium pl-1">
+                        <ul className={`list-disc list-inside ${isSkipped ? 'text-amber-600' : 'text-rose-600'} space-y-0.5 font-medium pl-1`}>
                           {err.errors.map((msg, mIdx) => (
                             <li key={mIdx}>{msg}</li>
                           ))}
                         </ul>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
               <Button type="button" variant="outline" onClick={() => setImportOpen(false)} disabled={importStudentsMutation.isPending}>
