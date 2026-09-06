@@ -1598,6 +1598,35 @@ export const studentsRouter = createRouter({
           rowErrors.push("Total Course Fee must be a valid number.");
         }
 
+        // Optional Assigned Teacher check
+        const assignedTeacher = getVal(row, assignedTeacherIndex);
+        if (assignedTeacher) {
+          const tId = teacherMap.get(assignedTeacher.toLowerCase().trim());
+          if (!tId) {
+            rowErrors.push(`Assigned Teacher '${assignedTeacher}' not found.`);
+          }
+        }
+
+        // Optional Date of Joining check
+        const dateOfJoiningStr = getVal(row, dateOfJoiningIndex);
+        if (dateOfJoiningStr) {
+          const parsed = parseSafeDate(dateOfJoiningStr);
+          if (!parsed || isNaN(parsed.getTime())) {
+            rowErrors.push(`Date of Joining '${dateOfJoiningStr}' is not a valid date.`);
+          }
+        }
+
+        // Optional Class Counts check
+        const totalClassAssignedStr = getVal(row, totalClassAssignedIndex);
+        if (totalClassAssignedStr && isNaN(parseInt(totalClassAssignedStr, 10))) {
+          rowErrors.push(`Total Class Assigned must be a valid number.`);
+        }
+
+        const classesCompletedStr = getVal(row, classesCompletedIndex);
+        if (classesCompletedStr && isNaN(parseInt(classesCompletedStr, 10))) {
+          rowErrors.push(`Classes Completed must be a valid number.`);
+        }
+
         if (rowErrors.length > 0) {
           errorsList.push({ row: rowNumber, name, errors: rowErrors });
         } else {
@@ -1622,10 +1651,10 @@ export const studentsRouter = createRouter({
             parentPhone: getVal(row, parentPhoneIndex) || null,
             feesTotalStr,
             paymentOptStr,
-            totalClassAssigned: getVal(row, totalClassAssignedIndex),
-            classesCompleted: getVal(row, classesCompletedIndex),
-            assignedTeacher: getVal(row, assignedTeacherIndex),
-            dateOfJoining: getVal(row, dateOfJoiningIndex) || null,
+            totalClassAssigned: totalClassAssignedStr,
+            classesCompleted: classesCompletedStr,
+            assignedTeacher,
+            dateOfJoining: dateOfJoiningStr || null,
           });
         }
       }
@@ -1672,7 +1701,7 @@ export const studentsRouter = createRouter({
         const bulkClassesCompleted = classesCompleted ? parseInt(classesCompleted, 10) : undefined;
         let bulkAssignedTeacherId: number | undefined = undefined;
         if (assignedTeacher) {
-          const tId = teacherMap.get(assignedTeacher.toLowerCase());
+          const tId = teacherMap.get(assignedTeacher.toLowerCase().trim());
           if (tId) bulkAssignedTeacherId = tId;
         }
 
