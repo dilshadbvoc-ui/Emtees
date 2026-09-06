@@ -1379,48 +1379,48 @@ export const studentsRouter = createRouter({
       }
 
       // 2. Batch query database for duplicate checks
-      const dbUsernames = new Set<string>();
-      const dbPhones = new Set<string>();
-      const dbEmails = new Set<string>();
-      const dbStudentIds = new Set<string>();
-      const dbEnrollmentIds = new Set<string>();
+      const dbUsernames = new Map<string, number>();
+      const dbPhones = new Map<string, number>();
+      const dbEmails = new Map<string, number>();
+      const dbStudentIds = new Map<string, number>();
+      const dbEnrollmentIds = new Map<string, number>();
 
       if (sheetUsernames.size > 0) {
         const usersWithUsernames = await db
-          .select({ username: users.username })
+          .select({ id: users.id, username: users.username })
           .from(users)
           .where(inArray(users.username, Array.from(sheetUsernames)));
-        usersWithUsernames.forEach((u) => u.username && dbUsernames.add(u.username.toLowerCase()));
+        usersWithUsernames.forEach((u) => u.username && dbUsernames.set(u.username.toLowerCase(), u.id));
       }
 
       if (sheetPhones.size > 0) {
         const usersWithPhones = await db
-          .select({ fullInternationalNumber: users.fullInternationalNumber })
+          .select({ id: users.id, fullInternationalNumber: users.fullInternationalNumber })
           .from(users)
           .where(inArray(users.fullInternationalNumber, Array.from(sheetPhones)));
-        usersWithPhones.forEach((u) => u.fullInternationalNumber && dbPhones.add(u.fullInternationalNumber));
+        usersWithPhones.forEach((u) => u.fullInternationalNumber && dbPhones.set(u.fullInternationalNumber, u.id));
       }
 
       if (sheetEmails.size > 0) {
         const usersWithEmails = await db
-          .select({ email: users.email })
+          .select({ id: users.id, email: users.email })
           .from(users)
           .where(inArray(users.email, Array.from(sheetEmails)));
-        usersWithEmails.forEach((u) => u.email && dbEmails.add(u.email.toLowerCase()));
+        usersWithEmails.forEach((u) => u.email && dbEmails.set(u.email.toLowerCase(), u.id));
       }
 
       if (sheetEnrollmentIds.size > 0) {
         const profilesWithEnrollments = await db
-          .select({ enrollmentId: profiles.enrollmentId })
+          .select({ userId: profiles.userId, enrollmentId: profiles.enrollmentId })
           .from(profiles)
           .where(inArray(profiles.enrollmentId, Array.from(sheetEnrollmentIds)));
-        profilesWithEnrollments.forEach((p) => p.enrollmentId && dbEnrollmentIds.add(p.enrollmentId.toLowerCase()));
+        profilesWithEnrollments.forEach((p) => p.enrollmentId && p.userId && dbEnrollmentIds.set(p.enrollmentId.toLowerCase(), p.userId));
 
         const usersWithUnionIds = await db
-          .select({ unionId: users.unionId })
+          .select({ id: users.id, unionId: users.unionId })
           .from(users)
           .where(and(eq(users.role, "student"), inArray(users.unionId, Array.from(sheetEnrollmentIds))));
-        usersWithUnionIds.forEach((u) => u.unionId && dbStudentIds.add(u.unionId.toLowerCase()));
+        usersWithUnionIds.forEach((u) => u.unionId && dbStudentIds.set(u.unionId.toLowerCase(), u.id));
       }
 
       // 3. Fetch active modules, active qualifications, and active batches
@@ -1464,6 +1464,7 @@ export const studentsRouter = createRouter({
       for (const cand of candidates) {
         const { rowNumber, name, phone, username, enrollmentId, email, row } = cand;
         const rowErrors: string[] = [];
+        let existingUserId: number | undefined = undefined;
 
         // Check mandatory fields
         if (!name) rowErrors.push("Full Name is required.");
@@ -1503,13 +1504,12 @@ export const studentsRouter = createRouter({
         if (seenUsernames.has(userLower)) {
           rowErrors.push(`Duplicate username '${username}' inside the uploaded file.`);
         } else if (dbUsernames.has(userLower)) {
-          rowErrors.push(`Username '${username}' already exists in the database.`);
+          existingUserId = existingUserId || dbUsernames.get(userLower);
         }
         seenUsernames.add(userLower);
 
         // Phone duplicate checks
         const parsedPhone = parseFullPhone(phone);
-        let phoneFullInt = "";
         if (!parsedPhone) {
           rowErrors.push("Invalid phone number format.");
         } else {
@@ -1517,11 +1517,11 @@ export const studentsRouter = createRouter({
           if (phValError) {
             rowErrors.push(phValError);
           } else {
-            phoneFullInt = `${parsedPhone.countryCode}${parsedPhone.phoneNumber}`.replace(/\s+/g, "");
+            const phoneFullInt = `${parsedPhone.countryCode}${parsedPhone.phoneNumber}`.replace(/\s+/g, "");
             if (seenPhones.has(phoneFullInt)) {
               rowErrors.push(`Duplicate phone number '${phone}' inside the uploaded file.`);
             } else if (dbPhones.has(phoneFullInt)) {
-              rowErrors.push(`Phone number '${phone}' is already registered in the database.`);
+              existingUserId = existingUserId || dbPhones.get(phoneFullInt);
             }
             seenPhones.add(phoneFullInt);
           }
@@ -1532,13 +1532,8 @@ export const studentsRouter = createRouter({
           const enrollLower = enrollmentId.toLowerCase();
           if (seenEnrollmentIds.has(enrollLower)) {
             rowErrors.push(`Duplicate Enrollment ID '${enrollmentId}' inside the uploaded file.`);
-          } else {
-            if (dbEnrollmentIds.has(enrollLower)) {
-              rowErrors.push(`Enrollment ID '${enrollmentId}' is already taken in the database.`);
-            }
-            if (dbStudentIds.has(enrollLower)) {
-              rowErrors.push(`Enrollment ID '${enrollmentId}' conflicts with an existing Student ID.`);
-            }
+          } else if (dbEnrollmentIds.has(enrollLower) || dbStudentIds.has(enrollLower)) {
+            existingUserId = existingUserId || dbEnrollmentIds.get(enrollLower) || dbStudentIds.get(enrollLower);
           }
           seenEnrollmentIds.add(enrollLower);
         }
@@ -1552,7 +1547,7 @@ export const studentsRouter = createRouter({
             if (seenEmails.has(emailLower)) {
               rowErrors.push(`Duplicate email '${email}' inside the uploaded file.`);
             } else if (dbEmails.has(emailLower)) {
-              rowErrors.push(`Email '${email}' is already registered in the database.`);
+              existingUserId = existingUserId || dbEmails.get(emailLower);
             }
             seenEmails.add(emailLower);
           }
@@ -1655,6 +1650,7 @@ export const studentsRouter = createRouter({
             classesCompleted: classesCompletedStr,
             assignedTeacher,
             dateOfJoining: dateOfJoiningStr || null,
+            existingUserId,
           });
         }
       }
@@ -1705,42 +1701,99 @@ export const studentsRouter = createRouter({
           if (tId) bulkAssignedTeacherId = tId;
         }
 
+        let existingUserId = data.existingUserId;
         let txCompleted = false;
         let userId = 0;
         let unionId = "";
 
         try {
           const result = await db.transaction(async (tx) => {
-            return await StudentAdmissionService.admitStudent(tx, {
-              name,
-              countryCode: parsedPhone.countryCode,
-              countryISO: parsedPhone.countryISO,
-              phoneNumber: parsedPhone.phoneNumber,
-              email,
-              username,
-              password,
-              enrollmentId,
-              courseId: courseRecord.id,
-              batchId: matchedBatchId,
-              preferredClassTime: preferredTime,
-              sessionType: mapSessionType(typeStr),
-              feesTotal,
-              paymentType,
-              gender,
-              dob: dobStr || undefined,
-              address,
-              postalCode,
-              qualificationId: qualRecord?.id || null,
-              educationalQualification: qualRecord?.name || null,
-              parentName,
-              parentPhone,
-              registrationSource: "direct",
-              isBulkImport: true,
-              bulkTotalClassAssigned: isNaN(bulkTotalClassAssigned as any) ? undefined : bulkTotalClassAssigned,
-              bulkClassesCompleted: isNaN(bulkClassesCompleted as any) ? undefined : bulkClassesCompleted,
-              bulkAssignedTeacherId,
-              dateOfJoining,
-            });
+            if (existingUserId) {
+              // UPSERT logic
+              // Update preferredClassTime in profiles
+              if (preferredTime) {
+                await tx.update(profiles)
+                  .set({ preferredClassTime: preferredTime })
+                  .where(eq(profiles.userId, existingUserId));
+              }
+
+              // Update dateOfJoining in users
+              if (dateOfJoining) {
+                const parsedDate = parseSafeDate(dateOfJoining);
+                if (parsedDate) {
+                  await tx.update(users)
+                    .set({ createdAt: parsedDate })
+                    .where(eq(users.id, existingUserId));
+                }
+              }
+
+              // Update studentClassAllocations
+              if (bulkAssignedTeacherId || preferredTime) {
+                const existingAlloc = await tx.select().from(studentClassAllocations).where(eq(studentClassAllocations.studentId, existingUserId)).limit(1);
+                
+                const sessionTypeVal = mapSessionType(typeStr);
+                const isOneToOne = sessionTypeVal === "one_on_one" || sessionTypeVal === "both";
+                const isGroup = sessionTypeVal === "group" || sessionTypeVal === "both";
+
+                if (existingAlloc.length > 0) {
+                  const alloc: any = existingAlloc[0].allocation || { oneToOne: {}, group: {} };
+                  if (!alloc.oneToOne) alloc.oneToOne = {};
+                  if (!alloc.group) alloc.group = {};
+
+                  if (bulkAssignedTeacherId) {
+                    if (isOneToOne) alloc.oneToOne.teacherId = bulkAssignedTeacherId;
+                    if (isGroup) alloc.group.teacherId = bulkAssignedTeacherId;
+                  }
+                  if (preferredTime) {
+                    if (isOneToOne && alloc.oneToOne.teacherId) alloc.oneToOne.designatedTime = preferredTime;
+                    if (isGroup && alloc.group.teacherId) alloc.group.designatedTime = preferredTime;
+                  }
+
+                  await tx.update(studentClassAllocations)
+                    .set({ allocation: alloc, updatedAt: new Date() })
+                    .where(eq(studentClassAllocations.studentId, existingUserId));
+                }
+              }
+
+              const existingUserRecord = await tx.select({ unionId: users.unionId }).from(users).where(eq(users.id, existingUserId)).limit(1);
+
+              return {
+                id: existingUserId,
+                unionId: existingUserRecord[0]?.unionId || `S${existingUserId}`,
+              };
+            } else {
+              // Create new student
+              return await StudentAdmissionService.admitStudent(tx, {
+                name,
+                countryCode: parsedPhone.countryCode,
+                countryISO: parsedPhone.countryISO,
+                phoneNumber: parsedPhone.phoneNumber,
+                email,
+                username,
+                password,
+                enrollmentId,
+                courseId: courseRecord.id,
+                batchId: matchedBatchId,
+                preferredClassTime: preferredTime,
+                sessionType: mapSessionType(typeStr),
+                feesTotal,
+                paymentType,
+                gender,
+                dob: dobStr || undefined,
+                address,
+                postalCode,
+                qualificationId: qualRecord?.id || null,
+                educationalQualification: qualRecord?.name || null,
+                parentName,
+                parentPhone,
+                registrationSource: "direct",
+                isBulkImport: true,
+                bulkTotalClassAssigned: isNaN(bulkTotalClassAssigned as any) ? undefined : bulkTotalClassAssigned,
+                bulkClassesCompleted: isNaN(bulkClassesCompleted as any) ? undefined : bulkClassesCompleted,
+                bulkAssignedTeacherId,
+                dateOfJoining,
+              });
+            }
           });
           userId = result.id;
           unionId = result.unionId;
@@ -1757,7 +1810,7 @@ export const studentsRouter = createRouter({
           importedCount++;
 
           // 6. Post-Commit credentials email
-          if (email) {
+          if (email && !existingUserId) {
             try {
               const origin = ctx.req.get("origin") || "https://your-lms-domain.com";
               const loginUrl = process.env.APP_URL ? `${process.env.APP_URL}/login` : `${origin}/login`;
