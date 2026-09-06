@@ -16,7 +16,7 @@ import { sendUserCredentialsEmail } from "../lib/email";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { EnrollmentPaymentService } from "../lib/EnrollmentPaymentService";
-import { StudentAdmissionService } from "../lib/StudentAdmissionService";
+import { StudentAdmissionService, parseSafeDate } from "../lib/StudentAdmissionService";
 
 
 export const studentsRouter = createRouter({

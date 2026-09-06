@@ -47,7 +47,7 @@ export interface AdmitStudentInput {
   dateOfJoining?: string | Date | null;
 }
 
-function parseSafeDate(dateInput: any): Date | null {
+export function parseSafeDate(dateInput: any): Date | null {
   if (!dateInput) return null;
   if (dateInput instanceof Date) {
     return isNaN(dateInput.getTime()) ? null : dateInput;
