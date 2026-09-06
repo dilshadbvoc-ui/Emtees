@@ -154,6 +154,7 @@ export class EnrollmentPaymentService {
         paymentMode: paymentOption.toUpperCase() === "INSTALLMENT" ? "INSTALLMENT" : "FULL_PAYMENT",
         downPayment: String(paidAmount || 0),
         numberOfInstallments: installments?.length || (paymentOption.toUpperCase() === "INSTALLMENT" ? 2 : 1),
+        ...(extraProfileFields?.createdAt ? { createdAt: extraProfileFields.createdAt } : {}),
       }).returning();
       feeConfig = inserted;
     }
@@ -170,7 +171,7 @@ export class EnrollmentPaymentService {
       timeline.push({
         type: "enrollment_payment",
         amount: paidAmount,
-        timestamp: new Date().toISOString(),
+        timestamp: extraProfileFields?.createdAt ? new Date(extraProfileFields.createdAt).toISOString() : new Date().toISOString(),
         transactionId: razorpayPaymentId || null,
       });
     }
@@ -265,6 +266,7 @@ export class EnrollmentPaymentService {
       await tx.insert(batchEnrollments).values({
         batchId,
         studentId,
+        joinedAt: extraProfileFields?.createdAt || undefined,
         status: "active",
         paymentType: opt.toUpperCase() === "INSTALLMENT" ? "INSTALLMENT" : "FULL_PAYMENT",
         moduleId: moduleId,
@@ -319,8 +321,9 @@ export class EnrollmentPaymentService {
           transactionId: razorpayPaymentId || null,
           batchId: batchId || null,
           installmentNumber: 1,
-          dueDate: new Date(),
+          dueDate: extraProfileFields?.createdAt || new Date(),
           notes: `Down payment for ${courseOrBatchName} via ${registrationSource}`,
+          ...(extraProfileFields?.createdAt ? { createdAt: extraProfileFields.createdAt } : {}),
         });
 
         // Installment 2: remaining balance (if any)
@@ -349,8 +352,9 @@ export class EnrollmentPaymentService {
           transactionId: razorpayPaymentId || null,
           batchId: batchId || null,
           installmentNumber: null,
-          dueDate: null,
+          dueDate: extraProfileFields?.createdAt || new Date(),
           notes: `Full payment for ${courseOrBatchName} via ${registrationSource}`,
+          ...(extraProfileFields?.createdAt ? { createdAt: extraProfileFields.createdAt } : {}),
         });
       }
     }

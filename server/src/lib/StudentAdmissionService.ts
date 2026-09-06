@@ -319,6 +319,7 @@ export class StudentAdmissionService {
       await tx.insert(studentClassAllocations).values({
         studentId: userId,
         allocation: newAllocationJson,
+        ...(input.dateOfJoining ? { createdAt: parseSafeDate(input.dateOfJoining) || undefined } : {}),
       }).onConflictDoUpdate({
         target: studentClassAllocations.studentId,
         set: {
