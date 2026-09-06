@@ -292,6 +292,7 @@ export class StudentAdmissionService {
       const newAllocationJson = {
         oneToOne: {
           teacherId: isOneToOne ? tId : null,
+          designatedTime: (isOneToOne && tId && input.preferredClassTime) ? input.preferredClassTime : null,
           sessions30: isOneToOne ? t30 : 0,
           sessions45: 0,
           sessions60: 0,
@@ -305,6 +306,7 @@ export class StudentAdmissionService {
         group: {
           teacherId: isGroup ? tId : null,
           batchId: null,
+          designatedTime: (isGroup && tId && input.preferredClassTime) ? input.preferredClassTime : null,
           sessions30: isGroup ? gt30 : 0,
           sessions45: 0,
           sessions60: 0,

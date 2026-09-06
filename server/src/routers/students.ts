@@ -1299,10 +1299,10 @@ export const studentsRouter = createRouter({
       const feesTotalIndex = headers.indexOf("total course fee");
       const paymentOptionIndex = headers.indexOf("payment option");
 
-      const totalClassAssignedIndex = headers.indexOf("total class assigned (optional)");
-      const classesCompletedIndex = headers.indexOf("classes completed (optional)");
-      const assignedTeacherIndex = headers.indexOf("assigned teacher (optional)");
-      const dateOfJoiningIndex = headers.indexOf("date of joining (optional)");
+      const totalClassAssignedIndex = headers.indexOf("total class assigned");
+      const classesCompletedIndex = headers.indexOf("classes completed");
+      const assignedTeacherIndex = headers.indexOf("assigned teacher");
+      const dateOfJoiningIndex = headers.indexOf("date of joining");
 
       // Check if all mandatory header columns are present
       const missingHeaders = [];
