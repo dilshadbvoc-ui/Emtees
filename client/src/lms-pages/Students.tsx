@@ -951,7 +951,8 @@ export default function StudentsPage() {
       "Total Class Assigned (Optional)",
       "Classes Completed (Optional)",
       "Balance Classes (Optional)",
-      "Assigned Teacher (Optional)"
+      "Assigned Teacher (Optional)",
+      "Date of Joining (Optional)"
     ];
     const sampleRow = [
       "John Doe",
@@ -975,7 +976,8 @@ export default function StudentsPage() {
       "30",
       "0",
       "30",
-      "Teacher Username"
+      "Teacher Username",
+      "2023-01-15"
     ];
     
     const csvContent = [

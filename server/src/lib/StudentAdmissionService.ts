@@ -44,6 +44,7 @@ export interface AdmitStudentInput {
   bulkTotalClassAssigned?: number;
   bulkClassesCompleted?: number;
   bulkAssignedTeacherId?: number | null;
+  dateOfJoining?: string | Date | null;
 }
 
 function parseSafeDate(dateInput: any): Date | null {
@@ -208,6 +209,7 @@ export class StudentAdmissionService {
       registrationSource: input.registrationSource || "direct",
       gender: input.gender || null,
       dateOfBirth: parseSafeDate(input.dob),
+      ...(input.dateOfJoining ? { createdAt: parseSafeDate(input.dateOfJoining) || undefined } : {}),
     }).returning({ id: users.id });
 
     const userId = result[0]?.id;

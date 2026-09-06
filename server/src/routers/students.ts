@@ -1302,6 +1302,7 @@ export const studentsRouter = createRouter({
       const totalClassAssignedIndex = headers.indexOf("total class assigned");
       const classesCompletedIndex = headers.indexOf("classes completed");
       const assignedTeacherIndex = headers.indexOf("assigned teacher");
+      const dateOfJoiningIndex = headers.indexOf("date of joining");
 
       // Check if all mandatory header columns are present
       const missingHeaders = [];
@@ -1624,6 +1625,7 @@ export const studentsRouter = createRouter({
             totalClassAssigned: getVal(row, totalClassAssignedIndex),
             classesCompleted: getVal(row, classesCompletedIndex),
             assignedTeacher: getVal(row, assignedTeacherIndex),
+            dateOfJoining: getVal(row, dateOfJoiningIndex) || null,
           });
         }
       }
@@ -1655,6 +1657,7 @@ export const studentsRouter = createRouter({
           totalClassAssigned,
           classesCompleted,
           assignedTeacher,
+          dateOfJoining,
         } = data;
 
         // Do NOT assign to batch during bulk import based on Preferred Time
@@ -1707,6 +1710,7 @@ export const studentsRouter = createRouter({
               bulkTotalClassAssigned: isNaN(bulkTotalClassAssigned as any) ? undefined : bulkTotalClassAssigned,
               bulkClassesCompleted: isNaN(bulkClassesCompleted as any) ? undefined : bulkClassesCompleted,
               bulkAssignedTeacherId,
+              dateOfJoining,
             });
           });
           userId = result.id;

@@ -29,6 +29,7 @@ export interface ExtraProfileFields {
   group30Allocated?: number;
   group45Allocated?: number;
   group60Allocated?: number;
+  createdAt?: Date | null;
 }
 
 export class EnrollmentPaymentService {
