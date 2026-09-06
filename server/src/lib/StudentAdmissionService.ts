@@ -268,6 +268,7 @@ export class StudentAdmissionService {
         groupSessionEnabled,
         oneOnOne30Allocated: input.allocatedOneToOneSessions || 0,
         group30Allocated: input.allocatedGroupSessions || 0,
+        ...(input.dateOfJoining ? { createdAt: parseSafeDate(input.dateOfJoining) || undefined } : {}),
       }
     });
 
