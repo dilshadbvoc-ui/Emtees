@@ -1748,6 +1748,26 @@ export const studentsRouter = createRouter({
                     if (isOneToOne && alloc.oneToOne.teacherId) alloc.oneToOne.designatedTime = preferredTime;
                     if (isGroup && alloc.group.teacherId) alloc.group.designatedTime = preferredTime;
                   }
+                  if (bulkTotalClassAssigned !== undefined) {
+                    if (isOneToOne) {
+                      alloc.oneToOne.sessions30 = bulkTotalClassAssigned;
+                      alloc.oneToOne.remaining30 = Math.max(0, bulkTotalClassAssigned - (alloc.oneToOne.completed30 || 0));
+                    }
+                    if (isGroup) {
+                      alloc.group.sessions30 = bulkTotalClassAssigned;
+                      alloc.group.remaining30 = Math.max(0, bulkTotalClassAssigned - (alloc.group.completed30 || 0));
+                    }
+                  }
+                  if (bulkClassesCompleted !== undefined) {
+                    if (isOneToOne) {
+                      alloc.oneToOne.completed30 = bulkClassesCompleted;
+                      alloc.oneToOne.remaining30 = Math.max(0, (alloc.oneToOne.sessions30 || 0) - bulkClassesCompleted);
+                    }
+                    if (isGroup) {
+                      alloc.group.completed30 = bulkClassesCompleted;
+                      alloc.group.remaining30 = Math.max(0, (alloc.group.sessions30 || 0) - bulkClassesCompleted);
+                    }
+                  }
 
                   await tx.update(studentClassAllocations)
                     .set({ allocation: alloc, updatedAt: new Date() })
