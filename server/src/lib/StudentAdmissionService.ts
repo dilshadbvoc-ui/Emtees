@@ -68,12 +68,15 @@ export function parseSafeDate(dateInput: any): Date | null {
   const d = new Date(dateInput);
   if (!isNaN(d.getTime())) return d;
 
-  // Fallback 2: DD/MM/YYYY or DD-MM-YYYY
-  const match = strVal.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  // Fallback 2: DD/MM/YY(YY) or DD-MM-YY(YY)
+  const match = strVal.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
   if (match) {
     const day = parseInt(match[1], 10);
     const month = parseInt(match[2], 10) - 1;
-    const year = parseInt(match[3], 10);
+    let year = parseInt(match[3], 10);
+    if (year < 100) {
+      year += 2000;
+    }
     const parsed = new Date(year, month, day);
     if (!isNaN(parsed.getTime())) return parsed;
   }
