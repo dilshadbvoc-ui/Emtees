@@ -293,7 +293,7 @@ export const studentsRouter = createRouter({
         .where(where)
         .limit(limit)
         .offset(offset)
-        .orderBy(desc(users.createdAt));
+        .orderBy(desc(users.id));
 
       return {
         items: items.map(item => ({
@@ -2879,5 +2879,27 @@ export const studentsRouter = createRouter({
       }
 
       return filtered;
+    }),
+
+  updateSessionType: adminQuery
+    .input(z.object({
+      id: z.number(),
+      sessionType: z.enum(["one_on_one", "group", "both"])
+    }))
+    .mutation(async ({ input }) => {
+      const db = getDb();
+      const { id, sessionType } = input;
+      const oneOnOneEnabled = sessionType === "one_on_one" || sessionType === "both";
+      const groupSessionEnabled = sessionType === "group" || sessionType === "both";
+
+      await db.update(profiles)
+        .set({
+          oneOnOneEnabled,
+          groupSessionEnabled,
+          updatedAt: new Date()
+        })
+        .where(eq(profiles.userId, id));
+
+      return { success: true };
     }),
 });

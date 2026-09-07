@@ -311,6 +311,14 @@ export default function StudentsPage() {
     onError: (err) => toast.error(err.message),
   });
 
+  const updateSessionTypeMutation = trpc.students.updateSessionType.useMutation({
+    onSuccess: () => {
+      toast.success("Session Type updated");
+      studentsQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const importStudentsMutation = trpc.students.import.useMutation({
     onSuccess: (data) => {
       if (data.errors && data.errors.length > 0) {
@@ -1540,10 +1548,30 @@ export default function StudentsPage() {
                     <TableCell className="font-semibold text-center">{totalClasses}</TableCell>
                     <TableCell className="font-semibold text-center text-emerald-600">{classesTaken}</TableCell>
                     <TableCell>{s.profile?.course || "-"}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${sessionBadgeClass}`}>
-                        {sessionLabel}
-                      </span>
+                    <TableCell onClick={(e) => {
+                        if (isAdmin) e.stopPropagation();
+                      }}>
+                      {isAdmin ? (
+                        <select
+                          className="h-7 text-[11px] font-medium border border-slate-300 rounded bg-white text-slate-700 w-24 cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          value={isO2O && isGrp ? "both" : isO2O ? "one_on_one" : "group"}
+                          onChange={(e) => {
+                            updateSessionTypeMutation.mutate({
+                              id: s.id,
+                              sessionType: e.target.value as any
+                            });
+                          }}
+                          disabled={updateSessionTypeMutation.isPending}
+                        >
+                          <option value="group">Group</option>
+                          <option value="one_on_one">One-on-One</option>
+                          <option value="both">Both</option>
+                        </select>
+                      ) : (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${sessionBadgeClass}`}>
+                          {sessionLabel}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {s.profile?.batch ? (
