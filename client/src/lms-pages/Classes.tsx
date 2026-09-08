@@ -1916,8 +1916,20 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
             }
           }}
           onLeave={() => {
-            if (selectedClassForMeeting && user.role === "student" && !selectedClassForMeeting.roomName?.includes("1on1") && !selectedClassForMeeting.roomName?.includes("1to1") && !selectedClassForMeeting.title?.startsWith("1-on-1") && !selectedClassForMeeting.isOneToOne) {
-              recordLeaveTime.mutate({ classId: selectedClassForMeeting.classId || selectedClassForMeeting.id });
+            const classId = selectedClassForMeeting.classId || selectedClassForMeeting.id;
+            const isOneToOne = selectedClassForMeeting.classType === "one_to_one" || selectedClassForMeeting.roomName?.includes("1on1") || selectedClassForMeeting.roomName?.includes("1to1") || selectedClassForMeeting.title?.startsWith("1-on-1") || !!selectedClassForMeeting.isOneToOne;
+            
+            if (user.role === "student" && !isOneToOne) {
+              recordLeaveTime.mutate({ classId });
+            }
+            
+            // Auto-end the class when the teacher (or admin acting as teacher) leaves
+            if (user.role === "teacher" || isAdmin) {
+              if (isOneToOne) {
+                endOneToOne.mutate({ sessionId: classId });
+              } else {
+                endClass.mutate({ id: classId });
+              }
             }
           }}
           classInfo={selectedClassForMeeting ? {
