@@ -3026,7 +3026,7 @@ export const classRouter = createRouter({
     }),
 });
 
-async function syncOneToOneAttendance(db: any, sessionId: number, userId?: number) {
+export async function syncOneToOneAttendance(db: any, sessionId: number, userId?: number) {
   const session = await db.query.oneToOneSessions.findFirst({
     where: eq(oneToOneSessions.id, sessionId),
   });

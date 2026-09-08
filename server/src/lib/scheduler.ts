@@ -630,12 +630,53 @@ export async function checkExpiryAlerts(): Promise<void> {
   }
 }
 
+export async function autoEndStaleSessions(): Promise<void> {
+  const db = getDb();
+  const now = new Date();
+  const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+
+  // Find 1-to-1 sessions that have been ongoing for more than 3 hours
+  const staleSessions = await db.query.oneToOneSessions.findMany({
+    where: and(
+      eq(oneToOneSessions.status, "ongoing"),
+      lte(oneToOneSessions.startedAt, threeHoursAgo)
+    )
+  });
+
+  for (const session of staleSessions) {
+    const startedAt = session.startedAt || session.scheduledAt;
+    const sessionLength = session.sessionLength || 30;
+    
+    // Auto-end it exactly at its intended duration to prevent bizarre 8+ hour actualDurations
+    const endedAt = new Date(startedAt.getTime() + sessionLength * 60000);
+
+    await db.update(oneToOneSessions).set({
+      status: "completed",
+      endedAt,
+      actualDuration: sessionLength,
+      completedAt: endedAt,
+      // Default to absent if not marked present (though it should have been set to present when started)
+      teacherAttendance: session.teacherAttendance || "present",
+      studentAttendance: session.studentAttendance || "absent"
+    }).where(eq(oneToOneSessions.id, session.id));
+
+    // Update the student session balance directly
+    const { updateStudentSessionBalances } = await import("./sessionHelper");
+    await updateStudentSessionBalances(db, session.studentId);
+    
+    // Sync attendance to log the actual class
+    const { syncOneToOneAttendance } = await import("../routers/classes");
+    await syncOneToOneAttendance(db, session.id);
+  }
+}
+
 export async function runSchedulerTasks(): Promise<void> {
   await sendClassReminders();
   await sendOneToOneReminders();
   await processFeesAndRestrictions();
   // await sendDueDateReminders(); // if exists
   await expireOneToOneSessions();
+  await autoEndStaleSessions();
   await cleanupExpiredRecordings();
   await checkStudentConsecutiveAbsences();
   await checkExpiryAlerts();
