@@ -84,6 +84,18 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
   const [jitsiRoom, setJitsiRoom] = useState<string | null>(null);
   const [selectedClassForMeeting, setSelectedClassForMeeting] = useState<any>(null);
 
+  // Pagination state
+  const [otoPage, setOtoPage] = useState(1);
+  const [groupPage, setGroupPage] = useState(1);
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
+  useEffect(() => {
+    setOtoPage(1);
+    setGroupPage(1);
+    setUpcomingPage(1);
+  }, [upcomingSearch]);
+
   const isAdmin = ["super_admin", "admin", "academic_head"].includes(user?.role || "");
   const isSuperAdmin = user?.role === "super_admin";
   const isTeacher = user?.role === "teacher";
@@ -703,9 +715,12 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
       );
     }
 
+    const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
+    const paginatedList = filteredList.slice((groupPage - 1) * ITEMS_PER_PAGE, groupPage * ITEMS_PER_PAGE);
+
     return (
       <div className="grid grid-cols-1 gap-4 mt-2">
-        {filteredList.map((cls) => {
+        {paginatedList.map((cls) => {
           const isAssignedTeacher = isTeacher && cls.teacherId === user?.id;
           const canConductThisClass = isAdmin || isAssignedTeacher;
           
@@ -927,6 +942,29 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
         {classesList.length === 0 && (
           <p className="text-center text-gray-400 py-10">No sessions found.</p>
         )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 mt-4 bg-white rounded-xl shadow-sm border border-gray-100">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGroupPage((p) => Math.max(1, p - 1))}
+              disabled={groupPage === 1}
+            >
+              Previous
+            </Button>
+            <div className="text-xs text-gray-500">
+              Page {groupPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGroupPage((p) => Math.min(totalPages, p + 1))}
+              disabled={groupPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
@@ -1105,6 +1143,9 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
       );
     });
 
+    const totalPages = Math.ceil(filteredSessions.length / ITEMS_PER_PAGE);
+    const paginatedSessions = filteredSessions.slice((otoPage - 1) * ITEMS_PER_PAGE, otoPage * ITEMS_PER_PAGE);
+
     return (
       <Card className="border border-gray-100">
         <CardContent className="p-0 overflow-x-auto">
@@ -1121,7 +1162,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSessions.map((s) => (
+              {paginatedSessions.map((s) => (
                 <TableRow key={s.id} className="align-top hover:bg-gray-50/50">
                   <TableCell className="font-semibold text-gray-800 text-sm">
                     <div>{s.title || "1-to-1 Session"}</div>
@@ -1311,6 +1352,29 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
               )}
             </TableBody>
           </Table>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t bg-gray-50/30">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOtoPage((p) => Math.max(1, p - 1))}
+                disabled={otoPage === 1}
+              >
+                Previous
+              </Button>
+              <div className="text-xs text-gray-500">
+                Page {otoPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOtoPage((p) => Math.min(totalPages, p + 1))}
+                disabled={otoPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -1446,6 +1510,9 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
       })
       .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
 
+    const totalPages = Math.ceil(upcoming.length / ITEMS_PER_PAGE);
+    const paginatedUpcoming = upcoming.slice((upcomingPage - 1) * ITEMS_PER_PAGE, upcomingPage * ITEMS_PER_PAGE);
+
     return (
       <Card className="border border-gray-100 shadow-sm overflow-hidden mb-6">
         <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 py-3 px-4 flex flex-row items-center justify-between gap-3 flex-wrap">
@@ -1488,7 +1555,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcoming.map((cls) => {
+                  {paginatedUpcoming.map((cls) => {
                     const sDate = new Date(cls.scheduledAt);
                     const dateStr = sDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
                     const startTimeStr = sDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -1531,7 +1598,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
 
               {/* Mobile Card View */}
               <div className="block md:hidden space-y-4 p-4">
-                {upcoming.map((cls) => {
+                {paginatedUpcoming.map((cls) => {
                   const sDate = new Date(cls.scheduledAt);
                   const dateStr = sDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
                   const startTimeStr = sDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -1568,6 +1635,29 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                   );
                 })}
               </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-4 border-t bg-slate-50/50">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUpcomingPage((p) => Math.max(1, p - 1))}
+                    disabled={upcomingPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-xs text-gray-500">
+                    Page {upcomingPage} of {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUpcomingPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={upcomingPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </CardContent>
