@@ -11,7 +11,7 @@ interface JitsiMeetProps {
   classId: number;
   onClose: () => void;
   onJoin?: () => void;
-  onLeave?: () => void | Promise<void>;
+  onLeave?: (eventName?: string) => void | Promise<void>;
   classInfo?: {
     title: string;
     scheduledAt: string | Date;
@@ -39,7 +39,7 @@ export default function JitsiMeet({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [bothJoined, setBothJoined] = useState(false);
   const heartbeatCountRef = useRef(0);
-  const handleLeaveRef = useRef<(() => Promise<void>) | null>(null);
+  const handleLeaveRef = useRef<((eventName: string) => Promise<void>) | null>(null);
 
   const trackHeartbeat = trpc.class.trackOneToOneHeartbeat.useMutation();
 
@@ -343,7 +343,7 @@ export default function JitsiMeet({
                 apiRef.current.executeCommand("hangup");
               }
               if (handleLeaveRef.current) {
-                await handleLeaveRef.current();
+                await handleLeaveRef.current("LeaveAndClose");
               } else {
                 onClose();
               }
@@ -418,12 +418,12 @@ export default function JitsiMeet({
               setApiReady(true);
 
               let leaving = false;
-              const handleLeave = async () => {
+              const handleLeave = async (eventName: string) => {
                 if (leaving) return;
                 leaving = true;
                 if (onLeave) {
                   try {
-                    await onLeave();
+                    await onLeave(eventName);
                   } catch (e) {
                     console.error("Error in onLeave:", e);
                   }
@@ -432,9 +432,9 @@ export default function JitsiMeet({
               };
               handleLeaveRef.current = handleLeave;
 
-              externalApi.addEventListener("readyToClose", handleLeave);
-              externalApi.addEventListener("videoConferenceLeft", handleLeave);
-              externalApi.addEventListener("videoConferenceDestroyed", handleLeave);
+              externalApi.addEventListener("readyToClose", () => handleLeave("readyToClose"));
+              externalApi.addEventListener("videoConferenceLeft", () => handleLeave("videoConferenceLeft"));
+              externalApi.addEventListener("videoConferenceDestroyed", () => handleLeave("videoConferenceDestroyed"));
 
               externalApi.addEventListener("videoConferenceJoined", () => {
                 if (onJoin) onJoin();

@@ -2005,7 +2005,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
               recordJoinTime.mutate({ classId: selectedClassForMeeting.classId || selectedClassForMeeting.id });
             }
           }}
-          onLeave={async () => {
+          onLeave={async (eventName?: string) => {
             const classId = selectedClassForMeeting.classId || selectedClassForMeeting.id;
             const isOneToOne = selectedClassForMeeting.classType === "one_to_one" || selectedClassForMeeting.roomName?.includes("1on1") || selectedClassForMeeting.roomName?.includes("1to1") || selectedClassForMeeting.title?.startsWith("1-on-1") || !!selectedClassForMeeting.isOneToOne;
             
@@ -2016,8 +2016,13 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
             // Auto-end the class when the teacher (or admin acting as teacher) leaves
             if (user.role === "teacher" || isAdmin) {
               if (isOneToOne) {
-                await endOneToOne.mutateAsync({ sessionId: classId });
+                // We have a 5-minute auto-closer for 1-to-1 sessions.
+                // If they just clicked 'Leave' normally, don't end it yet so they can rejoin.
+                if (eventName === "videoConferenceDestroyed" || eventName === "LeaveAndClose") {
+                  await endOneToOne.mutateAsync({ sessionId: classId });
+                }
               } else {
+                // Group classes don't have an auto-closer, end immediately.
                 await endClass.mutateAsync({ id: classId });
               }
             }
@@ -2067,7 +2072,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Elapsed Time</span>
                 <OngoingTimer startedAt={ongoingSession.startedAt ? (ongoingSession.startedAt instanceof Date ? ongoingSession.startedAt.toISOString() : String(ongoingSession.startedAt)) : ""} />
               </div>
-              {isConducting ? (
+              {isConducting && (
                 <Button
                   size="sm"
                   variant="destructive"
@@ -2079,17 +2084,16 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                 >
                   <Square className="w-3.5 h-3.5 mr-1.5 fill-current" /> End Class
                 </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
-                  onClick={() => {
-                    handleJoinOneToOne(ongoingSession);
-                  }}
-                >
-                  <Video className="w-3.5 h-3.5 mr-1.5" /> Join Class
-                </Button>
               )}
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
+                onClick={() => {
+                  handleJoinOneToOne(ongoingSession);
+                }}
+              >
+                <Video className="w-3.5 h-3.5 mr-1.5" /> Join Class
+              </Button>
             </div>
           </Card>
         );
