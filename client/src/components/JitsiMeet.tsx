@@ -11,7 +11,7 @@ interface JitsiMeetProps {
   classId: number;
   onClose: () => void;
   onJoin?: () => void;
-  onLeave?: () => void;
+  onLeave?: () => void | Promise<void>;
   classInfo?: {
     title: string;
     scheduledAt: string | Date;
@@ -412,15 +412,22 @@ export default function JitsiMeet({
               apiRef.current = externalApi;
               setApiReady(true);
 
-              externalApi.addEventListener("readyToClose", () => {
-                if (onLeave) onLeave();
+              let leaving = false;
+              const handleLeave = async () => {
+                if (leaving) return;
+                leaving = true;
+                if (onLeave) {
+                  try {
+                    await onLeave();
+                  } catch (e) {
+                    console.error("Error in onLeave:", e);
+                  }
+                }
                 onClose();
-              });
+              };
 
-              externalApi.addEventListener("videoConferenceLeft", () => {
-                if (onLeave) onLeave();
-                onClose();
-              });
+              externalApi.addEventListener("readyToClose", handleLeave);
+              externalApi.addEventListener("videoConferenceLeft", handleLeave);
 
               externalApi.addEventListener("videoConferenceJoined", () => {
                 if (onJoin) onJoin();
