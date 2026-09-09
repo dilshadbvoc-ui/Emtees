@@ -1081,28 +1081,33 @@ export default function StudentsPage() {
   const totalPages = Math.ceil(totalStudents / limit);
 
   return (
-    <div className="space-y-6">
-      {/* Top action cards & Search section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Top Header Section */}
+      <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800 shadow-sm rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Students Management</h2>
-          <p className="text-sm text-gray-500">View and manage Emtees student enrollment, profiles, and analytics.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100/80 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Students Management</h2>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mt-2">View and manage Emtees student enrollment, profiles, and analytics with real-time updates.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={handleExportCSV} className="text-gray-700 border-gray-200 text-xs sm:text-sm flex-1 sm:flex-none">
-            <Download className="w-4 h-4 mr-1.5 sm:mr-2" />
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <Button variant="outline" onClick={handleExportCSV} className="rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium shadow-sm transition-all flex-1 sm:flex-none">
+            <Download className="w-4 h-4 mr-2 text-slate-500" />
             Export CSV
           </Button>
           {isAdmin && (
             <>
-              <Button variant="outline" onClick={() => setImportOpen(true)} className="text-gray-700 border-gray-200 text-xs sm:text-sm flex-1 sm:flex-none">
-                <Upload className="w-4 h-4 mr-1.5 sm:mr-2" />
+              <Button variant="outline" onClick={() => setImportOpen(true)} className="rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium shadow-sm transition-all flex-1 sm:flex-none">
+                <Upload className="w-4 h-4 mr-2 text-slate-500" />
                 Bulk Import
               </Button>
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={handleCreateOpen} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm w-full sm:w-auto">
-                    <Plus className="w-4 h-4 mr-1.5 sm:mr-2" />
+                  <Button onClick={handleCreateOpen} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all w-full sm:w-auto">
+                    <Plus className="w-4 h-4 mr-2" />
                     Add Student
                   </Button>
                 </DialogTrigger>
@@ -1372,17 +1377,17 @@ export default function StudentsPage() {
       </div>
 
       {/* Tabs and Filters Section */}
-      <div className="flex flex-col gap-4">
-        <div className="border-b overflow-x-auto">
-          <div className="flex gap-4 min-w-max">
+      <div className="flex flex-col gap-5">
+        <div className="overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 min-w-max p-1.5 bg-slate-100/50 dark:bg-slate-900/50 rounded-2xl w-fit border border-slate-200/50 shadow-inner">
             {(["all", "active", "inactive", "pending_enrollment", "alumni"] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => { setStatusFilter(status); setPage(1); }}
-                className={`py-3 px-1 text-sm font-semibold border-b-2 transition-all capitalize ${
+                className={`py-2 px-5 text-sm font-semibold rounded-xl transition-all capitalize duration-200 ${
                   statusFilter === status
-                    ? "border-emerald-600 text-emerald-700"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "bg-white dark:bg-slate-800 text-emerald-700 shadow border border-slate-200/60"
+                    : "bg-transparent border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                 }`}
               >
                 {status.replace("_", " ")}
@@ -1392,71 +1397,82 @@ export default function StudentsPage() {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-56">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input className="pl-9 w-full" placeholder="Search ID, Name, Phone, Address..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} autoComplete="off" name="student-search" />
-          </div>
-          <select
-            className="border rounded-md px-3 py-2 text-sm bg-white w-full sm:w-40 outline-none"
-            value={courseFilter}
-            onChange={(e) => { setCourseFilter(e.target.value); setBatchFilter("all"); setPage(1); }}
-          >
-            <option value="all">All Courses</option>
-            {activeCourses.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <select
-            className="border rounded-md px-3 py-2 text-sm bg-white w-full sm:w-40 outline-none"
-            value={batchFilter}
-            onChange={(e) => { setBatchFilter(e.target.value); setPage(1); }}
-            disabled={courseFilter === "all"}
-          >
-            <option value="all">All Batches</option>
-            {filterBatches.map((b: any) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-          <select
-            className="border rounded-md px-3 py-2 text-sm bg-white w-full sm:w-40 outline-none"
-            value={qualificationFilter}
-            onChange={(e) => { setQualificationFilter(e.target.value); setPage(1); }}
-          >
-            <option value="all">All Qualifications</option>
-            {activeQualificationsQuery.data?.map((q) => (
-              <option key={q.id} value={q.id}>{q.name}</option>
-            ))}
-          </select>
-          <Input
-            className="w-full sm:w-36 text-sm bg-white"
-            placeholder="Postal Code"
-            value={postalCodeFilter}
-            onChange={(e) => { setPostalCodeFilter(e.target.value); setPage(1); }}
-          />
-        </div>
+        <Card className="border-slate-200/60 shadow-sm rounded-2xl overflow-hidden bg-white/50 backdrop-blur-sm">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-full sm:flex-1 min-w-[200px]">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input 
+                  className="pl-10 h-10 w-full rounded-xl border-slate-200 bg-white shadow-inner-sm text-sm focus-visible:ring-emerald-500/20" 
+                  placeholder="Search ID, Name, Phone, Address..." 
+                  value={search} 
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+                  autoComplete="off" 
+                  name="student-search" 
+                />
+              </div>
+              <select
+                className="h-10 border border-slate-200 rounded-xl px-4 text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-emerald-500/20 w-full sm:w-[160px] font-medium text-slate-700 cursor-pointer transition-all hover:bg-slate-50"
+                value={courseFilter}
+                onChange={(e) => { setCourseFilter(e.target.value); setBatchFilter("all"); setPage(1); }}
+              >
+                <option value="all">All Modules</option>
+                {activeCourses.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <select
+                className="h-10 border border-slate-200 rounded-xl px-4 text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-emerald-500/20 w-full sm:w-[160px] font-medium text-slate-700 cursor-pointer transition-all hover:bg-slate-50 disabled:opacity-50 disabled:bg-slate-100"
+                value={batchFilter}
+                onChange={(e) => { setBatchFilter(e.target.value); setPage(1); }}
+                disabled={courseFilter === "all"}
+              >
+                <option value="all">All Batches</option>
+                {filterBatches.map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+              <select
+                className="h-10 border border-slate-200 rounded-xl px-4 text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-emerald-500/20 w-full sm:w-[180px] font-medium text-slate-700 cursor-pointer transition-all hover:bg-slate-50"
+                value={qualificationFilter}
+                onChange={(e) => { setQualificationFilter(e.target.value); setPage(1); }}
+              >
+                <option value="all">All Qualifications</option>
+                {activeQualificationsQuery.data?.map((q) => (
+                  <option key={q.id} value={q.id}>{q.name}</option>
+                ))}
+              </select>
+              <Input
+                className="h-10 w-full sm:w-32 rounded-xl border-slate-200 bg-white shadow-inner-sm text-sm focus-visible:ring-emerald-500/20"
+                placeholder="Postal Code"
+                value={postalCodeFilter}
+                onChange={(e) => { setPostalCodeFilter(e.target.value); setPage(1); }}
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Student List Table */}
-      <Card className="border border-slate-100 shadow-sm rounded-xl overflow-hidden">
+      <Card className="border border-slate-200/60 shadow-lg rounded-2xl overflow-hidden bg-white">
         <CardContent className="p-0 overflow-x-auto">
           {/* Desktop Table View */}
           <Table className="hidden md:table">
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead>Student ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Assigned Teacher</TableHead>
-                <TableHead>Designated Time</TableHead>
-                <TableHead className="whitespace-nowrap">Total Classes</TableHead>
-                <TableHead className="whitespace-nowrap">Classes Taken</TableHead>
-                <TableHead>Course</TableHead>
-                <TableHead>Session Type</TableHead>
-                <TableHead>Batch</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+            <TableHeader className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-100">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Student ID</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Name</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Phone</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Assigned Teacher</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Designated Time</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4 whitespace-nowrap text-center">Total</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4 whitespace-nowrap text-center">Taken</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Module</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Session</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Batch</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Status</TableHead>
+                <TableHead className="font-bold text-slate-700 tracking-wide text-[13px] py-4">Joined</TableHead>
+                <TableHead className="text-right font-bold text-slate-700 tracking-wide text-[13px] py-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1464,7 +1480,7 @@ export default function StudentsPage() {
                 const isO2O = s.profile?.oneOnOneEnabled;
                 const isGrp = s.profile?.groupSessionEnabled;
                 const sessionLabel = isO2O && isGrp ? "Both" : isO2O ? "One-on-One" : isGrp ? "Group" : "None";
-                const sessionBadgeClass = isO2O && isGrp ? "bg-purple-100 text-purple-800 border-purple-200" : isO2O ? "bg-blue-100 text-blue-800 border-blue-200" : isGrp ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-gray-100 text-gray-600";
+                const sessionBadgeClass = isO2O && isGrp ? "bg-purple-100/50 text-purple-700 border-purple-200/50" : isO2O ? "bg-blue-100/50 text-blue-700 border-blue-200/50" : isGrp ? "bg-emerald-100/50 text-emerald-700 border-emerald-200/50" : "bg-slate-100 text-slate-600 border-slate-200/50";
                 const alloc = s.classAllocation as any;
                 const totalClasses = alloc 
                   ? ((alloc.oneToOne?.sessions30 || 0) + (alloc.oneToOne?.sessions45 || 0) + (alloc.oneToOne?.sessions60 || 0) +
@@ -1479,17 +1495,19 @@ export default function StudentsPage() {
                 return (
                   <TableRow
                     key={s.id}
-                    className="cursor-pointer hover:bg-slate-50/50"
+                    className="cursor-pointer hover:bg-slate-50/70 transition-colors group"
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       if (target.closest("button") || target.closest("a")) return;
                       setDetailsStudentId(s.id);
                     }}
                   >
-                    <TableCell className="font-mono text-xs font-semibold text-emerald-800">{s.profile?.enrollmentId || s.unionId}</TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-mono text-xs font-bold text-emerald-700 py-4">
+                      <span className="bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">{s.profile?.enrollmentId || s.unionId}</span>
+                    </TableCell>
+                    <TableCell className="font-medium py-4">
                       <button
-                        className="text-left hover:underline hover:text-emerald-700 font-medium"
+                        className="text-left font-semibold text-slate-800 hover:text-emerald-600 transition-colors group-hover:text-emerald-700"
                         onClick={(e) => {
                           e.stopPropagation();
                           setConfigStudentId(s.id);
@@ -1526,34 +1544,38 @@ export default function StudentsPage() {
                         {s.name}
                       </button>
                     </TableCell>
-                    <TableCell>{s.phone}</TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="py-4 text-slate-600 text-sm">{s.phone}</TableCell>
+                    <TableCell className="text-xs py-4 space-y-1">
                       {isO2O && (s.classAllocation as any)?.oneToOne?.teacherId && (
-                        <div className="whitespace-nowrap"><span className="font-semibold text-blue-700">1v1:</span> {getTeacherName((s.classAllocation as any).oneToOne.teacherId)}</div>
+                        <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 px-1 py-0 shadow-sm font-bold">1v1</Badge> <span className="text-slate-700 font-medium">{getTeacherName((s.classAllocation as any).oneToOne.teacherId)}</span></div>
                       )}
                       {isGrp && (s.classAllocation as any)?.group?.teacherId && (
-                        <div className="whitespace-nowrap"><span className="font-semibold text-emerald-700">Grp:</span> {getTeacherName((s.classAllocation as any).group.teacherId)}</div>
+                        <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 px-1 py-0 shadow-sm font-bold">Grp</Badge> <span className="text-slate-700 font-medium">{getTeacherName((s.classAllocation as any).group.teacherId)}</span></div>
                       )}
-                      {(!isO2O || !(s.classAllocation as any)?.oneToOne?.teacherId) && (!isGrp || !(s.classAllocation as any)?.group?.teacherId) && "-"}
+                      {(!isO2O || !(s.classAllocation as any)?.oneToOne?.teacherId) && (!isGrp || !(s.classAllocation as any)?.group?.teacherId) && <span className="text-slate-400">-</span>}
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="text-xs py-4 space-y-1">
                       {isO2O && (s.classAllocation as any)?.oneToOne?.designatedTime && (
-                        <div className="whitespace-nowrap"><span className="font-semibold text-blue-700">1v1:</span> {(s.classAllocation as any).oneToOne.designatedTime}</div>
+                        <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 px-1 py-0 shadow-sm font-bold">1v1</Badge> <span className="text-slate-700 font-medium font-mono">{(s.classAllocation as any).oneToOne.designatedTime}</span></div>
                       )}
                       {isGrp && (s.classAllocation as any)?.group?.designatedTime && (
-                        <div className="whitespace-nowrap"><span className="font-semibold text-emerald-700">Grp:</span> {(s.classAllocation as any).group.designatedTime}</div>
+                        <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 px-1 py-0 shadow-sm font-bold">Grp</Badge> <span className="text-slate-700 font-medium font-mono">{(s.classAllocation as any).group.designatedTime}</span></div>
                       )}
-                      {(!isO2O || !(s.classAllocation as any)?.oneToOne?.designatedTime) && (!isGrp || !(s.classAllocation as any)?.group?.designatedTime) && "-"}
+                      {(!isO2O || !(s.classAllocation as any)?.oneToOne?.designatedTime) && (!isGrp || !(s.classAllocation as any)?.group?.designatedTime) && <span className="text-slate-400">-</span>}
                     </TableCell>
-                    <TableCell className="font-semibold text-center">{totalClasses}</TableCell>
-                    <TableCell className="font-semibold text-center text-emerald-600">{classesTaken}</TableCell>
-                    <TableCell>{s.profile?.course || "-"}</TableCell>
-                    <TableCell onClick={(e) => {
+                    <TableCell className="text-center py-4">
+                      <div className="inline-flex items-center justify-center bg-slate-100 rounded-full min-w-8 h-8 px-2 font-bold text-slate-700 text-sm shadow-inner">{totalClasses}</div>
+                    </TableCell>
+                    <TableCell className="text-center py-4">
+                      <div className="inline-flex items-center justify-center bg-emerald-50 border border-emerald-100 rounded-full min-w-8 h-8 px-2 font-bold text-emerald-700 text-sm shadow-sm">{classesTaken}</div>
+                    </TableCell>
+                    <TableCell className="py-4 text-slate-700 font-medium text-sm">{s.profile?.course || "-"}</TableCell>
+                    <TableCell className="py-4" onClick={(e) => {
                         if (isAdmin) e.stopPropagation();
                       }}>
                       {isAdmin ? (
                         <select
-                          className="h-7 text-[11px] font-medium border border-slate-300 rounded bg-white text-slate-700 w-24 cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          className="h-8 text-[11px] font-semibold border border-slate-200 rounded-lg bg-white text-slate-700 w-24 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
                           value={isO2O && isGrp ? "both" : isO2O ? "one_on_one" : "group"}
                           onChange={(e) => {
                             updateSessionTypeMutation.mutate({
@@ -1568,30 +1590,30 @@ export default function StudentsPage() {
                           <option value="both">Both</option>
                         </select>
                       ) : (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${sessionBadgeClass}`}>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border ${sessionBadgeClass} shadow-sm`}>
                           {sessionLabel}
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4 font-medium text-slate-700 text-sm">
                       {s.profile?.batch ? (
                         s.profile.batch
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 shadow-sm">
                           Waiting for Batch
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>{getStatusBadge(s.status, s.profile?.completionDate)}</TableCell>
-                    <TableCell>{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "-"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => setDetailsStudentId(s.id)}><Eye className="w-3.5 h-3.5" /></Button>
+                    <TableCell className="py-4">{getStatusBadge(s.status, s.profile?.completionDate)}</TableCell>
+                    <TableCell className="py-4 text-slate-500 text-sm font-medium">{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "-"}</TableCell>
+                    <TableCell className="text-right py-4">
+                      <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg" onClick={() => setDetailsStudentId(s.id)}><Eye className="w-4 h-4" /></Button>
                         {isAdmin && (
                           <>
-                            <Button size="sm" variant="ghost" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={(e) => { e.stopPropagation(); setCredentialsStudent(s); }} title="Login Credentials"><Key className="w-3.5 h-3.5" /></Button>
-                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleEditOpen(s); }}><Edit className="w-3.5 h-3.5" /></Button>
-                            <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={(e) => { e.stopPropagation(); setDeleteId(s.id); }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg" onClick={(e) => { e.stopPropagation(); setCredentialsStudent(s); }} title="Login Credentials"><Key className="w-4 h-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 rounded-lg" onClick={(e) => { e.stopPropagation(); handleEditOpen(s); }}><Edit className="w-4 h-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg" onClick={(e) => { e.stopPropagation(); setDeleteId(s.id); }}><Trash2 className="w-4 h-4" /></Button>
                           </>
                         )}
                       </div>
@@ -1601,8 +1623,13 @@ export default function StudentsPage() {
               })}
               {studentsList.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-gray-500 py-10">
-                    {studentsQuery.isLoading ? "Loading student records..." : "No student records found"}
+                  <TableCell colSpan={13} className="text-center text-gray-500 py-16 bg-slate-50/30">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center shadow-inner">
+                        <Search className="w-6 h-6 text-slate-400" />
+                      </div>
+                      <p className="text-slate-500 font-medium">{studentsQuery.isLoading ? "Loading student records..." : "No student records found matching your filters"}</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
@@ -1610,12 +1637,12 @@ export default function StudentsPage() {
           </Table>
 
           {/* Mobile Card View */}
-          <div className="block md:hidden space-y-4 p-4">
+          <div className="block md:hidden space-y-4 p-4 bg-slate-50/50">
             {studentsList.map((s) => {
               const isO2O = s.profile?.oneOnOneEnabled;
               const isGrp = s.profile?.groupSessionEnabled;
               const sessionLabel = isO2O && isGrp ? "Both" : isO2O ? "One-on-One" : isGrp ? "Group" : "None";
-              const sessionBadgeClass = isO2O && isGrp ? "bg-purple-100 text-purple-800 border-purple-200" : isO2O ? "bg-blue-100 text-blue-800 border-blue-200" : isGrp ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-gray-100 text-gray-600";
+              const sessionBadgeClass = isO2O && isGrp ? "bg-purple-100/50 text-purple-700 border-purple-200/50" : isO2O ? "bg-blue-100/50 text-blue-700 border-blue-200/50" : isGrp ? "bg-emerald-100/50 text-emerald-700 border-emerald-200/50" : "bg-slate-100 text-slate-600 border-slate-200/50";
               const alloc = s.classAllocation as any;
               const totalClasses = alloc 
                 ? ((alloc.oneToOne?.sessions30 || 0) + (alloc.oneToOne?.sessions45 || 0) + (alloc.oneToOne?.sessions60 || 0) +
@@ -1628,32 +1655,32 @@ export default function StudentsPage() {
                 : ((s.profile?.attendedOneToOneSessions || 0) + (s.profile?.attendedGroupSessions || 0));
 
               return (
-                <Card key={s.id} className="border border-slate-100 shadow-sm rounded-xl overflow-hidden p-4 space-y-3 bg-white" onClick={() => setDetailsStudentId(s.id)}>
+                <Card key={s.id} className="border border-slate-200/60 shadow-sm rounded-2xl overflow-hidden p-5 space-y-4 bg-white active:scale-[0.98] transition-transform" onClick={() => setDetailsStudentId(s.id)}>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-semibold text-emerald-800">{s.profile?.enrollmentId || s.unionId}</span>
+                    <span className="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">{s.profile?.enrollmentId || s.unionId}</span>
                     <div>{getStatusBadge(s.status, s.profile?.completionDate)}</div>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-sm">{s.name}</h4>
-                    <p className="text-xs text-gray-500 mt-0.5">{s.phone}</p>
+                    <h4 className="font-bold text-slate-900 text-base">{s.name}</h4>
+                    <p className="text-xs text-slate-500 mt-1 font-medium">{s.phone}</p>
                   </div>
-                  <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs">
-                    <div className="flex justify-between"><span className="text-gray-500">Course:</span> <span className="font-medium text-gray-800">{s.profile?.course || "-"}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Batch:</span> <span className="font-medium text-gray-800">{s.profile?.batch || "Waiting for Batch"}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Total Classes:</span> <span className="font-semibold text-gray-800">{totalClasses}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Classes Taken:</span> <span className="font-semibold text-emerald-600">{classesTaken}</span></div>
+                  <div className="space-y-2.5 pt-3 border-t border-slate-100 text-sm">
+                    <div className="flex justify-between"><span className="text-slate-500">Module:</span> <span className="font-semibold text-slate-800">{s.profile?.course || "-"}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">Batch:</span> <span className="font-semibold text-slate-800">{s.profile?.batch || <span className="text-amber-600 text-xs bg-amber-50 px-2 rounded-sm border border-amber-100">Waiting for Batch</span>}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">Total Classes:</span> <span className="font-bold text-slate-800 bg-slate-100 px-2 rounded-full">{totalClasses}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">Classes Taken:</span> <span className="font-bold text-emerald-700 bg-emerald-50 px-2 rounded-full border border-emerald-100">{classesTaken}</span></div>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${sessionBadgeClass}`}>
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border ${sessionBadgeClass} shadow-sm`}>
                       {sessionLabel}
                     </span>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setDetailsStudentId(s.id)}><Eye className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-emerald-50 hover:text-emerald-600" onClick={() => setDetailsStudentId(s.id)}><Eye className="w-4 h-4" /></Button>
                       {isAdmin && (
                         <>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => setCredentialsStudent(s)}><Key className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleEditOpen(s)}><Edit className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 h-8 w-8 p-0" onClick={() => setDeleteId(s.id)}><Trash2 className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => setCredentialsStudent(s)}><Key className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-blue-50 hover:text-blue-600" onClick={() => handleEditOpen(s)}><Edit className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setDeleteId(s.id)}><Trash2 className="w-4 h-4" /></Button>
                         </>
                       )}
                     </div>
@@ -1662,8 +1689,11 @@ export default function StudentsPage() {
               );
             })}
             {studentsList.length === 0 && (
-              <div className="text-center text-gray-500 py-10">
-                {studentsQuery.isLoading ? "Loading student records..." : "No student records found"}
+              <div className="text-center text-slate-500 py-12 flex flex-col items-center justify-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center shadow-inner">
+                  <Search className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="font-medium">{studentsQuery.isLoading ? "Loading student records..." : "No student records found matching your filters"}</p>
               </div>
             )}
           </div>
@@ -1672,11 +1702,11 @@ export default function StudentsPage() {
 
       {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="flex justify-between items-center pt-2">
-          <span className="text-xs text-gray-500">Showing page {page} of {totalPages} ({totalStudents} total students)</span>
+        <div className="flex justify-between items-center bg-white border border-slate-200/60 p-4 rounded-2xl shadow-sm mt-4">
+          <span className="text-sm font-medium text-slate-500">Showing page <span className="text-slate-900 font-bold">{page}</span> of <span className="text-slate-900 font-bold">{totalPages}</span> <span className="text-slate-400">({totalStudents} total students)</span></span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
-            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+            <Button size="sm" variant="outline" className="rounded-xl border-slate-200 hover:bg-slate-50 font-medium transition-colors" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <Button size="sm" variant="outline" className="rounded-xl border-slate-200 hover:bg-slate-50 font-medium transition-colors" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
           </div>
         </div>
       )}
