@@ -20,6 +20,7 @@ interface JitsiMeetProps {
   isOneToOne?: boolean;
   roomName?: string;
   jwt?: string | null;
+  forceClose?: boolean;
 }
 
 export default function JitsiMeet({
@@ -31,6 +32,7 @@ export default function JitsiMeet({
   isOneToOne = false,
   roomName: propRoomName,
   jwt: propJwt,
+  forceClose = false,
 }: JitsiMeetProps) {
   const { user } = useAuth();
   const apiRef = useRef<any>(null);
@@ -149,6 +151,14 @@ export default function JitsiMeet({
 
     return () => clearInterval(interval);
   }, [apiReady, isOneToOne, classId]);
+
+  // Force close from parent (e.g. backend auto-closer)
+  useEffect(() => {
+    if (forceClose && apiReady && apiRef.current) {
+      toast.info("This session has been ended by the host or timed out.");
+      apiRef.current.executeCommand("hangup");
+    }
+  }, [forceClose, apiReady]);
 
   // Socket connection and listeners
   useEffect(() => {

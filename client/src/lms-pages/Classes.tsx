@@ -1993,11 +1993,24 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
 
   return (
     <>
-      {/* Jitsi fullscreen overlay */}
-      {jitsiRoom && user && (
-        <JitsiMeet
-          classId={selectedClassForMeeting.classId || selectedClassForMeeting.id}
-          isOneToOne={selectedClassForMeeting.classType === "one_to_one" || selectedClassForMeeting.roomName?.includes("1on1") || selectedClassForMeeting.roomName?.includes("1to1") || selectedClassForMeeting.title?.startsWith("1-on-1") || !!selectedClassForMeeting.isOneToOne}
+      {jitsiRoom && user && (() => {
+        const classId = selectedClassForMeeting.classId || selectedClassForMeeting.id;
+        const isOneToOne = selectedClassForMeeting.classType === "one_to_one" || selectedClassForMeeting.roomName?.includes("1on1") || selectedClassForMeeting.roomName?.includes("1to1") || selectedClassForMeeting.title?.startsWith("1-on-1") || !!selectedClassForMeeting.isOneToOne;
+        
+        let isEnded = false;
+        if (isOneToOne) {
+          const session = oneToOneQuery.data?.find(s => s.id === classId);
+          isEnded = session ? (session.status === "completed" || session.status === "cancelled") : false;
+        } else {
+          const session = classesQuery.data?.find(s => s.id === classId) || myClasses.data?.find(s => s.id === classId);
+          isEnded = session ? (session.status === "completed" || session.status === "cancelled") : false;
+        }
+
+        return (
+          <JitsiMeet
+            classId={classId}
+            isOneToOne={isOneToOne}
+            forceClose={isEnded}
           roomName={jitsiRoom}
           jwt={selectedClassForMeeting.jwt}
           onJoin={() => {
@@ -2041,7 +2054,8 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
             if (allocationsQuery.isSuccess) allocationsQuery.refetch();
           }}
         />
-      )}
+        );
+      })()}
 
       {/* Ongoing Class Banner */}
       {(() => {
