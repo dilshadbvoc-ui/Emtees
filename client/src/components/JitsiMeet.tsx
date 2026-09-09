@@ -39,6 +39,7 @@ export default function JitsiMeet({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [bothJoined, setBothJoined] = useState(false);
   const heartbeatCountRef = useRef(0);
+  const handleLeaveRef = useRef<(() => Promise<void>) | null>(null);
 
   const trackHeartbeat = trpc.class.trackOneToOneHeartbeat.useMutation();
 
@@ -337,11 +338,15 @@ export default function JitsiMeet({
             </button>
           )}
           <button
-            onClick={() => {
+            onClick={async () => {
               if (apiRef.current) {
                 apiRef.current.executeCommand("hangup");
               }
-              onClose();
+              if (handleLeaveRef.current) {
+                await handleLeaveRef.current();
+              } else {
+                onClose();
+              }
             }}
             className="text-gray-400 hover:text-white text-xs px-3 py-1.5 rounded border border-gray-600 hover:border-gray-400 transition-colors"
           >
@@ -425,9 +430,11 @@ export default function JitsiMeet({
                 }
                 onClose();
               };
+              handleLeaveRef.current = handleLeave;
 
               externalApi.addEventListener("readyToClose", handleLeave);
               externalApi.addEventListener("videoConferenceLeft", handleLeave);
+              externalApi.addEventListener("videoConferenceDestroyed", handleLeave);
 
               externalApi.addEventListener("videoConferenceJoined", () => {
                 if (onJoin) onJoin();
