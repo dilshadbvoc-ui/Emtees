@@ -1622,7 +1622,9 @@ export const classRouter = createRouter({
       });
       if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
 
-      const updateData: any = {};
+      const updateData: any = {
+        lastHeartbeatAt: new Date(),
+      };
 
       if (input.bothPresent) {
         updateData.actualDuration = sql`COALESCE(${oneToOneSessions.actualDuration}, 0) + 1`;

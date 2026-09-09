@@ -633,13 +633,21 @@ export async function checkExpiryAlerts(): Promise<void> {
 export async function autoEndStaleSessions(): Promise<void> {
   const db = getDb();
   const now = new Date();
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
   const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
 
-  // Find 1-to-1 sessions that have been ongoing for more than 3 hours
+  // Find 1-to-1 sessions that have been ongoing but have no heartbeat for 5 minutes, 
+  // or have been ongoing for more than 3 hours (fallback)
   const staleSessions = await db.query.oneToOneSessions.findMany({
     where: and(
       eq(oneToOneSessions.status, "ongoing"),
-      lte(oneToOneSessions.startedAt, threeHoursAgo)
+      or(
+        and(
+          isNotNull(oneToOneSessions.lastHeartbeatAt),
+          lte(oneToOneSessions.lastHeartbeatAt, fiveMinutesAgo)
+        ),
+        lte(oneToOneSessions.startedAt, threeHoursAgo)
+      )
     )
   });
 
@@ -667,6 +675,13 @@ export async function autoEndStaleSessions(): Promise<void> {
     // Sync attendance to log the actual class
     const { syncOneToOneAttendance } = await import("../routers/classes");
     await syncOneToOneAttendance(db, session.id);
+
+    // Notify clients that the class was ended
+    const { getIo } = await import("./socketInstance");
+    const io = getIo();
+    if (io) {
+      io.emit("class:updated");
+    }
   }
 }
 

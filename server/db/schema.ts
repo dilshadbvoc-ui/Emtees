@@ -385,6 +385,7 @@ export const oneToOneSessions = pgTable("one_to_one_sessions", {
   validFrom: timestamp("valid_from"),
   validUntil: timestamp("valid_until"),
   completedAt: timestamp("completed_at"),
+  lastHeartbeatAt: timestamp("last_heartbeat_at"),
   recordingUrl: varchar("recording_url", { length: 500 }),
   recordingDeletedAt: timestamp("recording_deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
