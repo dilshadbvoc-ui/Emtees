@@ -1023,6 +1023,7 @@ export const classRouter = createRouter({
         meetingUrl,
         status: "ongoing",
         startedAt: scheduledAt,
+        lastHeartbeatAt: scheduledAt,
         teacherAttendance: "present",
       }).returning({ id: oneToOneSessions.id });
 
@@ -1493,6 +1494,7 @@ export const classRouter = createRouter({
       const updateData: any = {
         status: "ongoing",
         startedAt,
+        lastHeartbeatAt: startedAt,
       };
 
       if (isTeacher) {
@@ -1622,9 +1624,13 @@ export const classRouter = createRouter({
       });
       if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
 
-      const updateData: any = {
-        lastHeartbeatAt: new Date(),
-      };
+      const updateData: any = {};
+      
+      // Only moderators (Teacher/Admin) keep the class alive. 
+      // If they leave, the student's heartbeat should NOT prevent the 5-minute auto-closer.
+      if (ctx.user.role !== "student") {
+        updateData.lastHeartbeatAt = new Date();
+      }
 
       if (input.bothPresent) {
         updateData.actualDuration = sql`COALESCE(${oneToOneSessions.actualDuration}, 0) + 1`;
