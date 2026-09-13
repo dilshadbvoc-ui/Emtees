@@ -32,6 +32,16 @@ import { ClassAllocationForm, ClassAllocationValue } from "@/components/ClassAll
 import { ClassAllocationSummary } from "@/components/ClassAllocationSummary";
 import { ClassBalanceAdjustment } from "@/components/ClassBalanceAdjustment";
 
+function formatTimeStr(timeStr?: string) {
+  if (!timeStr) return "-";
+  const [h, m] = timeStr.split(":");
+  if (!h || !m) return timeStr;
+  const hNum = parseInt(h, 10);
+  const ampm = hNum >= 12 ? "PM" : "AM";
+  const h12 = hNum % 12 || 12;
+  return `${h12.toString().padStart(2, '0')}:${m} ${ampm}`;
+}
+
 export default function StudentsPage() {
   const { user } = useAuth();
   const isAdmin = ["super_admin", "admin", "academic_head"].includes(user?.role || "");
@@ -1544,8 +1554,8 @@ export default function StudentsPage() {
                         {s.name}
                       </button>
                     </TableCell>
-                    <TableCell className="py-4 text-slate-600 text-sm">{s.phone}</TableCell>
-                    <TableCell className="text-xs py-4 space-y-1">
+                    <TableCell className="py-4 text-slate-600 text-sm whitespace-nowrap">{s.phone}</TableCell>
+                    <TableCell className="text-xs py-4 space-y-1 whitespace-nowrap">
                       {isO2O && (s.classAllocation as any)?.oneToOne?.teacherId && (
                         <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 px-1 py-0 shadow-sm font-bold">1v1</Badge> <span className="text-slate-700 font-medium">{getTeacherName((s.classAllocation as any).oneToOne.teacherId)}</span></div>
                       )}
@@ -1554,12 +1564,12 @@ export default function StudentsPage() {
                       )}
                       {(!isO2O || !(s.classAllocation as any)?.oneToOne?.teacherId) && (!isGrp || !(s.classAllocation as any)?.group?.teacherId) && <span className="text-slate-400">-</span>}
                     </TableCell>
-                    <TableCell className="text-xs py-4 space-y-1">
+                    <TableCell className="text-xs py-4 space-y-1 whitespace-nowrap">
                       {isO2O && (s.classAllocation as any)?.oneToOne?.designatedTime && (
-                        <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 px-1 py-0 shadow-sm font-bold">1v1</Badge> <span className="text-slate-700 font-medium font-mono">{(s.classAllocation as any).oneToOne.designatedTime}</span></div>
+                        <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 px-1 py-0 shadow-sm font-bold">1v1</Badge> <span className="text-slate-700 font-medium font-mono">{formatTimeStr((s.classAllocation as any).oneToOne.designatedTime)}</span></div>
                       )}
                       {isGrp && (s.classAllocation as any)?.group?.designatedTime && (
-                        <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 px-1 py-0 shadow-sm font-bold">Grp</Badge> <span className="text-slate-700 font-medium font-mono">{(s.classAllocation as any).group.designatedTime}</span></div>
+                        <div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 px-1 py-0 shadow-sm font-bold">Grp</Badge> <span className="text-slate-700 font-medium font-mono">{formatTimeStr((s.classAllocation as any).group.designatedTime)}</span></div>
                       )}
                       {(!isO2O || !(s.classAllocation as any)?.oneToOne?.designatedTime) && (!isGrp || !(s.classAllocation as any)?.group?.designatedTime) && <span className="text-slate-400">-</span>}
                     </TableCell>
@@ -1606,8 +1616,8 @@ export default function StudentsPage() {
                     </TableCell>
                     <TableCell className="py-4">{getStatusBadge(s.status, s.profile?.completionDate)}</TableCell>
                     <TableCell className="py-4 text-slate-500 text-sm font-medium">{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "-"}</TableCell>
-                    <TableCell className="text-right py-4">
-                      <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <TableCell className="text-right py-4 whitespace-nowrap">
+                      <div className="flex justify-end gap-1.5 transition-opacity">
                         <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg" onClick={() => setDetailsStudentId(s.id)}><Eye className="w-4 h-4" /></Button>
                         {isAdmin && (
                           <>
@@ -1667,6 +1677,10 @@ export default function StudentsPage() {
                   <div className="space-y-2.5 pt-3 border-t border-slate-100 text-sm">
                     <div className="flex justify-between"><span className="text-slate-500">Module:</span> <span className="font-semibold text-slate-800">{s.profile?.course || "-"}</span></div>
                     <div className="flex justify-between"><span className="text-slate-500">Batch:</span> <span className="font-semibold text-slate-800">{s.profile?.batch || <span className="text-amber-600 text-xs bg-amber-50 px-2 rounded-sm border border-amber-100">Waiting for Batch</span>}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">Designated Time:</span> <span className="font-mono font-semibold text-slate-800 text-xs">{
+                      isO2O && (s.classAllocation as any)?.oneToOne?.designatedTime ? formatTimeStr((s.classAllocation as any).oneToOne.designatedTime) :
+                      isGrp && (s.classAllocation as any)?.group?.designatedTime ? formatTimeStr((s.classAllocation as any).group.designatedTime) : "-"
+                    }</span></div>
                     <div className="flex justify-between"><span className="text-slate-500">Total Classes:</span> <span className="font-bold text-slate-800 bg-slate-100 px-2 rounded-full">{totalClasses}</span></div>
                     <div className="flex justify-between"><span className="text-slate-500">Classes Taken:</span> <span className="font-bold text-emerald-700 bg-emerald-50 px-2 rounded-full border border-emerald-100">{classesTaken}</span></div>
                   </div>
