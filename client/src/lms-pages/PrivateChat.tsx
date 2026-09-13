@@ -686,7 +686,7 @@ export default function PrivateChatPage() {
                 <div className="flex justify-between items-baseline mb-0.5">
                   <p className="font-semibold text-sm text-gray-800 truncate">{conv.otherUser.name}</p>
                   <span className="text-[10px] text-gray-400 shrink-0">
-                    {new Date(conv.lastMessageTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(conv.lastMessageTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 truncate">
@@ -852,7 +852,7 @@ export default function PrivateChatPage() {
                       )}
 
                       <p className={`text-[9px] mt-1 text-right ${isSelf ? "text-emerald-100" : "text-gray-400"}`}>
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })}
                       </p>
                     </div>
 

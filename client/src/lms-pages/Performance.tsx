@@ -1279,7 +1279,7 @@ function ReportHistoryDialog({
                           Version {h.version} {h.isLatest ? "(Latest)" : ""}
                         </span>
                         <span className="text-xs text-gray-400">
-                          {new Date(h.createdAt).toLocaleDateString()} {new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(h.createdAt).toLocaleDateString()} {new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-sm">

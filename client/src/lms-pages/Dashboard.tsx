@@ -783,7 +783,7 @@ export default function Dashboard() {
                           <span>Date:</span> {cls.startTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                         </p>
                         <p className="flex items-center gap-1.5 font-mono text-[10px] text-gray-400">
-                          <span>Time:</span> {cls.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({cls.duration || 60} mins)
+                          <span>Time:</span> {cls.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} ({cls.duration || 60} mins)
                         </p>
                       </div>
                     </div>
@@ -1098,7 +1098,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-semibold text-gray-400 block tracking-wider">Scheduled Time</span>
-                  <span className="text-xs font-mono">{selectedClassForDetails.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({selectedClassForDetails.duration || 60} mins)</span>
+                  <span className="text-xs font-mono">{selectedClassForDetails.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} ({selectedClassForDetails.duration || 60} mins)</span>
                 </div>
               </div>
 

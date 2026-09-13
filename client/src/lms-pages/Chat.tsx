@@ -897,7 +897,7 @@ export default function ChatPage() {
                         )}
                         <p className={`text-[10px] mt-0.5 ${isSelf ? "text-emerald-100" : "text-gray-400"}`}>
                           {msg.createdAt
-                            ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                            ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
                             : ""}
                         </p>
                       </div>

@@ -3100,7 +3100,7 @@ export default function StudentsPage() {
                           }`}>
                             <div className="flex justify-between items-center gap-6 mb-1 text-[10px] opacity-75 font-semibold">
                               <span>{isOutgoing ? "Admin/Staff" : msg.sender?.name}</span>
-                              <span className="font-mono">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              <span className="font-mono">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                             </div>
                             <p>{msg.content}</p>
                           </div>

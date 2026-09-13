@@ -3223,7 +3223,7 @@ export default function ReportsPage() {
 
                       const mappedCell = {
                         date: a.recordedAt ? new Date(a.recordedAt).toLocaleDateString() : "-",
-                        time: a.recordedAt ? new Date(a.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-",
+                        time: a.recordedAt ? new Date(a.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "-",
                         classType: a.sessionType || (a.class?.classType) || "group",
                         duration: a.duration || a.class?.duration || 0,
                         studentName: user.name,

@@ -758,10 +758,10 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                             <>
                               {new Date(cls.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                               <br />
-                              {new Date(cls.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} - {(() => {
+                              {new Date(cls.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })} - {(() => {
                                 const d = new Date(cls.scheduledAt);
                                 d.setMinutes(d.getMinutes() + (cls.duration || 60));
-                                return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                                return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
                               })()}
                             </>
                           ) : "-"}
@@ -875,10 +875,10 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                                             </Badge>
                                           </TableCell>
                                           <TableCell className="py-2 text-xs text-gray-600">
-                                            {record.joinedAt ? new Date(record.joinedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "-"}
+                                            {record.joinedAt ? new Date(record.joinedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : "-"}
                                           </TableCell>
                                           <TableCell className="py-2 text-xs text-gray-600">
-                                            {record.leftAt ? new Date(record.leftAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "-"}
+                                            {record.leftAt ? new Date(record.leftAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : "-"}
                                           </TableCell>
                                           <TableCell className="py-2 text-center text-xs text-gray-600">
                                             {record.duration ? `${Math.round(record.duration / 60)} min` : "-"}
@@ -1168,7 +1168,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                     <div>{s.title || "1-to-1 Session"}</div>
                     {s.status === "completed" && (
                       <div className="text-[11px] text-gray-500 mt-2 space-y-1 border-t pt-2 max-w-xs leading-relaxed font-normal">
-                        <div>⏱️ <b>Actual:</b> {s.startedAt ? `${new Date(s.startedAt).toLocaleDateString()}, ${new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "-"} - {s.endedAt ? new Date(s.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}</div>
+                        <div>⏱️ <b>Actual:</b> {s.startedAt ? `${new Date(s.startedAt).toLocaleDateString()}, ${new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}` : "-"} - {s.endedAt ? new Date(s.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "-"}</div>
                         <div>⏳ <b>Conducted:</b> {s.actualDuration !== null ? `${s.actualDuration} min` : "-"}</div>
                         <div className="flex flex-col gap-1 mt-1.5 text-[10px]">
                           <span className="flex items-center gap-1.5">
@@ -1203,10 +1203,10 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                       <>
                         <div className="font-semibold">{new Date(s.scheduledAt).toLocaleDateString()}</div>
                         <div className="text-gray-400 mt-0.5">
-                          {new Date(s.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} - {(() => {
+                          {new Date(s.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })} - {(() => {
                             const d = new Date(s.scheduledAt);
                             d.setMinutes(d.getMinutes() + (s.sessionLength || 30));
-                            return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                            return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
                           })()}
                         </div>
                       </>
@@ -1436,7 +1436,7 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                             <>
                               {new Date(demo.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                               <br />
-                              {new Date(demo.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(demo.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </>
                           ) : (
                             new Date(demo.createdAt).toLocaleDateString()
@@ -1558,11 +1558,11 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                   {paginatedUpcoming.map((cls) => {
                     const sDate = new Date(cls.scheduledAt);
                     const dateStr = sDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                    const startTimeStr = sDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                    const startTimeStr = sDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
                     const endTimeStr = (() => {
                       const d = new Date(sDate.getTime());
                       d.setMinutes(d.getMinutes() + (cls.duration || cls.sessionLength || 60));
-                      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
                     })();
 
                     const courseName = cls.batch?.module?.name || cls.batches?.[0]?.module?.name || cls.student?.profile?.course || "-";
@@ -1601,11 +1601,11 @@ export default function ClassesPage({ type }: { type?: "group" | "one-to-one" | 
                 {paginatedUpcoming.map((cls) => {
                   const sDate = new Date(cls.scheduledAt);
                   const dateStr = sDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                  const startTimeStr = sDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                  const startTimeStr = sDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
                   const endTimeStr = (() => {
                     const d = new Date(sDate.getTime());
                     d.setMinutes(d.getMinutes() + (cls.duration || cls.sessionLength || 60));
-                    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
                   })();
 
                   const courseName = cls.batch?.module?.name || cls.batches?.[0]?.module?.name || cls.student?.profile?.course || "-";
